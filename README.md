@@ -78,7 +78,22 @@ docker --version
 
 ---
 
-### 1. Start PostgreSQL (Docker)
+### 1. Setup Environment Variables
+
+Create a .env file in the project root (HomeMatch/) based on the provided template:
+
+```bash
+cp .env.example .env
+```
+
+Then edit .env if necessary:
+
+```
+DB_USERNAME=postgres
+DB_PASSWORD=postgres
+```
+
+### 2. Start PostgreSQL (Docker)
 
 From the project root directory:
 
@@ -112,20 +127,7 @@ To completely reset the database (including stored data):
 docker-compose down -v
 ```
 
-### 2. Database Configuration
-
-Create a .env file in the project root (HomeMatch/) based on the provided template:
-
-```bash
-cp .env.example .env
-```
-
-Then edit .env if necessary:
-
-```
-DB_USERNAME=postgres
-DB_PASSWORD=postgres
-```
+### 3. Database Configuration
 
 The backend connects to PostgreSQL using the following configuration:
 
@@ -142,7 +144,7 @@ These values can be configured in:
 - Environment variables
 - IDE run configuration
 
-### 3. Run the Backend
+### 4. Run the Backend
 
 From the project root:
 
@@ -164,7 +166,7 @@ By default, the backend will start on:
 http://localhost:8080
 ```
 
-### 4. Verify Startup
+### 5. Verify Startup
 
 On successful startup, you should see logs similar to:
 
