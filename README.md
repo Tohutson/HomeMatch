@@ -116,7 +116,7 @@ This will:
 
 - Pull the PostgreSQL image (if not already downloaded)
 - Start the database container
-- Expose PostgreSQL on port `5432`
+- Expose PostgreSQL on port `5433`
 
 To confirm the container is running:
 
@@ -143,7 +143,7 @@ docker-compose down -v
 The backend connects to PostgreSQL using the following configuration:
 
 ```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/homefinder
+spring.datasource.url=jdbc:postgresql://localhost:5433/homefinder
 spring.datasource.username=${DB_USERNAME}
 spring.datasource.password=${DB_PASSWORD}
 spring.jpa.hibernate.ddl-auto=update
@@ -191,7 +191,7 @@ If `spring.jpa.hibernate.ddl-auto=update` is enabled, database tables will be cr
 
 ### Troubleshooting
 
-#### Port 5432 Already in Use
+#### Port 5433 Already in Use
 
 Another PostgreSQL instance may be running locally.
 Stop the local instance or change the Docker port mapping.
@@ -202,4 +202,4 @@ Ensure:
 
 - Docker container is running (`docker ps`)
 - Database credentials are set in environment variables
-- Port 5432 is not blocked
+- Port 5433 is not blocked
