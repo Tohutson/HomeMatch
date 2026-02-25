@@ -174,7 +174,7 @@ Alternatively, run the application directly from your IDE.
 By default, the backend will start on:
 
 ```text
-http://localhost:8080
+http://localhost:8081
 ```
 
 ### 5. Verify Startup
