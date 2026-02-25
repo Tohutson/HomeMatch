@@ -80,18 +80,29 @@ docker --version
 
 ### 1. Setup Environment Variables
 
-Create a .env file in the project root (HomeMatch/) based on the provided template:
+macOS / Linux (temporary for current terminal session)
 
 ```bash
-cp .env.example .env
+export DB_USERNAME=homefinder
+export DB_PASSWORD=supersecret
 ```
 
-Then edit .env if necessary:
+Then run your app in the same terminal session.
 
+Windows (PowerShell, temporary)
+
+```powershell
+$env:DB_USERNAME="homefinder"
+$env:DB_PASSWORD="supersecret"
 ```
-DB_USERNAME=postgres
-DB_PASSWORD=postgres
-```
+
+#### Notes
+
+These environment variables are temporary — they last only for the current terminal session.
+
+To make them permanent, add them to your shell profile (~/.bashrc, ~/.zshrc, or Windows environment variables).
+
+Always set these before starting Docker containers or running the backend.
 
 ### 2. Start PostgreSQL (Docker)
 
