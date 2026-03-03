@@ -1,9 +1,18 @@
+server:
+  port: 8081
 spring:
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
-
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  endpoint:
+    health:
+      show-details: always
   jpa:
     hibernate:
       ddl-auto: create-drop
