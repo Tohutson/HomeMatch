@@ -138,22 +138,28 @@ To completely reset the database (including stored data):
 docker-compose down -v
 ```
 
-### 3. Database Configuration
+### 3. Database Configuration (Dev Profile)
 
-The backend connects to PostgreSQL using the following configuration:
+The backend connects to PostgreSQL using the dev profile (application-dev.yml) with environment variables:
 
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5433/homefinder
-spring.datasource.username=${DB_USERNAME}
-spring.datasource.password=${DB_PASSWORD}
-spring.jpa.hibernate.ddl-auto=update
+```yml
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/homefinder
+    username: ${DB_USERNAME:homefinder} # fallback to 'homefinder' if env var not set
+    password: ${DB_PASSWORD:supersecret} # fallback to 'supersecret' if env var not set
+  jpa:
+    hibernate:
+      ddl-auto: update
 ```
 
-These values can be configured in:
+Notes:
 
-- `application.yml` or `application.properties`
-- Environment variables
-- IDE run configuration
+Using ${DB_USERNAME} and ${DB_PASSWORD} ensures Docker and your local dev environment use the same credentials.
+
+You can still override them via environment variables if needed.
+
+IDE run configurations can also set spring.profiles.active=dev to pick up this file automatically.
 
 ### 4. Run the Backend
 
@@ -163,10 +169,10 @@ From the project root:
 cd backend
 ```
 
-Then start the application:
+Start the application with the dev profile:
 
 ```bash
-mvn spring-boot:run
+mvn spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
 Alternatively, run the application directly from your IDE.
