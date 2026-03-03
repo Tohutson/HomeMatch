@@ -146,8 +146,8 @@ The backend connects to PostgreSQL using the dev profile (application-dev.yml) w
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5433/homefinder
-    username: ${DB_USERNAME:homefinder} # fallback to 'homefinder' if env var not set
-    password: ${DB_PASSWORD:supersecret} # fallback to 'supersecret' if env var not set
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
   jpa:
     hibernate:
       ddl-auto: update
@@ -155,7 +155,7 @@ spring:
 
 Notes:
 
-Using ${DB_USERNAME} and ${DB_PASSWORD} ensures Docker and your local dev environment use the same credentials.
+Using `${DB_USERNAME}` and `${DB_PASSWORD}` ensures Docker and your local dev environment use the same credentials.
 
 You can still override them via environment variables if needed.
 
