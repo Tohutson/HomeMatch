@@ -38,10 +38,31 @@ class PropertyControllerTest {
     void getProperties_returnsPaginatedResults() throws Exception {
 
         // --- Arrange ---
-        List<PropertyDTO> properties = List.of(
-                new PropertyDTO(),
-                new PropertyDTO()
-        );
+        PropertyDTO dto1 = PropertyDTO.builder()
+                .id(1L)
+                .address("123 Main St")
+                .zipCode("15213")
+                .price(250000.0)
+                .bedrooms(3)
+                .bathrooms(2.5)
+                .squareFootage(1800)
+                .yearBuilt(1995)
+                .energyRating('B')
+                .build();
+
+        PropertyDTO dto2 = PropertyDTO.builder()
+                .id(2L)
+                .address("170 Pine Ct")
+                .zipCode("15210")
+                .price(350000.0)
+                .bedrooms(5)
+                .bathrooms(2.5)
+                .squareFootage(2500)
+                .yearBuilt(2004)
+                .energyRating('A')
+                .build();
+
+        List<PropertyDTO> properties = List.of(dto1, dto2);
 
         Page<PropertyDTO> page = new PageImpl<>(
                 properties,
