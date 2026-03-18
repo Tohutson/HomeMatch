@@ -1,5 +1,7 @@
-package com.propertystack.homematch.controllers;
+package com.propertystack.homematch.controller;
 
+import com.propertystack.homematch.dto.PropertyDTO;
+import com.propertystack.homematch.service.PropertyService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -21,6 +23,8 @@ import org.springframework.data.domain.Pageable;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 @WebMvcTest(PropertyController.class)
 class PropertyControllerTest {
 
@@ -35,8 +39,8 @@ class PropertyControllerTest {
 
         // --- Arrange ---
         List<PropertyDTO> properties = List.of(
-                new PropertyDTO(1L, "House 1"),
-                new PropertyDTO(2L, "House 2")
+                new PropertyDTO(),
+                new PropertyDTO()
         );
 
         Page<PropertyDTO> page = new PageImpl<>(
