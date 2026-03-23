@@ -10,6 +10,10 @@ import jakarta.persistence.Table;
 @Entity
 @Table(name = "listings")
 public class Listing {
+    
+    // JPA spec requires a no-arg constructor with protected or public access
+    protected Listing() {
+    }
 
     @Id
     private Long id;
