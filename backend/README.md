@@ -4,7 +4,7 @@ Spring Boot backend for HomeMatch, connected to a shared Supabase PostgreSQL dat
 
 ## Prerequisites
 
-- JDK 22+
+- JDK 25+
 - Git
 
 Check Java version:
