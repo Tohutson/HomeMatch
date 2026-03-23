@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/properties")
+@RequestMapping("/api/listings")
 public class ListingController {
 
     private final ListingRepository listingRepository;
@@ -38,7 +38,7 @@ public class ListingController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Listing> getPropertyById(@PathVariable Long id) {
+    public ResponseEntity<Listing> getListingById(@PathVariable Long id) {
         return listingRepository.findById(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());

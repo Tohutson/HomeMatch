@@ -62,12 +62,12 @@ http://localhost:8081
 
 | Method | Path | Description |
 |---|---|---|
-| GET | `/api/properties` | List properties with optional filters |
-| GET | `/api/properties/{id}` | Get one property by id |
+| GET | `/api/listings` | List listings with optional filters |
+| GET | `/api/listings/{id}` | Get one listing by id |
 
-### GET `/api/properties`
+### GET `/api/listings`
 
-Returns a JSON array of properties.
+Returns a JSON array of listings.
 
 Query parameters:
 
@@ -79,34 +79,34 @@ Query parameters:
 PowerShell example:
 
 ```powershell
-Invoke-RestMethod -Method GET -Uri "http://localhost:8081/api/properties?limit=20&maxPrice=350000&minBeds=3&minBaths=2.0"
+Invoke-RestMethod -Method GET -Uri "http://localhost:8081/api/listings?limit=20&maxPrice=350000&minBeds=3&minBaths=2.0"
 ```
 
 macOS / Linux example:
 
 ```bash
-curl "http://localhost:8081/api/properties?limit=20&maxPrice=350000&minBeds=3&minBaths=2.0"
+curl "http://localhost:8081/api/listings?limit=20&maxPrice=350000&minBeds=3&minBaths=2.0"
 ```
 
-### GET `/api/properties/{id}`
+### GET `/api/listings/{id}`
 
-Returns one property JSON object when found.
+Returns one listing JSON object when found.
 
 PowerShell example:
 
 ```powershell
-Invoke-RestMethod -Method GET -Uri "http://localhost:8081/api/properties/1"
+Invoke-RestMethod -Method GET -Uri "http://localhost:8081/api/listings/1"
 ```
 
 macOS / Linux example:
 
 ```bash
-curl "http://localhost:8081/api/properties/1"
+curl "http://localhost:8081/api/listings/1"
 ```
 
 ### Response Model
 
-Each property object includes:
+Each listing object includes:
 
 - `id` number
 - `address` string
@@ -144,10 +144,10 @@ Example response item:
 
 ### Create Table In Supabase
 
-The backend entity maps to table `properties`.
+The backend entity maps to table `listings`.
 
 ```sql
-CREATE TABLE properties (
+CREATE TABLE listings (
   id BIGINT PRIMARY KEY,
   address TEXT NOT NULL,
   price NUMERIC,
