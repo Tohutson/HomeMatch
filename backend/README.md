@@ -144,10 +144,10 @@ Example response item:
 
 ### Create Table In Supabase
 
-The backend entity maps to table `properties`.
+The backend entity maps to table `listings`.
 
 ```sql
-CREATE TABLE properties (
+CREATE TABLE listings (
   id BIGINT PRIMARY KEY,
   address TEXT NOT NULL,
   price NUMERIC,
