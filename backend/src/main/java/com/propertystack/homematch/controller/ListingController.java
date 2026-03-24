@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.propertystack.homematch.model.Listing;
 
 @RestController
-@RequestMapping("/api/properties")
+@RequestMapping("/api/listings")
 public class ListingController {
 
     private final ListingRepository listingRepository;
@@ -40,8 +40,8 @@ public class ListingController {
             PageRequest.of(0, boundedLimit, Sort.by(Sort.Direction.ASC, "price")));
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Listing> getPropertyById(@PathVariable Long id) {
+    @GetMapping("/api/listings/{id}")
+    public ResponseEntity<Listing> getListingById(@PathVariable Long id) {
         return listingRepository.findById(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
