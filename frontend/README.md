@@ -1,24 +1,47 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## Getting Started
+## Running the Frontend (Local Development)
 
-First, run the development server:
+### 1. Install Volta (if not already installed)
+
+Volta ensures the correct Node version is used automatically:
+**Mac / Linux**
+
+```bash
+curl https://get.volta.sh | bash
+```
+
+**Windows (using Winget)**
+
+```powershell
+winget install Volta.Volta
+```
+
+- After installation, restart your terminal or PowerShell.
+- Volta will automatically use the Node version pinned in the repo.
+
+### 2. Clone the repository (if not done yet)
+
+```bash
+git clone https://github.com/Tohutson/HomeMatch.git
+cd HomeMatch/frontend
+```
+
+### 3. Install dependencies
+
+Volta will automatically use the pinned Node version from the repo:
+
+```bash
+npm install
+```
+
+### 4. Start the development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The app will be running at [http://localhost:3000](http://localhost:3000).
 
 ## Learn More
 
