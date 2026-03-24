@@ -1,3 +1,13 @@
 spring:
   application:
     name: homematch
+
+  profiles:
+    default: dev
+
+  config:
+    import: optional:file:.env[.properties],optional:file:../.env[.properties]
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
