@@ -1,10 +1,16 @@
 server:
   port: 8081
+
 spring:
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: ${SPRING_DATASOURCE_URL:${DB_URL}}
+    username: ${SPRING_DATASOURCE_USERNAME:${DB_USERNAME}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD}}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
 management:
   endpoints:
     web:
@@ -13,6 +19,3 @@ management:
   endpoint:
     health:
       show-details: always
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
