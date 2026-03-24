@@ -18,7 +18,8 @@ Verify installations:
 ```bash
 java --version
 mvn --version
-docker --version
+git --version
+volta --version
 ```
 
 ---
