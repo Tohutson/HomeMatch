@@ -1,4 +1,4 @@
-package com.propertystack.homematch.listing;
+package com.propertystack.homematch.repository;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -7,6 +7,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import com.propertystack.homematch.model.Listing;
 
 public interface ListingRepository extends JpaRepository<Listing, Long> {
 
