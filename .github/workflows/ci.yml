@@ -42,10 +42,12 @@ jobs:
       - name: Build and test backend
         env:
           SPRING_PROFILES_ACTIVE: test
-          DB_URL: jdbc:postgresql://localhost:5432/homefinder
-          DB_USERNAME: postgres
-          DB_PASSWORD: postgres
-        run: ./mvnw clean verify
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/homefinder
+          SPRING_DATASOURCE_USERNAME: postgres
+          SPRING_DATASOURCE_PASSWORD: postgres
+          LOGGING_LEVEL_ORG_FLYWAYDB: INFO
+          LOGGING_LEVEL_ORG_SPRINGFRAMEWORK: WARN
+        run: ./mvnw -B -q clean verify
 
   frontend:
     runs-on: ubuntu-latest
