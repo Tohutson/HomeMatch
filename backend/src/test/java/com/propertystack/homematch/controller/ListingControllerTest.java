@@ -1,67 +1,168 @@
 package com.propertystack.homematch.controller;
 
+import com.propertystack.homematch.dto.ListingDTO;
+import com.propertystack.homematch.service.ListingService;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-// @WebMvcTest(PropertyController.class)
+@WebMvcTest(ListingController.class)
 class ListingControllerTest {
-/*
     @Autowired
     private MockMvc mockMvc;
 
     @MockitoBean
-    private ListingService propertyService;
+    private ListingService listingService;
+
+    // -------------------------------
+    // GET /api/listings
+    // -------------------------------
 
     @Test
-    void getProperties_returnsPaginatedResults() throws Exception {
-
-        // --- Arrange ---
-        ListingDTO dto1 = ListingDTO.builder()
+    void shouldReturnPaginatedListings() throws Exception {
+        ListingDTO dto = ListingDTO.builder()
                 .id(1L)
-                .address("123 Main St")
-                .zipCode("15213")
-                .price(250000.0)
-                .bedrooms(3)
-                .bathrooms(2.5)
-                .squareFootage(1800)
-                .yearBuilt(1995)
-                .energyRating('B')
+                .address("30 Pitt St")
+                .price(new BigDecimal("250000"))
+                .sqft(2250)
+                .beds(3)
+                .baths(1.5)
+                .listingUrl("http://example.com")
+                .photoUrls(List.of(
+                        "url1.jpg",
+                        "url2.jpg"
+                ))
                 .build();
-
-        ListingDTO dto2 = ListingDTO.builder()
-                .id(2L)
-                .address("170 Pine Ct")
-                .zipCode("15210")
-                .price(350000.0)
-                .bedrooms(5)
-                .bathrooms(2.5)
-                .squareFootage(2500)
-                .yearBuilt(2004)
-                .energyRating('A')
-                .build();
-
-        List<ListingDTO> properties = List.of(dto1, dto2);
 
         Page<ListingDTO> page = new PageImpl<>(
-                properties,
+                List.of(dto),
                 PageRequest.of(0, 20),
-                2
+                1
         );
 
-        when(propertyService.getProperties(any(Pageable.class)))
-                .thenReturn(page);
+        when(listingService.getListings(any(), any())).thenReturn(page);
 
-        // --- Act + Assert ---
-        mockMvc.perform(get("/properties"))
+        mockMvc.perform(get("/api/listings")
+                        .param("page", "0")
+                        .param("size", "20"))
                 .andExpect(status().isOk())
+
+                // Page structure
                 .andExpect(jsonPath("$.content").isArray())
-                .andExpect(jsonPath("$.content.length()").value(2))
-                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.totalPages").value(1))
-                .andExpect(jsonPath("$.size").value(20))
-                .andExpect(jsonPath("$.number").value(0));
-    }*/
+                .andExpect(jsonPath("$.number").value(0))
+
+                // DTO fields
+                .andExpect(jsonPath("$.content[0].id").value(1))
+                .andExpect(jsonPath("$.content[0].address").value("30 Pitt St"))
+                .andExpect(jsonPath("$.content[0].price").value(250000))
+                .andExpect(jsonPath("$.content[0].sqft").value(2250))
+                .andExpect(jsonPath("$.content[0].beds").value(3))
+                .andExpect(jsonPath("$.content[0].baths").value(1.5))
+
+                // Photo list
+                .andExpect(jsonPath("$.content[0].photoUrls").isArray())
+                .andExpect(jsonPath("$.content[0].photoUrls[0]").value("url1.jpg"))
+                .andExpect(jsonPath("$.content[0].photoUrls[1]").value("url2.jpg"));
+    }
+
+    @Test
+    void shouldApplyFiltersCorrectly() throws Exception {
+        Page<ListingDTO> emptyPage = Page.empty();
+
+        when(listingService.getListings(any(), any())).thenReturn(emptyPage);
+
+        mockMvc.perform(get("/api/listings")
+                        .param("minPrice", "100000")
+                        .param("maxPrice", "500000")
+                        .param("minBeds", "2")
+                        .param("minBaths", "2")
+                        .param("minSqft", "1000"))
+                .andExpect(status().isOk());
+
+        // Filter logic verified in ListingServiceTest
+    }
+
+    @Test
+    void shouldReturnEmptyPageWhenNoListingsFound() throws Exception {
+        when(listingService.getListings(any(), any())).thenReturn(Page.empty());
+
+        mockMvc.perform(get("/api/listings"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isEmpty());
+    }
+
+    @Test
+    void shouldReturnBadRequestForInvalidPagination() throws Exception {
+        mockMvc.perform(get("/api/listings")
+                .param("page", "-1"))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(get("/api/listings")
+                .param("size", "0"))
+                .andExpect(status().isBadRequest());
+    }
+
+    // -------------------------------
+    // GET /api/listings{id}
+    // -------------------------------
+
+    @Test
+    void shouldReturnListingById() throws Exception {
+        ListingDTO dto = ListingDTO.builder()
+                .id(1L)
+                .address("30 Pitt St")
+                .price(new BigDecimal("250000"))
+                .sqft(2250)
+                .beds(3)
+                .baths(1.5)
+                .listingUrl("http://example.com")
+                .photoUrls(List.of(
+                        "url1.jpg",
+                        "url2.jpg"
+                ))
+                .build();
+
+        when(listingService.getListingsById(1L))
+                .thenReturn(Optional.of(dto));
+
+        mockMvc.perform(get("/api/listings/1"))
+                .andExpect(status().isOk())
+                // DTO fields
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.address").value("30 Pitt St"))
+                .andExpect(jsonPath("$.price").value(250000))
+                .andExpect(jsonPath("$.sqft").value(2250))
+                .andExpect(jsonPath("$.beds").value(3))
+                .andExpect(jsonPath("$.baths").value(1.5))
+                .andExpect(jsonPath("$.listingUrl").value("http://example.com"))
+                // Photo list
+                .andExpect(jsonPath("$.photoUrls").isArray())
+                .andExpect(jsonPath("$.photoUrls[0]").value("url1.jpg"))
+                .andExpect(jsonPath("$.photoUrls[1]").value("url2.jpg"));
+    }
+
+    @Test
+    void shouldReturn404WhenListingNotFound() throws Exception {
+        when(listingService.getListingsById(999L)).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/listings/999"))
+                .andExpect(status().isNotFound());
+    }
 }
