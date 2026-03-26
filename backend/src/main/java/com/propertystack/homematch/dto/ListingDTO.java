@@ -1,6 +1,7 @@
 package com.propertystack.homematch.dto;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import lombok.Builder;
 import lombok.Value;
@@ -18,11 +19,5 @@ public class ListingDTO {
 
     String listingUrl;
 
-    String photo1;
-    String photo2;
-    String photo3;
-    String photo4;
-    String photo5;
-
-    String allPhotoUrls;
+    List<String> photoUrls;
 }
