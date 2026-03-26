@@ -12,9 +12,9 @@ public class ListingDTO {
     Long id;
     String address;
     BigDecimal price;
-    BigDecimal sqft;
+    Integer sqft;
     Integer beds;
-    BigDecimal baths;
+    Double baths;
 
     String listingUrl;
 
