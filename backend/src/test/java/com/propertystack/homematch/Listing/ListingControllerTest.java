@@ -137,7 +137,7 @@ class ListingControllerTest {
                 ))
                 .build();
 
-        when(listingService.getListingsById(1L))
+        when(listingService.getListingById(1L))
                 .thenReturn(Optional.of(dto));
 
         mockMvc.perform(get("/api/listings/1"))
@@ -158,7 +158,7 @@ class ListingControllerTest {
 
     @Test
     void shouldReturn404WhenListingNotFound() throws Exception {
-        when(listingService.getListingsById(999L)).thenReturn(Optional.empty());
+        when(listingService.getListingById(999L)).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/api/listings/999"))
                 .andExpect(status().isNotFound());
