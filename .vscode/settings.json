@@ -1,0 +1,13 @@
+{
+    "java.configuration.runtimes": [
+        {
+            "name": "JavaSE-25",
+            "path": "/Library/Java/JavaVirtualMachines/jdk-25.jdk/Contents/Home",
+            "default": true
+        }
+    ],
+    "terminal.integrated.env.osx": {
+        "JAVA_HOME": "/Library/Java/JavaVirtualMachines/jdk-25.jdk/Contents/Home",
+        "PATH": "/Library/Java/JavaVirtualMachines/jdk-25.jdk/Contents/Home/bin:${env:PATH}"
+    }
+}
