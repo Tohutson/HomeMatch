@@ -1,4 +1,4 @@
-package com.propertystack.homematch.service;
+package com.propertystack.homematch.Listing;
 
 import org.junit.jupiter.api.extension.ExtendWith;
 

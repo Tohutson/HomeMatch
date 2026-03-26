@@ -1,7 +1,5 @@
-package com.propertystack.homematch.controller;
+package com.propertystack.homematch.Listing;
 
-import com.propertystack.homematch.dto.ListingDTO;
-import com.propertystack.homematch.service.ListingService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
