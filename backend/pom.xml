@@ -73,6 +73,7 @@
 			<artifactId>lombok</artifactId>
 			<version>1.18.44</version>
 			<scope>compile</scope>
+		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-flyway -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
