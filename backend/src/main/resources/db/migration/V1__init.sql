@@ -1,15 +1,10 @@
 CREATE TABLE listings (
-  id BIGINT PRIMARY KEY,
+  id INTEGER PRIMARY KEY,
   address TEXT NOT NULL,
-  price NUMERIC,
-  sqft NUMERIC,
+  price INTEGER,
+  sqft INTEGER,
   beds INTEGER,
-  baths NUMERIC,
+  baths DOUBLE PRECISION,
   listing_url TEXT,
-  photo_1 TEXT,
-  photo_2 TEXT,
-  photo_3 TEXT,
-  photo_4 TEXT,
-  photo_5 TEXT,
   all_photo_urls TEXT
 );
