@@ -40,7 +40,7 @@ class ListingServiceTest {
         // given
         ListingFilter filter = new ListingFilter(
                 new BigDecimal("100000"), new BigDecimal("500000"),
-                2, 2.0, 1000
+                2, new BigDecimal("2.0"), 1000
         );
         Pageable pageable = PageRequest.of(0, 20);
         when(repository.findAll(any(Specification.class), any(Pageable.class)))
@@ -66,7 +66,7 @@ class ListingServiceTest {
                 .price(new BigDecimal("250000"))
                 .sqft(2250)
                 .beds(3)
-                .baths(1.5)
+                .baths(new BigDecimal("1.5"))
                 .listingUrl("http://example.com")
                 .photoUrls(List.of("url1.jpg", "url2.jpg"))
                 .build();

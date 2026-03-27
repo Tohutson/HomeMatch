@@ -6,7 +6,7 @@ public record ListingFilter (
     BigDecimal minPrice,
     BigDecimal maxPrice,
     Integer minBeds,
-    Double minBaths,
+    BigDecimal  minBaths,
     Integer minSqft
 ) {
 
