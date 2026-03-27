@@ -26,6 +26,9 @@ class ListingServiceTest {
     @Mock
     private ListingRepository repository;
 
+    @Mock
+    private ListingMapper listingMapper;
+
     @InjectMocks
     private ListingService service;
 
@@ -70,6 +73,17 @@ class ListingServiceTest {
                 .listingUrl("http://example.com")
                 .photoUrls(List.of("url1.jpg", "url2.jpg"))
                 .build();
+        
+        ListingDTO dto = ListingDTO.builder()
+                .id(1L)
+                .address("30 Pitt St")
+                .price(new BigDecimal("250000"))
+                .sqft(2250)
+                .beds(3)
+                .baths(new BigDecimal("1.5"))
+                .listingUrl("http://example.com")
+                .photoUrls(List.of("url1.jpg", "url2.jpg"))
+                .build();
 
         PageImpl<Listing> pageFromRepo = new PageImpl<>(List.of(listing));
         ListingFilter filter = new ListingFilter(null, null, null, null, null);
@@ -78,6 +92,8 @@ class ListingServiceTest {
         when(repository.findAll(any(Specification.class), any(Pageable.class)))
                 .thenReturn(pageFromRepo);
 
+        when(listingMapper.toDTO(any(Listing.class))).thenReturn(dto);
+        
         // when
         Page<ListingDTO> result = service.getListings(filter, pageable);
 
