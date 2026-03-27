@@ -9,13 +9,12 @@ import lombok.Value;
 @Value
 @Builder
 public class ListingDTO {
-
     Long id;
     String address;
     BigDecimal price;
     Integer sqft;
     Integer beds;
-    BigDecimal baths;
+    Double baths;
 
     String listingUrl;
 

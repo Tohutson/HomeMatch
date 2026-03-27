@@ -18,7 +18,6 @@ public class ListingService {
     }
 
     public Page<ListingDTO> getListings(ListingFilter filter, Pageable pageable) {
-
         return listingRepository.findAll(
                 ListingSpecification.fromFilter(filter), pageable)
                 .map(listingMapper::toDTO);

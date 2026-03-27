@@ -2,7 +2,6 @@ package com.propertystack.homematch.Listing;
 
 import com.propertystack.homematch.persistence.converter.PhotoUrlListConverter;
 import jakarta.persistence.*;
-
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -33,13 +32,13 @@ public class Listing {
     @Column(name = "beds")
     private Integer beds;
 
-    @Column(name = "baths", precision = 3, scale = 1)
-    private BigDecimal baths;
+    @Column(name = "baths")
+    private Double baths;
 
     @Column(name = "listing_url", columnDefinition = "text")
     private String listingUrl;
 
-    @Column(name = "listing_photos", columnDefinition = "text")
+    @Column(name = "all_photo_urls", columnDefinition = "text")
     @Convert(converter = PhotoUrlListConverter.class)
     private List<String> photoUrls;
 }

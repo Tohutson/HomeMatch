@@ -30,7 +30,7 @@ public class ListingSpecification {
                 minBeds == null ? null : cb.greaterThanOrEqualTo(root.get("beds"), minBeds);
     }
 
-    private static Specification<Listing> minBaths(BigDecimal minBaths) {
+    private static Specification<Listing> minBaths(Double minBaths) {
         return (root, query, cb) ->
                 minBaths == null ? null : cb.greaterThanOrEqualTo(root.get("baths"), minBaths);
     }
