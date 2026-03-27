@@ -15,7 +15,7 @@ public class ListingDTO {
     BigDecimal price;
     Integer sqft;
     Integer beds;
-    Double baths;
+    BigDecimal baths;
 
     String listingUrl;
 
