@@ -1,15 +1,10 @@
-CREATE TABLE listings (
-  id BIGINT PRIMARY KEY,
-  address TEXT NOT NULL,
-  price NUMERIC,
-  sqft NUMERIC,
-  beds INTEGER,
-  baths NUMERIC,
-  listing_url TEXT,
-  photo_1 TEXT,
-  photo_2 TEXT,
-  photo_3 TEXT,
-  photo_4 TEXT,
-  photo_5 TEXT,
-  all_photo_urls TEXT
+CREATE TABLE IF NOT EXISTS listings (
+  id             BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  address        TEXT NOT NULL,
+  price          NUMERIC(12, 2),
+  sqft           INTEGER,
+  beds           INTEGER,
+  baths          NUMERIC(3, 1),
+  listing_url    TEXT,
+  listing_photos TEXT
 );
