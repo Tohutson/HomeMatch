@@ -1,10 +1,12 @@
 package com.propertystack.homematch.Listing;
 
-import java.math.BigDecimal;
-
+import com.propertystack.homematch.persistence.converter.PhotoUrlListConverter;
 import jakarta.persistence.*;
 
 import lombok.*;
+
+import java.math.BigDecimal;
+import java.util.List;
 
 @Entity
 @Table(name = "listings")
@@ -16,38 +18,28 @@ import lombok.*;
 public class Listing {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(name = "address", nullable = false)
     private String address;
 
-    @Column(precision = 12, scale = 2)
+    @Column(name = "price", precision = 12, scale = 2)
     private BigDecimal price;
 
-    private BigDecimal sqft;
+    @Column(name = "sqft")
+    private Integer sqft;
 
+    @Column(name = "beds")
     private Integer beds;
 
+    @Column(name = "baths", precision = 3, scale = 1)
     private BigDecimal baths;
 
     @Column(name = "listing_url", columnDefinition = "text")
     private String listingUrl;
 
-    @Column(name = "photo_1", columnDefinition = "text")
-    private String photo1;
-
-    @Column(name = "photo_2", columnDefinition = "text")
-    private String photo2;
-
-    @Column(name = "photo_3", columnDefinition = "text")
-    private String photo3;
-
-    @Column(name = "photo_4", columnDefinition = "text")
-    private String photo4;
-
-    @Column(name = "photo_5", columnDefinition = "text")
-    private String photo5;
-
-    @Column(name = "all_photo_urls", columnDefinition = "text")
-    private String allPhotoUrls;
+    @Column(name = "listing_photos", columnDefinition = "text")
+    @Convert(converter = PhotoUrlListConverter.class)
+    private List<String> photoUrls;
 }
