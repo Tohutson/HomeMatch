@@ -17,7 +17,7 @@ public class ListingService {
         this.listingMapper = listingMapper;
     }
 
-    public List<ListingDTO> getListings(ListingFilter filter, Pageable pageable) {
+    public Page<ListingDTO> getListings(ListingFilter filter, Pageable pageable) {
 
         return listingRepository.findAll(
                 ListingSpecification.fromFilter(filter), pageable)
