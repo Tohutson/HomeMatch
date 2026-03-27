@@ -1,18 +1,15 @@
 package com.propertystack.homematch.Listing;
 
+import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
-
-import java.math.BigDecimal;
-import java.util.Optional;
+import com.propertystack.homematch.Listing.ListingSearchRequest;
 
 @RestController
 @RequestMapping("/api/listings")
+@Validated
 public class ListingController {
 
     private final ListingService listingService;
@@ -22,24 +19,11 @@ public class ListingController {
     }
 
     @GetMapping
-    public Page<ListingDTO> getListings(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) BigDecimal minPrice,
-            @RequestParam(required = false) BigDecimal maxPrice,
-            @RequestParam(required = false) Integer minBeds,
-            @RequestParam(required = false) BigDecimal minBaths,
-            @RequestParam(required = false) Integer minSqft) {
-            
-        if (page < 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "page must be >= 0");
-        }
-        if (size <= 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "size must be >= 1");
-        }
-        ListingFilter filter = new ListingFilter(minPrice, maxPrice, minBeds, minBaths, minSqft);
-        PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "price"));
-        return listingService.getListings(filter, pageable);
+    public Page<ListingDTO> getListings(@Valid @ModelAttribute ListingSearchRequest request) {
+        return listingService.getListings(
+                request.toFilter(),
+                request.toPageable()
+        );
     }
 
     @GetMapping("/{id}")
