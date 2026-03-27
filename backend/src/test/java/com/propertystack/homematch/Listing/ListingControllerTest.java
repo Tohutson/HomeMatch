@@ -39,7 +39,7 @@ class ListingControllerTest {
                 .price(new BigDecimal("250000"))
                 .sqft(2250)
                 .beds(3)
-                .baths(1.5)
+                .baths(new BigDecimal("1.5"))
                 .listingUrl("http://example.com")
                 .photoUrls(List.of(
                         "url1.jpg",
@@ -129,7 +129,7 @@ class ListingControllerTest {
                 .price(new BigDecimal("250000"))
                 .sqft(2250)
                 .beds(3)
-                .baths(1.5)
+                .baths(new BigDecimal("1.5"))
                 .listingUrl("http://example.com")
                 .photoUrls(List.of(
                         "url1.jpg",
