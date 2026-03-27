@@ -1,45 +1,36 @@
 package com.propertystack.homematch.Listing;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
 import java.math.BigDecimal;
 import java.util.List;
-
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/listings")
 public class ListingController {
 
-    private final ListingRepository listingRepository;
+    private final ListingService listingService;
 
-    public ListingController(ListingRepository listingRepository) {
-        this.listingRepository = listingRepository;
+    public ListingController(ListingService listingService) {
+        this.listingService = listingService;
     }
 
     @GetMapping
-    public List<Listing> getListings(
+    public List<ListingDTO> getListings(
             @RequestParam(defaultValue = "50") int limit,
+            @RequestParam(required = false) BigDecimal minPrice,
             @RequestParam(required = false) BigDecimal maxPrice,
             @RequestParam(required = false) Integer minBeds,
-            @RequestParam(required = false) BigDecimal minBaths) {
-        int boundedLimit = Math.min(Math.max(limit, 1), 200);
-
-        return listingRepository.findWithFilters(
-            maxPrice,
-            minBeds,
-            minBaths,
-            PageRequest.of(0, boundedLimit, Sort.by(Sort.Direction.ASC, "price")));
+            @RequestParam(required = false) BigDecimal minBaths,
+            @RequestParam(required = false) Integer minSqft) {
+        ListingFilter filter = new ListingFilter(minPrice, maxPrice, minBeds, minBaths, minSqft);
+        return listingService.getListings(limit, filter);
     }
 
-    @GetMapping("/api/listings/{id}")
-    public ResponseEntity<Listing> getListingById(@PathVariable Long id) {
-        return listingRepository.findById(id)
+    @GetMapping("/{id}")
+    public ResponseEntity<ListingDTO> getListingById(@PathVariable Long id) {
+        return listingService.getListingById(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
