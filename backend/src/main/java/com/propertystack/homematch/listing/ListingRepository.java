@@ -1,6 +1,4 @@
 package com.propertystack.homematch.listing;
-
-import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.data.domain.Pageable;
@@ -8,7 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface ListingRepository extends JpaRepository<Listing, Long> {
+public interface ListingRepository extends JpaRepository<Listing, Integer> {
 
     @Query("""
 	    SELECT l
@@ -18,8 +16,8 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
 	      AND (:minBaths IS NULL OR l.baths >= :minBaths)
 	    """)
     List<Listing> findWithFilters(
-	    @Param("maxPrice") BigDecimal maxPrice,
+	    @Param("maxPrice") Integer maxPrice,
 	    @Param("minBeds") Integer minBeds,
-	    @Param("minBaths") BigDecimal minBaths,
+	    @Param("minBaths") Double minBaths,
 	    Pageable pageable);
 }

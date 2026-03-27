@@ -1,6 +1,4 @@
 package com.propertystack.homematch.listing;
-
-import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.data.domain.PageRequest;
@@ -25,9 +23,9 @@ public class ListingController {
     @GetMapping
     public List<Listing> getListings(
             @RequestParam(defaultValue = "50") int limit,
-            @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(required = false) Integer maxPrice,
             @RequestParam(required = false) Integer minBeds,
-            @RequestParam(required = false) BigDecimal minBaths) {
+            @RequestParam(required = false) Double minBaths) {
         int boundedLimit = Math.min(Math.max(limit, 1), 200);
 
         return listingRepository.findWithFilters(
@@ -38,7 +36,7 @@ public class ListingController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Listing> getPropertyById(@PathVariable Long id) {
+    public ResponseEntity<Listing> getPropertyById(@PathVariable Integer id) {
         return listingRepository.findById(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
