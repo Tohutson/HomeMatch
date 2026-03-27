@@ -72,7 +72,7 @@ Returns a JSON array of properties.
 Query parameters:
 
 - `limit` integer, optional, default `50`, range `1-200`
-- `maxPrice` decimal, optional
+- `maxPrice` integer, optional
 - `minBeds` integer, optional
 - `minBaths` decimal, optional
 
