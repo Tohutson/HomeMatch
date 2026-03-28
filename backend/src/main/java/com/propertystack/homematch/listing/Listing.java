@@ -27,6 +27,9 @@ public class Listing {
 
     private Double baths;
 
+    @Column(name = "energy_star_score")
+    private Integer energyStarScore;
+
     @Column(name = "listing_url", columnDefinition = "text")
     private String listingUrl;
 
@@ -55,6 +58,10 @@ public class Listing {
 
     public Double getBaths() {
         return baths;
+    }
+
+    public Integer getEnergyStarScore() {
+        return energyStarScore;
     }
 
     public String getListingUrl() {
