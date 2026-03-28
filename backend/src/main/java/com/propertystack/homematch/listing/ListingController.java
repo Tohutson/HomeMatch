@@ -1,11 +1,12 @@
-package com.propertystack.homematch.Listing;
+package com.propertystack.homematch.listing;
 
+import com.propertystack.homematch.listing.dto.ListingDTO;
+import com.propertystack.homematch.listing.dto.ListingSearchRequest;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import com.propertystack.homematch.Listing.ListingSearchRequest;
 
 @RestController
 @RequestMapping("/api/listings")

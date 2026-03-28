@@ -1,5 +1,7 @@
-package com.propertystack.homematch.Listing;
+package com.propertystack.homematch.listing;
 
+import com.propertystack.homematch.listing.dto.ListingDTO;
+import com.propertystack.homematch.listing.query.ListingFilter;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;

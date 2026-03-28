@@ -1,5 +1,6 @@
-package com.propertystack.homematch.Listing;
+package com.propertystack.homematch.listing.query;
 
+import com.propertystack.homematch.listing.Listing;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;

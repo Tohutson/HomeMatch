@@ -1,4 +1,4 @@
-package com.propertystack.homematch.Listing;
+package com.propertystack.homematch.listing;
 
 import com.propertystack.homematch.persistence.converter.PhotoUrlListConverter;
 import jakarta.persistence.*;

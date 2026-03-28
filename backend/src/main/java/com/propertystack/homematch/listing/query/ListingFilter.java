@@ -1,4 +1,4 @@
-package com.propertystack.homematch.Listing;
+package com.propertystack.homematch.listing.query;
 
 import java.math.BigDecimal;
 

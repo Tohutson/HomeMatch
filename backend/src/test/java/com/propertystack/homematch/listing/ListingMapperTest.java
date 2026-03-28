@@ -1,5 +1,7 @@
-package com.propertystack.homematch.Listing;
+package com.propertystack.homematch.listing;
 
+import com.propertystack.homematch.listing.dto.ListingDTO;
+import com.propertystack.homematch.listing.mapper.ListingMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mapstruct.factory.Mappers;

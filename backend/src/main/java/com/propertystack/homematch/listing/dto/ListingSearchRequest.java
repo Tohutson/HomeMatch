@@ -1,5 +1,6 @@
-package com.propertystack.homematch.Listing;
+package com.propertystack.homematch.listing.dto;
 
+import com.propertystack.homematch.listing.query.ListingFilter;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
