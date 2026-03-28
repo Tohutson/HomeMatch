@@ -9,6 +9,5 @@ create table listings
     beds              integer,
     baths             double precision,
     listing_url       text,
-    all_photo_urls    text,
-    energy_star_score integer default (floor((random() * (100)::double precision)) + (1)::double precision) not null
+    all_photo_urls    text
 );

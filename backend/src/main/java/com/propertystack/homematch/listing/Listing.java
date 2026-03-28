@@ -36,6 +36,9 @@ public class Listing {
     @Column(name = "baths")
     private Double baths;
 
+    @Column(name = "energy_star_score")
+    private Integer energyStarScore;
+
     @Column(name = "listing_url", columnDefinition = "text")
     private String listingUrl;
 

@@ -114,6 +114,7 @@ Each property object includes:
 - `sqft` number or null
 - `beds` number or null
 - `baths` number or null
+- `energyStarScore` number (1-100)
 - `listingUrl` string or null
 - `allPhotoUrls` string or null
 
@@ -127,6 +128,7 @@ Example response item:
   "sqft": 1648,
   "beds": 3,
   "baths": 2,
+  "energyStarScore": 78,
   "listingUrl": "https://www.realtor.com/realestateandhomes-detail/...",
   "allPhotoUrls": "https://...jpg | https://...jpg"
 }
@@ -144,6 +146,7 @@ CREATE TABLE listings (
   sqft INTEGER,
   beds INTEGER,
   baths DOUBLE PRECISION,
+  energy_star_score INTEGER,
   listing_url TEXT,
   all_photo_urls TEXT
 );
