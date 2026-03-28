@@ -2,7 +2,9 @@ package com.propertystack.homematch.Listing;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mapstruct.factory.Mappers;
 import org.mockito.junit.jupiter.MockitoExtension;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigDecimal;
 
@@ -19,7 +21,7 @@ class ListingMapperTest {
                 .price(new BigDecimal("250000"))
                 .sqft(2250)
                 .beds(3)
-                .baths(new BigDecimal("1.5"))
+                .baths(1.5)
                 .listingUrl("http://example.com")
                 .build();
 
