@@ -19,7 +19,7 @@ export default function Home() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("http://localhost:8081/api/listings")
+    fetch("http://localhost:8081/api/listings?page=0&size=12")
       .then((res) => {
         if (!res.ok) {
           throw new Error("Failed to fetch listings");
