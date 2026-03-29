@@ -1,30 +1,39 @@
 package com.propertystack.homematch.listing;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import com.propertystack.homematch.persistence.converter.PhotoUrlListConverter;
+import jakarta.persistence.*;
+
+import lombok.*;
+
+import java.math.BigDecimal;
+import java.util.List;
 
 @Entity
 @Table(name = "listings")
+@Getter
+@Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@Builder
 public class Listing {
-    
-    // JPA spec requires a no-arg constructor with protected or public access
-    protected Listing() {
-    }
 
     @Id
-    private Integer id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    @Column(nullable = false)
+    @Column(name = "address", nullable = false)
     private String address;
 
-    private Integer price;
+    @Column(name = "price", precision = 12, scale = 2)
+    private BigDecimal price;
 
+    @Column(name = "sqft")
     private Integer sqft;
 
+    @Column(name = "beds")
     private Integer beds;
 
+    @Column(name = "baths")
     private Double baths;
 
     @Column(name = "energy_star_score")
@@ -34,41 +43,6 @@ public class Listing {
     private String listingUrl;
 
     @Column(name = "all_photo_urls", columnDefinition = "text")
-    private String allPhotoUrls;
-
-    public Integer getId() {
-        return id;
-    }
-
-    public String getAddress() {
-        return address;
-    }
-
-    public Integer getPrice() {
-        return price;
-    }
-
-    public Integer getSqft() {
-        return sqft;
-    }
-
-    public Integer getBeds() {
-        return beds;
-    }
-
-    public Double getBaths() {
-        return baths;
-    }
-
-    public Integer getEnergyStarScore() {
-        return energyStarScore;
-    }
-
-    public String getListingUrl() {
-        return listingUrl;
-    }
-
-    public String getAllPhotoUrls() {
-        return allPhotoUrls;
-    }
+    @Convert(converter = PhotoUrlListConverter.class)
+    private List<String> photoUrls;
 }
