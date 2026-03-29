@@ -2,9 +2,9 @@ type Listing = {
     id: number;
     address?: string;
     price?: number;
-    bedrooms?: number;
-    bathrooms?: number;
-    squareFootage?: number;
+    beds?: number;
+    baths?: number;
+    sqft?: number;
     photoUrls?: string[];
   };
   
@@ -31,9 +31,9 @@ type Listing = {
           {listing.address || "No address available"}
         </h2>
         <p><span className="font-medium">Price:</span> {listing.price ? `$${listing.price.toLocaleString()}` : "N/A"}</p>
-        <p><span className="font-medium">Bedrooms:</span> {listing.bedrooms ?? "N/A"}</p>
-        <p><span className="font-medium">Bathrooms:</span> {listing.bathrooms ?? "N/A"}</p>
-        <p><span className="font-medium">Square Feet:</span> {listing.squareFootage ?? "N/A"}</p>
+        <p><span className="font-medium">Bedrooms:</span> {listing.beds ?? "N/A"}</p>
+        <p><span className="font-medium">Bathrooms:</span> {listing.baths ?? "N/A"}</p>
+        <p><span className="font-medium">Square Feet:</span> {listing.sqft ?? "N/A"}</p>
       </div>
     );
   }
