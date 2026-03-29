@@ -7,9 +7,9 @@ type Listing = {
   id: number;
   address?: string;
   price?: number;
-  bedrooms?: number;
-  bathrooms?: number;
-  squareFootage?: number;
+  beds?: number;
+  baths?: number;
+  sqft?: number;
   photoUrls?: string[];
 };
 
@@ -29,6 +29,7 @@ export default function Home() {
   const pageSize = 12;
   useEffect(() => {
     setLoading(true);
+    setError("");
 
     fetch(`http://localhost:8081/api/listings?page=${currentPage}&size=${pageSize}`)
       .then((res) => {
@@ -40,6 +41,11 @@ export default function Home() {
       .then((data: ListingsResponse) => {
         setListings(data.content || []);
         setTotalPages(data.totalPages || 0);
+
+        if (data.content && currentIndexWithinPage >= data.content.length) {
+          setCurrentIndexWithinPage(0);
+        }
+        
         setLoading(false);
       })
       .catch((err) => {
