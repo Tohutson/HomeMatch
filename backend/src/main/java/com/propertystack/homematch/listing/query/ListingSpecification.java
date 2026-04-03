@@ -40,4 +40,9 @@ public class ListingSpecification {
         return (root, query, cb) ->
                 minSqft == null ? null : cb.greaterThanOrEqualTo(root.get("sqft"), minSqft);
     }
+
+    private static Specification<Listing> minEnergyStar(Integer minEnergyStar) {
+        return (root, query, cb) ->
+                minEnergyStar == null ? null : cb.lessThanOrEqualTo(root.get("energyStarScore"), minEnergyStar);
+    }
 }

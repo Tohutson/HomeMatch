@@ -3,12 +3,13 @@ package com.propertystack.homematch.listing;
 import com.propertystack.homematch.listing.dto.ListingDTO;
 import com.propertystack.homematch.listing.query.ListingFilter;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -21,13 +22,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
-import org.mockito.ArgumentCaptor;
-
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(ListingController.class)
+@ActiveProfiles("test")
 class ListingControllerTest {
 
     @Autowired
@@ -42,7 +41,7 @@ class ListingControllerTest {
 
         Page<ListingDTO> page = new PageImpl<>(
                 List.of(dto),
-                PageRequest.of(0, 20),
+                Pageable.ofSize(20).withPage(0),
                 1
         );
 
@@ -62,6 +61,7 @@ class ListingControllerTest {
                 .andExpect(jsonPath("$.content[0].sqft").value(2250))
                 .andExpect(jsonPath("$.content[0].beds").value(3))
                 .andExpect(jsonPath("$.content[0].baths").value(1.5))
+                .andExpect(jsonPath("$.content[0].energyStarScore").value(75))
                 .andExpect(jsonPath("$.content[0].listingUrl").value("http://example.com"))
                 .andExpect(jsonPath("$.content[0].photoUrls").isArray())
                 .andExpect(jsonPath("$.content[0].photoUrls[0]").value("url1.jpg"))
@@ -100,7 +100,8 @@ class ListingControllerTest {
                         .param("maxPrice", "500000")
                         .param("minBeds", "2")
                         .param("minBaths", "2.5")
-                        .param("minSqft", "1000"))
+                        .param("minSqft", "1000")
+                        .param("minEnergyStarScore", "50"))
                 .andExpect(status().isOk());
 
         ArgumentCaptor<ListingFilter> filterCaptor = ArgumentCaptor.forClass(ListingFilter.class);
@@ -116,6 +117,7 @@ class ListingControllerTest {
         assertThat(filter.minBeds()).isEqualTo(2);
         assertThat(filter.minBaths()).isEqualTo(2.5);
         assertThat(filter.minSqft()).isEqualTo(1000);
+        assertThat(filter.minEnergyStar()).isEqualTo(50);
 
         assertThat(pageable.getPageNumber()).isEqualTo(1);
         assertThat(pageable.getPageSize()).isEqualTo(10);
@@ -184,6 +186,12 @@ class ListingControllerTest {
     }
 
     @Test
+    void shouldReturnBadRequestForNegativeMinEnergyStarScore() throws Exception {
+        mockMvc.perform(get("/api/listings").param("minEnergyStarScore", "-1"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void shouldReturnListingById() throws Exception {
         when(listingService.getListingById(1L)).thenReturn(Optional.of(listingDto()));
 
@@ -195,6 +203,7 @@ class ListingControllerTest {
                 .andExpect(jsonPath("$.sqft").value(2250))
                 .andExpect(jsonPath("$.beds").value(3))
                 .andExpect(jsonPath("$.baths").value(1.5))
+                .andExpect(jsonPath("$.energyStarScore").value(75))
                 .andExpect(jsonPath("$.listingUrl").value("http://example.com"))
                 .andExpect(jsonPath("$.photoUrls").isArray())
                 .andExpect(jsonPath("$.photoUrls[0]").value("url1.jpg"))
@@ -223,6 +232,7 @@ class ListingControllerTest {
                 .sqft(2250)
                 .beds(3)
                 .baths(1.5)
+                .energyStarScore(75)
                 .listingUrl("http://example.com")
                 .photoUrls(List.of("url1.jpg", "url2.jpg"))
                 .build();

@@ -7,7 +7,8 @@ public record ListingFilter (
         BigDecimal maxPrice,
         Integer minBeds,
         Double minBaths,
-        Integer minSqft
+        Integer minSqft,
+        Integer minEnergyStar
 ) {
     public ListingFilter {
         if (minPrice != null && minPrice.signum() < 0) {
@@ -28,11 +29,14 @@ public record ListingFilter (
         if (minPrice != null && maxPrice != null && minPrice.compareTo(maxPrice) > 0) {
             throw new IllegalArgumentException("minPrice must be <= maxPrice");
         }
+        if (minEnergyStar != null && minEnergyStar < 0) {
+            throw new IllegalArgumentException("minEnergyStar must be >= 0");
+        }
     }
 
     public boolean isEmpty() {
         return minPrice == null && maxPrice == null
                 && minBeds == null && minBaths == null
-                && minSqft == null;
+                && minSqft == null  && minEnergyStar == null;
     }
 }

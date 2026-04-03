@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -19,6 +20,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
+@ActiveProfiles("test")
 @Testcontainers
 @AutoConfigureMockMvc
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
@@ -50,6 +52,7 @@ class ListingIntegrationTest {
                 2250,
                 3,
                 2.0,
+                68,
                 "http://example.com/1"
         ));
 
@@ -59,6 +62,7 @@ class ListingIntegrationTest {
                 3100,
                 4,
                 3.0,
+                84,
                 "http://example.com/2"
         ));
 
@@ -68,6 +72,7 @@ class ListingIntegrationTest {
                 1400,
                 2,
                 1.0,
+                42,
                 "http://example.com/3"
         ));
     }
@@ -94,6 +99,7 @@ class ListingIntegrationTest {
                 2000,
                 3,
                 2.5,
+                77,
                 "http://example.com/4"
         ));
 
@@ -103,7 +109,8 @@ class ListingIntegrationTest {
                 .andExpect(jsonPath("$.address").value("500 Market St"))
                 .andExpect(jsonPath("$.price").value(300000))
                 .andExpect(jsonPath("$.beds").value(3))
-                .andExpect(jsonPath("$.baths").value(2.5));
+                .andExpect(jsonPath("$.baths").value(2.5))
+                .andExpect(jsonPath("$.energyStarScore").value(77));
     }
 
     @Test
@@ -118,6 +125,7 @@ class ListingIntegrationTest {
             int sqft,
             int beds,
             double baths,
+            int energyStarScore,
             String listingUrl
     ) {
         return Listing.builder()
@@ -126,6 +134,7 @@ class ListingIntegrationTest {
                 .sqft(sqft)
                 .beds(beds)
                 .baths(baths)
+                .energyStarScore(energyStarScore)
                 .listingUrl(listingUrl)
                 .build();
     }

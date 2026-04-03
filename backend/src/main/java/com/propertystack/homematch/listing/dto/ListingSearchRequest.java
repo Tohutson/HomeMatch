@@ -35,8 +35,11 @@ public class ListingSearchRequest {
     @Min(0)
     private Integer minSqft;
 
+    @Min(0)
+    private Integer minEnergyStar;
+
     public ListingFilter toFilter() {
-        return new ListingFilter(minPrice, maxPrice, minBeds, minBaths, minSqft);
+        return new ListingFilter(minPrice, maxPrice, minBeds, minBaths, minSqft, minEnergyStar);
     }
 
     public PageRequest toPageable() {

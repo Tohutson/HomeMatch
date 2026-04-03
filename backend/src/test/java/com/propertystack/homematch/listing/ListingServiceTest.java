@@ -15,6 +15,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -25,6 +26,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@ActiveProfiles("test")
 class ListingServiceTest {
 
     @Mock
@@ -49,7 +51,8 @@ class ListingServiceTest {
                 new BigDecimal("500000"),
                 2,
                 2.0,
-                1000
+                1000,
+                50
         );
         Pageable pageable = PageRequest.of(0, 20);
 
@@ -74,6 +77,7 @@ class ListingServiceTest {
                 .baths(1.5)
                 .listingUrl("http://example.com")
                 .photoUrls(List.of("url1.jpg", "url2.jpg"))
+                .energyStarScore(75)
                 .build();
 
         ListingDTO dto = ListingDTO.builder()
@@ -85,9 +89,10 @@ class ListingServiceTest {
                 .baths(1.5)
                 .listingUrl("http://example.com")
                 .photoUrls(List.of("url1.jpg", "url2.jpg"))
+                .energyStarScore(75)
                 .build();
 
-        ListingFilter filter = new ListingFilter(null, null, null, null, null);
+        ListingFilter filter = new ListingFilter(null, null, null, null, null, null);
         Pageable pageable = PageRequest.of(0, 20);
 
         when(listingRepository.findAll(any(Specification.class), any(Pageable.class)))
@@ -104,7 +109,7 @@ class ListingServiceTest {
 
     @Test
     void getListings_shouldReturnEmptyPageWhenRepositoryReturnsNoResults() {
-        ListingFilter filter = new ListingFilter(null, null, null, null, null);
+        ListingFilter filter = new ListingFilter(null, null, null, null, null, null);
         Pageable pageable = PageRequest.of(0, 20);
 
         when(listingRepository.findAll(any(Specification.class), any(Pageable.class)))
@@ -125,12 +130,14 @@ class ListingServiceTest {
                 .id(1L)
                 .address("30 Pitt St")
                 .price(new BigDecimal("250000"))
+                .energyStarScore(75)
                 .build();
 
         ListingDTO dto = ListingDTO.builder()
                 .id(1L)
                 .address("30 Pitt St")
                 .price(new BigDecimal("250000"))
+                .energyStarScore(75)
                 .build();
 
         when(listingRepository.findById(1L)).thenReturn(Optional.of(listing));
