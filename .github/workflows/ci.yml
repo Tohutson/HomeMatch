@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: 
+    branches:
       - main
   pull_request:
 
@@ -12,7 +12,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:18.2-bookworm
+        image: postgres:16-alpine
         env:
           POSTGRES_DB: homefinder
           POSTGRES_USER: postgres
@@ -39,7 +39,7 @@ jobs:
           java-version: 25
           cache: maven
 
-      - name: Build and test backend
+      - name: Build and test backend (includes favorite action integration tests)
         env:
           SPRING_PROFILES_ACTIVE: test
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/homefinder
@@ -71,5 +71,5 @@ jobs:
       - name: Build frontend
         run: npm run build
 
-      - name: Run frontend tests
+      - name: Run frontend tests (includes favoriting and swipe gesture tests)
         run: npm test -- --watchAll=false
