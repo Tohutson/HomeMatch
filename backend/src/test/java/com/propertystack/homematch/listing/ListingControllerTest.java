@@ -85,6 +85,9 @@ class ListingControllerTest {
         assertThat(pageable.getPageNumber()).isEqualTo(0);
         assertThat(pageable.getPageSize()).isEqualTo(20);
 
+        assertThat(pageable.getSort().getOrderFor("price")).isNotNull();
+        assertThat(pageable.getSort().getOrderFor("price").isAscending()).isTrue();
+
         verifyNoMoreInteractions(listingService);
     }
 
@@ -100,7 +103,8 @@ class ListingControllerTest {
                 .param("minBeds", "2")
                 .param("minBaths", "2.5")
                 .param("minSqft", "1000")
-                .param("minEnergyStarScore", "50"))
+                .param("minEnergyStarScore", "50")
+                .param("sortOption", "PRICE_DESC"))
                 .andExpect(status().isOk());
 
         ArgumentCaptor<ListingFilter> filterCaptor = ArgumentCaptor.forClass(ListingFilter.class);
@@ -120,6 +124,8 @@ class ListingControllerTest {
 
         assertThat(pageable.getPageNumber()).isEqualTo(1);
         assertThat(pageable.getPageSize()).isEqualTo(10);
+
+        assertThat(pageable.getSort().getOrderFor("price").isDescending()).isTrue();
 
         verifyNoMoreInteractions(listingService);
     }
@@ -221,6 +227,26 @@ class ListingControllerTest {
 
         verify(listingService).getListingById(999L);
         verifyNoMoreInteractions(listingService);
+    }
+
+    @Test
+    void shouldBindSortOptionAndPassSortedPageableToService() throws Exception {
+        when(listingService.getListings(any(), any())).thenReturn(Page.empty());
+
+        mockMvc.perform(get("/api/listings")
+                .param("page", "0")
+                .param("size", "20")
+                .param("sortOption", "PRICE_DESC"))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+
+        verify(listingService).getListings(any(), pageableCaptor.capture());
+
+        Pageable pageable = pageableCaptor.getValue();
+
+        assertThat(pageable.getSort().getOrderFor("price")).isNotNull();
+        assertThat(pageable.getSort().getOrderFor("price").isDescending()).isTrue();
     }
 
     private ListingDTO listingDto() {

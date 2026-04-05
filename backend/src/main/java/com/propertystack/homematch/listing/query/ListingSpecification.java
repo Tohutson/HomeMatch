@@ -13,7 +13,8 @@ public class ListingSpecification {
                 .and(maxPrice(filter.maxPrice()))
                 .and(minBeds(filter.minBeds()))
                 .and(minBaths(filter.minBaths()))
-                .and(minSqft(filter.minSqft()));
+                .and(minSqft(filter.minSqft()))
+                .and(minEnergyStarScore(filter.minEnergyStarScore()));
     }
 
     private static Specification<Listing> minPrice(BigDecimal minPrice) {
@@ -38,6 +39,6 @@ public class ListingSpecification {
 
     private static Specification<Listing> minEnergyStarScore(Integer minEnergyStarScore) {
         return (root, query, cb) -> minEnergyStarScore == null ? null
-                : cb.lessThanOrEqualTo(root.get("energyStarScore"), minEnergyStarScore);
+                : cb.greaterThanOrEqualTo(root.get("energyStarScore"), minEnergyStarScore);
     }
 }
