@@ -38,12 +38,18 @@ public class ListingSearchRequest {
     @Min(0)
     private Integer minEnergyStar;
 
+    private SortOption sortOption;
+
     public ListingFilter toFilter() {
         return new ListingFilter(minPrice, maxPrice, minBeds, minBaths, minSqft, minEnergyStar);
     }
 
     public PageRequest toPageable() {
-        return PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "price"));
+        Sort sort = (sortOption != null)
+                ? sortOption.toSort()
+                : Sort.by(Sort.Direction.ASC, "price"); // default
+
+        return PageRequest.of(page, size, sort);
     }
 
     @AssertTrue(message = "minPrice must be <= maxPrice")
