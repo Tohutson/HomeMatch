@@ -19,4 +19,6 @@ public class ListingDTO {
     String listingUrl;
 
     List<String> photoUrls;
+
+    Integer energyStarScore;
 }
