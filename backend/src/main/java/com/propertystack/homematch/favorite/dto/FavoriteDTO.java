@@ -10,7 +10,6 @@ import java.time.LocalDateTime;
 @Builder
 public class FavoriteDTO {
     Long id;
-    Long userId;
     ListingDTO listing;
     LocalDateTime createdAt;
 }
