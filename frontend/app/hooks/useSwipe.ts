@@ -1,4 +1,4 @@
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useEffect } from "react";
 
 interface UseSwipeOptions {
   onSwipeRight?: () => void;
@@ -10,7 +10,6 @@ export interface SwipeHandlers {
   onTouchStart: (e: React.TouchEvent) => void;
   onTouchEnd: (e: React.TouchEvent) => void;
   onMouseDown: (e: React.MouseEvent) => void;
-  onMouseUp: (e: React.MouseEvent) => void;
 }
 
 export function useSwipe({
@@ -19,10 +18,6 @@ export function useSwipe({
   threshold = 80,
 }: UseSwipeOptions): SwipeHandlers {
   const startX = useRef<number | null>(null);
-
-  const handleStart = useCallback((x: number) => {
-    startX.current = x;
-  }, []);
 
   const handleEnd = useCallback(
     (x: number) => {
@@ -35,10 +30,17 @@ export function useSwipe({
     [onSwipeRight, onSwipeLeft, threshold]
   );
 
+  // Attach mouseup to document so swipe works even when
+  // the mouse is released outside the card
+  useEffect(() => {
+    const handleMouseUp = (e: MouseEvent) => handleEnd(e.clientX);
+    document.addEventListener("mouseup", handleMouseUp);
+    return () => document.removeEventListener("mouseup", handleMouseUp);
+  }, [handleEnd]);
+
   return {
-    onTouchStart: (e) => handleStart(e.touches[0].clientX),
+    onTouchStart: (e) => { startX.current = e.touches[0].clientX; },
     onTouchEnd:   (e) => handleEnd(e.changedTouches[0].clientX),
-    onMouseDown:  (e) => handleStart(e.clientX),
-    onMouseUp:    (e) => handleEnd(e.clientX),
+    onMouseDown:  (e) => { startX.current = e.clientX; },
   };
 }
