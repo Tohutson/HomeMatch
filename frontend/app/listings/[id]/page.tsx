@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { getOrCreateUserId } from "../../lib/userId";
 import Toast from "../../components/Toast";
 
@@ -18,25 +19,22 @@ type Listing = {
 };
 
 const API_BASE = "http://localhost:8081";
-const UNDO_MS = 10_000;
+const UNDO_MS  = 10_000;
 
-export default function ListingDetailPage({
-  params,
-}: {
-  params: { id: string };
-}) {
-  const { id } = params;
+export default function ListingDetailPage() {
+  const params = useParams();
+  const id = params.id as string;
 
-  const [listing, setListing] = useState<Listing | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-  const [isFavorited, setIsFavorited] = useState(false);
-  const [userId, setUserId] = useState<number | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
-  const [undoListing, setUndoListing] = useState<Listing | null>(null);
+  const [listing, setListing]           = useState<Listing | null>(null);
+  const [loading, setLoading]           = useState(true);
+  const [notFound, setNotFound]         = useState(false);
+  const [isFavorited, setIsFavorited]   = useState(false);
+  const [userId, setUserId]             = useState<number | null>(null);
+  const [toast, setToast]               = useState<string | null>(null);
+  const [undoListing, setUndoListing]   = useState<Listing | null>(null);
   const [undoTimeLeft, setUndoTimeLeft] = useState(0);
 
-  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const undoTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
   const undoIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -44,18 +42,14 @@ export default function ListingDetailPage({
   }, []);
 
   useEffect(() => {
+    if (!id) return;
     fetch(`${API_BASE}/api/listings/${id}`)
       .then((res) => {
-        if (res.status === 404) {
-          setNotFound(true);
-          return null;
-        }
+        if (res.status === 404) { setNotFound(true); return null; }
         if (!res.ok) throw new Error("Failed to fetch listing");
         return res.json();
       })
-      .then((data) => {
-        if (data) setListing(data);
-      })
+      .then((data) => { if (data) setListing(data); })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [id]);
@@ -71,7 +65,7 @@ export default function ListingDetailPage({
   }, [userId, listing]);
 
   const clearUndoTimer = () => {
-    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    if (undoTimerRef.current)    clearTimeout(undoTimerRef.current);
     if (undoIntervalRef.current) clearInterval(undoIntervalRef.current);
   };
 
@@ -82,10 +76,7 @@ export default function ListingDetailPage({
 
     undoIntervalRef.current = setInterval(() => {
       setUndoTimeLeft((t) => {
-        if (t <= 1) {
-          clearInterval(undoIntervalRef.current!);
-          return 0;
-        }
+        if (t <= 1) { clearInterval(undoIntervalRef.current!); return 0; }
         return t - 1;
       });
     }, 1000);
@@ -158,7 +149,7 @@ export default function ListingDetailPage({
     setToast(`Removed ${undoListing.address ?? "property"} from favorites`);
   };
 
-  const canUndo = undoListing !== null && undoTimeLeft > 0;
+  const canUndo     = undoListing !== null && undoTimeLeft > 0;
   const undoVisible = undoTimeLeft > 0;
 
   if (loading) {
@@ -185,7 +176,9 @@ export default function ListingDetailPage({
 
   return (
     <main className="min-h-screen bg-zinc-50 p-8 text-black">
-      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
+      {toast && (
+        <Toast message={toast} onDismiss={() => setToast(null)} />
+      )}
 
       <div className="mx-auto max-w-3xl">
         {undoVisible && (
@@ -211,9 +204,7 @@ export default function ListingDetailPage({
           </Link>
           <button
             onClick={handleFavoriteToggle}
-            aria-label={
-              isFavorited ? "Remove from favorites" : "Add to favorites"
-            }
+            aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
             className={`flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-colors ${
               isFavorited
                 ? "bg-rose-500 text-white hover:bg-rose-600"
@@ -249,19 +240,17 @@ export default function ListingDetailPage({
             {listing.address || "No address available"}
           </h1>
           <p className="mb-4 text-2xl font-semibold text-rose-500">
-            {listing.price
-              ? `$${listing.price.toLocaleString()}`
-              : "Price N/A"}
+            {listing.price ? `$${listing.price.toLocaleString()}` : "Price N/A"}
           </p>
 
           <div className="mb-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <Stat label="Bedrooms" value={listing.beds} />
+            <Stat label="Bedrooms"  value={listing.beds} />
             <Stat label="Bathrooms" value={listing.baths} />
-            <Stat label="Sq Ft" value={listing.sqft?.toLocaleString()} />
-            <Stat label="Energy" value={listing.energyStarScore} />
+            <Stat label="Sq Ft"     value={listing.sqft?.toLocaleString()} />
+            <Stat label="Energy"    value={listing.energyStarScore} />
           </div>
 
-          {listing.listingUrl && (
+          {listing.listingUrl ? (
             <a
               href={listing.listingUrl}
               target="_blank"
@@ -270,7 +259,7 @@ export default function ListingDetailPage({
             >
               View Original Listing
             </a>
-          )}
+          ) : null}
         </div>
       </div>
     </main>
