@@ -42,14 +42,13 @@ class ListingControllerTest {
         Page<ListingDTO> page = new PageImpl<>(
                 List.of(dto),
                 Pageable.ofSize(20).withPage(0),
-                1
-        );
+                1);
 
         when(listingService.getListings(any(), any())).thenReturn(page);
 
         mockMvc.perform(get("/api/listings")
-                        .param("page", "0")
-                        .param("size", "20"))
+                .param("page", "0")
+                .param("size", "20"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.totalElements").value(1))
@@ -94,14 +93,14 @@ class ListingControllerTest {
         when(listingService.getListings(any(), any())).thenReturn(Page.empty());
 
         mockMvc.perform(get("/api/listings")
-                        .param("page", "1")
-                        .param("size", "10")
-                        .param("minPrice", "100000")
-                        .param("maxPrice", "500000")
-                        .param("minBeds", "2")
-                        .param("minBaths", "2.5")
-                        .param("minSqft", "1000")
-                        .param("minEnergyStarScore", "50"))
+                .param("page", "1")
+                .param("size", "10")
+                .param("minPrice", "100000")
+                .param("maxPrice", "500000")
+                .param("minBeds", "2")
+                .param("minBaths", "2.5")
+                .param("minSqft", "1000")
+                .param("minEnergyStarScore", "50"))
                 .andExpect(status().isOk());
 
         ArgumentCaptor<ListingFilter> filterCaptor = ArgumentCaptor.forClass(ListingFilter.class);
@@ -117,7 +116,7 @@ class ListingControllerTest {
         assertThat(filter.minBeds()).isEqualTo(2);
         assertThat(filter.minBaths()).isEqualTo(2.5);
         assertThat(filter.minSqft()).isEqualTo(1000);
-        assertThat(filter.minEnergyStar()).isEqualTo(50);
+        assertThat(filter.minEnergyStarScore()).isEqualTo(50);
 
         assertThat(pageable.getPageNumber()).isEqualTo(1);
         assertThat(pageable.getPageSize()).isEqualTo(10);
