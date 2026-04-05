@@ -112,8 +112,12 @@ class ListingIntegrationTest {
         @Test
         void shouldReturnNotFoundWhenListingDoesNotExist() throws Exception {
                 mockMvc.perform(get("/api/listings/{id}", 999999L))
-                                .andExpect(status().isNotFound());
-        }
+                                .andExpect(status().isNotFound())
+                                .andExpect(jsonPath("$.status").value(404))
+                                .andExpect(jsonPath("$.error").value("Not Found"))
+                                .andExpect(jsonPath("$.message").value("Listing not found: 999999"))
+                                .andExpect(jsonPath("$.path").value("/api/listings/999999"));
+                        }
 
         @Test
         void shouldFilterByMinEnergyStarScore() throws Exception {
