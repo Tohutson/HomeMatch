@@ -13,16 +13,22 @@ Check Java version:
 java --version
 ```
 
+---
+
 ## Team Setup (One-Time)
 
 Get the shared `.env` file from the team owner and place it in:
 
-- `HomeMatch/.env`
+```
+HomeMatch/.env
+```
 
 Notes:
 
-- Teammates do not need their own Supabase account.
-- Do not commit `.env` to git.
+- Teammates do **not** need their own Supabase account
+- Never commit `.env` to git
+
+---
 
 ## Run Backend
 
@@ -44,11 +50,13 @@ macOS / Linux:
 ./mvnw spring-boot:run
 ```
 
-Backend default URL:
+Backend runs at:
 
 ```text
 http://localhost:8081
 ```
+
+---
 
 ## API Documentation
 
@@ -58,91 +66,174 @@ Base URL:
 http://localhost:8081
 ```
 
+---
+
+## Listings API
+
 ### Endpoints
 
-| Method | Path | Description |
-|---|---|---|
-| GET | `/api/properties` | List properties with optional filters |
-| GET | `/api/properties/{id}` | Get one property by id |
+| Method | Path                 | Description                           |
+| ------ | -------------------- | ------------------------------------- |
+| GET    | `/api/listings`      | Get paginated listings with filtering |
+| GET    | `/api/listings/{id}` | Get a single listing by id            |
 
-### GET `/api/properties`
+---
 
-Returns a JSON array of properties.
+### GET `/api/listings`
 
-Query parameters:
+Returns a **paginated response** of listings.
 
-- `limit` integer, optional, default `50`, range `1-200`
-- `maxPrice` integer, optional
-- `minBeds` integer, optional
-- `minBaths` decimal, optional
+#### Query Parameters
 
-PowerShell example:
+Pagination:
 
-```powershell
-Invoke-RestMethod -Method GET -Uri "http://localhost:8081/api/properties?limit=20&maxPrice=350000&minBeds=3&minBaths=2.0"
-```
+- `page` (int, default `0`)
+- `size` (int, default `20`, max `100`)
 
-macOS / Linux example:
+Filtering:
+
+- `minPrice` (decimal)
+- `maxPrice` (decimal)
+- `minBeds` (int)
+- `minBaths` (decimal)
+- `minSqft` (int)
+- `minEnergyStarScore` (int)
+
+Sorting:
+
+- `sortOption` (optional, enum-based)
+- Default: `price ASC`
+
+#### Validation Rules
+
+- `minPrice <= maxPrice`
+- All numeric fields must be ≥ 0
+
+---
+
+#### Example Request
+
+macOS / Linux:
 
 ```bash
-curl "http://localhost:8081/api/properties?limit=20&maxPrice=350000&minBeds=3&minBaths=2.0"
+curl "http://localhost:8081/api/listings?page=0&size=10&minPrice=200000&maxPrice=500000&minBeds=3&minBaths=2"
 ```
 
-### GET `/api/properties/{id}`
-
-Returns one property JSON object when found.
-
-PowerShell example:
+PowerShell:
 
 ```powershell
-Invoke-RestMethod -Method GET -Uri "http://localhost:8081/api/properties/1"
+Invoke-RestMethod -Method GET -Uri "http://localhost:8081/api/listings?page=0&size=10&minPrice=200000&maxPrice=500000&minBeds=3&minBaths=2"
 ```
 
-macOS / Linux example:
+---
 
-```bash
-curl "http://localhost:8081/api/properties/1"
-```
-
-### Response Model
-
-Each property object includes:
-
-- `id` number
-- `address` string
-- `price` number or null
-- `sqft` number or null
-- `beds` number or null
-- `baths` number or null
-- `energyStarScore` number (1-100)
-- `listingUrl` string or null
-- `allPhotoUrls` string or null
-
-Example response item:
+#### Example Response (Paginated)
 
 ```json
 {
-  "id": 1,
-  "address": "77 Duff Rd, Pittsburgh, PA 15235",
-  "price": 299900,
-  "sqft": 1648,
-  "beds": 3,
-  "baths": 2,
-  "energyStarScore": 78,
-  "listingUrl": "https://www.realtor.com/realestateandhomes-detail/...",
-  "allPhotoUrls": "https://...jpg | https://...jpg"
+  "content": [
+    {
+      "id": 1,
+      "address": "77 Duff Rd, Pittsburgh, PA 15235",
+      "price": 299900,
+      "sqft": 1648,
+      "beds": 3,
+      "baths": 2,
+      "listingUrl": "https://www.realtor.com/...",
+      "photoUrls": ["https://...jpg"]
+    }
+  ],
+  "totalElements": 120,
+  "totalPages": 12,
+  "size": 10,
+  "number": 0
 }
 ```
 
-### Create Table In Supabase
+---
 
-The backend entity maps to table `listings`.
+### GET `/api/listings/{id}`
+
+Returns a single listing.
+
+```bash
+curl "http://localhost:8081/api/listings/1"
+```
+
+---
+
+## Favorites API
+
+Endpoints for managing user favorites.
+
+### Endpoints
+
+| Method | Path                                        | Description                  |
+| ------ | ------------------------------------------- | ---------------------------- |
+| GET    | `/api/users/{userId}/favorites`             | Get all favorites for a user |
+| POST   | `/api/users/{userId}/favorites`             | Add a favorite               |
+| DELETE | `/api/users/{userId}/favorites/{listingId}` | Remove a favorite            |
+
+---
+
+### GET Favorites
+
+```bash
+curl "http://localhost:8081/api/users/1/favorites"
+```
+
+Returns:
+
+```json
+[
+  {
+    "userId": 1,
+    "listingId": 42
+  }
+]
+```
+
+---
+
+### POST Add Favorite
+
+Request body:
+
+```json
+{
+  "listingId": 42
+}
+```
+
+```bash
+curl -X POST http://localhost:8081/api/users/1/favorites \
+  -H "Content-Type: application/json" \
+  -d '{"listingId": 42}'
+```
+
+Returns `201 Created` with the favorite.
+
+---
+
+### DELETE Remove Favorite
+
+```bash
+curl -X DELETE http://localhost:8081/api/users/1/favorites/42
+```
+
+Returns `204 No Content`.
+
+---
+
+## Data Model
+
+### Listings Table
 
 ```sql
 CREATE TABLE listings (
-  id INTEGER PRIMARY KEY,
+  id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
   address TEXT NOT NULL,
-  price INTEGER,
+  price NUMERIC(12,2),
   sqft INTEGER,
   beds INTEGER,
   baths DOUBLE PRECISION,
@@ -151,3 +242,13 @@ CREATE TABLE listings (
   all_photo_urls TEXT
 );
 ```
+
+---
+
+## Notes
+
+- Uses DTOs (`ListingDTO`, `FavoriteDTO`) — entities are not exposed directly
+- Supports dynamic filtering via `ListingSearchRequest`
+- Pagination is handled via Spring Data `Page`
+- Sorting is configurable via `SortOption`
+- Validation is enforced at the request level
