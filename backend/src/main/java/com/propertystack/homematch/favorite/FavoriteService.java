@@ -1,24 +1,21 @@
 package com.propertystack.homematch.favorite;
 
 import com.propertystack.homematch.favorite.dto.FavoriteDTO;
+import com.propertystack.homematch.favorite.exception.FavoriteAlreadyExistsException;
+import com.propertystack.homematch.favorite.exception.FavoriteNotFoundException;
 import com.propertystack.homematch.listing.Listing;
 import com.propertystack.homematch.listing.ListingRepository;
+import com.propertystack.homematch.listing.exception.ListingNotFoundException;
 import com.propertystack.homematch.listing.mapper.ListingMapper;
 import com.propertystack.homematch.user.User;
 import com.propertystack.homematch.user.UserRepository;
-import jakarta.persistence.EntityNotFoundException;
-import org.springframework.dao.TransientDataAccessException;
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.Recover;
-import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
-@Transactional
+@Transactional(readOnly = true)
 public class FavoriteService {
 
     private final FavoriteRepository favoriteRepository;
@@ -26,94 +23,49 @@ public class FavoriteService {
     private final ListingRepository listingRepository;
     private final ListingMapper listingMapper;
 
-    public FavoriteService(FavoriteRepository favoriteRepository,
-                           UserRepository userRepository,
-                           ListingRepository listingRepository,
-                           ListingMapper listingMapper) {
+    public FavoriteService(
+            FavoriteRepository favoriteRepository,
+            UserRepository userRepository,
+            ListingRepository listingRepository,
+            ListingMapper listingMapper
+    ) {
         this.favoriteRepository = favoriteRepository;
         this.userRepository = userRepository;
         this.listingRepository = listingRepository;
         this.listingMapper = listingMapper;
     }
 
-    @Retryable(
-        retryFor = { TransientDataAccessException.class },
-        maxAttempts = 3,
-        backoff = @Backoff(delay = 1000, multiplier = 2)
-    )
+    @Transactional
     public FavoriteDTO addFavorite(Long userId, Long listingId) {
-        User user = findUser(userId);
-        Listing listing = findListing(listingId);
+        Listing listing = listingRepository.findById(listingId)
+                .orElseThrow(() -> new ListingNotFoundException(listingId));
 
-        if (favoriteRepository.existsByUserAndListing(user, listing)) {
-            throw new IllegalStateException(
-                    "Listing " + listingId +
-                    " is already in favorites for user " + userId);
+        if (favoriteRepository.existsByUserIdAndListingId(userId, listingId)) {
+            throw new FavoriteAlreadyExistsException(userId, listingId);
         }
 
-        Favorite saved = favoriteRepository.save(
-                Favorite.builder().user(user).listing(listing).build());
+        User user = userRepository.getReferenceById(userId);
+        Favorite saved = favoriteRepository.save(new Favorite(user, listing));
         return toDTO(saved);
     }
 
-    @Recover
-    public FavoriteDTO recoverAddFavorite(
-            TransientDataAccessException ex, Long userId, Long listingId) {
-        throw new IllegalStateException(
-                "Unable to save favorite. Please try again.");
-    }
-
+    @Transactional
     public void removeFavorite(Long userId, Long listingId) {
-        User user = findUser(userId);
-        Listing listing = findListing(listingId);
-        favoriteRepository.deleteByUserAndListing(user, listing);
+        Favorite favorite = favoriteRepository.findByUserIdAndListingId(userId, listingId)
+                .orElseThrow(() -> new FavoriteNotFoundException(userId, listingId));
+
+        favoriteRepository.delete(favorite);
     }
 
-    @Retryable(
-        retryFor = { TransientDataAccessException.class },
-        maxAttempts = 3,
-        backoff = @Backoff(delay = 1000, multiplier = 2)
-    )
-    public void undoLastFavorite(Long userId) {
-        User user = findUser(userId);
-        Favorite last = favoriteRepository
-                .findTopByUserOrderByCreatedAtDesc(user)
-                .orElseThrow(() -> new IllegalStateException(
-                        "No favorites to undo for user " + userId));
-        favoriteRepository.delete(last);
-    }
-
-    @Recover
-    public void recoverUndoLastFavorite(
-            TransientDataAccessException ex, Long userId) {
-        throw new IllegalStateException("Unable to undo. Please try again.");
-    }
-
-    @Transactional(readOnly = true)
     public List<FavoriteDTO> getFavorites(Long userId) {
-        User user = findUser(userId);
-        return favoriteRepository.findByUserOrderByCreatedAtDesc(user).stream()
+        return favoriteRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
                 .map(this::toDTO)
-                .collect(Collectors.toList());
-    }
-
-    private User findUser(Long userId) {
-        return userRepository.findById(userId)
-                .orElseThrow(() ->
-                        new EntityNotFoundException("User not found: " + userId));
-    }
-
-    private Listing findListing(Long listingId) {
-        return listingRepository.findById(listingId)
-                .orElseThrow(() ->
-                        new EntityNotFoundException(
-                                "Listing not found: " + listingId));
+                .toList();
     }
 
     private FavoriteDTO toDTO(Favorite favorite) {
         return FavoriteDTO.builder()
                 .id(favorite.getId())
-                .userId(favorite.getUser().getId())
                 .listing(listingMapper.toDTO(favorite.getListing()))
                 .createdAt(favorite.getCreatedAt())
                 .build();

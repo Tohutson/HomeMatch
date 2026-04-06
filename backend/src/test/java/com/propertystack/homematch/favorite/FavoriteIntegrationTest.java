@@ -1,5 +1,7 @@
 package com.propertystack.homematch.favorite;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.propertystack.homematch.favorite.dto.CreateFavoriteRequest;
 import com.propertystack.homematch.listing.Listing;
 import com.propertystack.homematch.listing.ListingRepository;
 import com.propertystack.homematch.user.User;
@@ -10,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -20,30 +23,50 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 import java.math.BigDecimal;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @Testcontainers
 @AutoConfigureMockMvc
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@ActiveProfiles("test")
 class FavoriteIntegrationTest {
 
     @Container
-    static PostgreSQLContainer<?> postgres =
-            new PostgreSQLContainer<>("postgres:16-alpine");
+    static PostgreSQLContainer postgres =
+            new PostgreSQLContainer("postgres:16-alpine");
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", postgres::getJdbcUrl);
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
+        registry.add("spring.datasource.driver-class-name", postgres::getDriverClassName);
+
+        registry.add("spring.flyway.enabled", () -> true);
+        registry.add("spring.flyway.url", postgres::getJdbcUrl);
+        registry.add("spring.flyway.user", postgres::getUsername);
+        registry.add("spring.flyway.password", postgres::getPassword);
     }
 
-    @Autowired private MockMvc mockMvc;
-    @Autowired private FavoriteRepository favoriteRepository;
-    @Autowired private UserRepository userRepository;
-    @Autowired private ListingRepository listingRepository;
+    @Autowired
+    private MockMvc mockMvc;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Autowired
+    private FavoriteRepository favoriteRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private ListingRepository listingRepository;
 
     private User user;
     private Listing listing;
@@ -55,120 +78,136 @@ class FavoriteIntegrationTest {
         userRepository.deleteAll();
 
         user = userRepository.save(User.builder().build());
+
         listing = listingRepository.save(Listing.builder()
                 .address("30 Pitt St")
                 .price(new BigDecimal("250000"))
-                .beds(3).baths(1.5).sqft(2250)
-                .listingUrl("http://example.com").build());
+                .beds(3)
+                .baths(1.5)
+                .sqft(2250)
+                .listingUrl("http://example.com")
+                .build());
     }
 
     @Test
     void addFavorite_shouldPersistAndReturn201() throws Exception {
-        mockMvc.perform(post("/api/favorites")
-                        .param("userId", user.getId().toString())
-                        .param("listingId", listing.getId().toString()))
+        CreateFavoriteRequest request = new CreateFavoriteRequest(listing.getId());
+
+        mockMvc.perform(post("/api/users/{userId}/favorites", user.getId())
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.userId").value(user.getId()))
+                .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.listing.id").value(listing.getId()))
                 .andExpect(jsonPath("$.listing.address").value("30 Pitt St"))
                 .andExpect(jsonPath("$.createdAt").isNotEmpty());
 
-        assertThat(favoriteRepository
-                .existsByUserAndListing(user, listing)).isTrue();
+        assertThat(favoriteRepository.existsByUserIdAndListingId(user.getId(), listing.getId()))
+                .isTrue();
     }
 
     @Test
     void addFavorite_shouldReturn409WhenAlreadyFavorited() throws Exception {
-        favoriteRepository.save(
-                Favorite.builder().user(user).listing(listing).build());
+        favoriteRepository.save(Favorite.builder()
+                .user(user)
+                .listing(listing)
+                .build());
 
-        mockMvc.perform(post("/api/favorites")
-                        .param("userId", user.getId().toString())
-                        .param("listingId", listing.getId().toString()))
+        CreateFavoriteRequest request = new CreateFavoriteRequest(listing.getId());
+
+        mockMvc.perform(post("/api/users/{userId}/favorites", user.getId())
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict());
     }
 
     @Test
-    void getFavorites_shouldReturnAllFavoritesForUser() throws Exception {
-        favoriteRepository.save(
-                Favorite.builder().user(user).listing(listing).build());
+    void addFavorite_shouldReturn404WhenListingDoesNotExist() throws Exception {
+        CreateFavoriteRequest request = new CreateFavoriteRequest(999999L);
 
-        mockMvc.perform(get("/api/favorites")
-                        .param("userId", user.getId().toString()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$[0].listing.address")
-                        .value("30 Pitt St"))
-                .andExpect(jsonPath("$[0].createdAt").isNotEmpty());
-    }
-
-    @Test
-    void getFavorites_shouldReturn404ForUnknownUser() throws Exception {
-        mockMvc.perform(get("/api/favorites").param("userId", "999999"))
+        mockMvc.perform(post("/api/users/{userId}/favorites", user.getId())
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound());
     }
 
     @Test
+    void addFavorite_shouldReturn400WhenUserIdIsInvalid() throws Exception {
+        CreateFavoriteRequest request = new CreateFavoriteRequest(listing.getId());
+
+        mockMvc.perform(post("/api/users/{userId}/favorites", 0)
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void addFavorite_shouldReturn400WhenRequestBodyIsInvalid() throws Exception {
+        CreateFavoriteRequest request = new CreateFavoriteRequest(0L);
+
+        mockMvc.perform(post("/api/users/{userId}/favorites", user.getId())
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void getFavorites_shouldReturnAllFavoritesForUser() throws Exception {
+        favoriteRepository.save(Favorite.builder()
+                .user(user)
+                .listing(listing)
+                .build());
+
+        mockMvc.perform(get("/api/users/{userId}/favorites", user.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$[0].listing.id").value(listing.getId()))
+                .andExpect(jsonPath("$[0].listing.address").value("30 Pitt St"))
+                .andExpect(jsonPath("$[0].createdAt").isNotEmpty());
+    }
+
+    @Test
+    void getFavorites_shouldReturnEmptyListWhenUserHasNoFavorites() throws Exception {
+        mockMvc.perform(get("/api/users/{userId}/favorites", user.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
+    void getFavorites_shouldReturn400WhenUserIdIsInvalid() throws Exception {
+        mockMvc.perform(get("/api/users/{userId}/favorites", 0))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void removeFavorite_shouldDeleteFromDatabase() throws Exception {
-        favoriteRepository.save(
-                Favorite.builder().user(user).listing(listing).build());
+        favoriteRepository.save(Favorite.builder()
+                .user(user)
+                .listing(listing)
+                .build());
 
-        mockMvc.perform(delete("/api/favorites")
-                        .param("userId", user.getId().toString())
-                        .param("listingId", listing.getId().toString()))
+        mockMvc.perform(delete("/api/users/{userId}/favorites/{listingId}", user.getId(), listing.getId()))
                 .andExpect(status().isNoContent());
 
-        assertThat(favoriteRepository
-                .existsByUserAndListing(user, listing)).isFalse();
+        assertThat(favoriteRepository.existsByUserIdAndListingId(user.getId(), listing.getId()))
+                .isFalse();
     }
 
     @Test
-    void undoLastFavorite_shouldRemoveMostRecentFavorite() throws Exception {
-        favoriteRepository.save(
-                Favorite.builder().user(user).listing(listing).build());
-
-        mockMvc.perform(delete("/api/favorites/last")
-                        .param("userId", user.getId().toString()))
-                .andExpect(status().isNoContent());
-
-        assertThat(favoriteRepository
-                .findByUserOrderByCreatedAtDesc(user)).isEmpty();
+    void removeFavorite_shouldReturn404WhenFavoriteDoesNotExist() throws Exception {
+        mockMvc.perform(delete("/api/users/{userId}/favorites/{listingId}", user.getId(), listing.getId()))
+                .andExpect(status().isNotFound());
     }
 
     @Test
-    void undoLastFavorite_shouldReturn409WhenNoFavoritesExist()
-            throws Exception {
-        mockMvc.perform(delete("/api/favorites/last")
-                        .param("userId", user.getId().toString()))
-                .andExpect(status().isConflict());
+    void removeFavorite_shouldReturn400WhenUserIdIsInvalid() throws Exception {
+        mockMvc.perform(delete("/api/users/{userId}/favorites/{listingId}", 0, listing.getId()))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
-    void undoLastFavorite_shouldSupportSequentialUndos() throws Exception {
-        Listing listing2 = listingRepository.save(Listing.builder()
-                .address("40 Forbes Ave")
-                .price(new BigDecimal("525000"))
-                .beds(4).baths(3.0).sqft(3100)
-                .listingUrl("http://example.com/2").build());
-
-        favoriteRepository.save(
-                Favorite.builder().user(user).listing(listing).build());
-        Thread.sleep(20);
-        favoriteRepository.save(
-                Favorite.builder().user(user).listing(listing2).build());
-
-        mockMvc.perform(delete("/api/favorites/last")
-                        .param("userId", user.getId().toString()))
-                .andExpect(status().isNoContent());
-        assertThat(favoriteRepository
-                .existsByUserAndListing(user, listing2)).isFalse();
-        assertThat(favoriteRepository
-                .existsByUserAndListing(user, listing)).isTrue();
-
-        mockMvc.perform(delete("/api/favorites/last")
-                        .param("userId", user.getId().toString()))
-                .andExpect(status().isNoContent());
-        assertThat(favoriteRepository
-                .existsByUserAndListing(user, listing)).isFalse();
+    void removeFavorite_shouldReturn400WhenListingIdIsInvalid() throws Exception {
+        mockMvc.perform(delete("/api/users/{userId}/favorites/{listingId}", user.getId(), 0))
+                .andExpect(status().isBadRequest());
     }
 }

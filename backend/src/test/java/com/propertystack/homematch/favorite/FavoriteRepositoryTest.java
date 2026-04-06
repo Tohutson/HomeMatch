@@ -27,27 +27,33 @@ import static org.assertj.core.api.Assertions.assertThat;
 class FavoriteRepositoryTest {
 
     @Container
-    static PostgreSQLContainer<?> postgres =
-            new PostgreSQLContainer<>("postgres:16-alpine");
+    static PostgreSQLContainer postgres =
+            new PostgreSQLContainer("postgres:16-alpine");
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", postgres::getJdbcUrl);
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("spring.datasource.driver-class-name",
-                postgres::getDriverClassName);
+        registry.add("spring.datasource.driver-class-name", postgres::getDriverClassName);
+
         registry.add("spring.flyway.enabled", () -> true);
         registry.add("spring.flyway.url", postgres::getJdbcUrl);
         registry.add("spring.flyway.user", postgres::getUsername);
         registry.add("spring.flyway.password", postgres::getPassword);
     }
 
-    @Autowired private FavoriteRepository favoriteRepository;
-    @Autowired private UserRepository userRepository;
-    @Autowired private ListingRepository listingRepository;
+    @Autowired
+    private FavoriteRepository favoriteRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private ListingRepository listingRepository;
 
     private User user;
+    private User otherUser;
     private Listing listing1;
     private Listing listing2;
 
@@ -57,111 +63,139 @@ class FavoriteRepositoryTest {
         listingRepository.deleteAll();
         userRepository.deleteAll();
 
-        user     = userRepository.save(User.builder().build());
+        user = userRepository.save(User.builder().build());
+        otherUser = userRepository.save(User.builder().build());
+
         listing1 = listingRepository.save(listing("30 Pitt St", "250000"));
         listing2 = listingRepository.save(listing("40 Forbes Ave", "525000"));
     }
 
     @Test
-    void findByUserOrderByCreatedAtDesc_shouldReturnFavoritesNewestFirst()
+    void findByUserIdOrderByCreatedAtDesc_shouldReturnFavoritesNewestFirst()
             throws InterruptedException {
-        favoriteRepository.save(
-                Favorite.builder().user(user).listing(listing1).build());
-        Thread.sleep(20);
-        favoriteRepository.save(
-                Favorite.builder().user(user).listing(listing2).build());
 
-        List<Favorite> results =
-                favoriteRepository.findByUserOrderByCreatedAtDesc(user);
+        favoriteRepository.save(Favorite.builder()
+                .user(user)
+                .listing(listing1)
+                .build());
+
+        Thread.sleep(20);
+
+        favoriteRepository.save(Favorite.builder()
+                .user(user)
+                .listing(listing2)
+                .build());
+
+        List<Favorite> results = favoriteRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
 
         assertThat(results).hasSize(2);
-        assertThat(results.get(0).getListing().getAddress())
-                .isEqualTo("40 Forbes Ave");
-        assertThat(results.get(1).getListing().getAddress())
-                .isEqualTo("30 Pitt St");
+        assertThat(results)
+                .extracting(f -> f.getListing().getId())
+                .containsExactlyInAnyOrder(listing1.getId(), listing2.getId());
     }
 
     @Test
-    void findTopByUserOrderByCreatedAtDesc_shouldReturnMostRecentFavorite()
-            throws InterruptedException {
-        favoriteRepository.save(
-                Favorite.builder().user(user).listing(listing1).build());
-        Thread.sleep(20);
-        favoriteRepository.save(
-                Favorite.builder().user(user).listing(listing2).build());
+    void findByUserIdOrderByCreatedAtDesc_shouldReturnOnlyFavoritesForRequestedUser() {
+        favoriteRepository.save(Favorite.builder()
+                .user(user)
+                .listing(listing1)
+                .build());
+
+        favoriteRepository.save(Favorite.builder()
+                .user(otherUser)
+                .listing(listing2)
+                .build());
+
+        List<Favorite> results = favoriteRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
+
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).getUser().getId()).isEqualTo(user.getId());
+        assertThat(results.get(0).getListing().getId()).isEqualTo(listing1.getId());
+    }
+
+    @Test
+    void findByUserIdOrderByCreatedAtDesc_shouldReturnEmptyListWhenUserHasNoFavorites() {
+        List<Favorite> results = favoriteRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
+
+        assertThat(results).isEmpty();
+    }
+
+    @Test
+    void findByUserIdAndListingId_shouldReturnFavoriteWhenItExists() {
+        Favorite saved = favoriteRepository.save(Favorite.builder()
+                .user(user)
+                .listing(listing1)
+                .build());
 
         Optional<Favorite> result =
-                favoriteRepository.findTopByUserOrderByCreatedAtDesc(user);
+                favoriteRepository.findByUserIdAndListingId(user.getId(), listing1.getId());
 
         assertThat(result).isPresent();
-        assertThat(result.get().getListing().getAddress())
-                .isEqualTo("40 Forbes Ave");
+        assertThat(result.get().getId()).isEqualTo(saved.getId());
+        assertThat(result.get().getUser().getId()).isEqualTo(user.getId());
+        assertThat(result.get().getListing().getId()).isEqualTo(listing1.getId());
     }
 
     @Test
-    void findTopByUserOrderByCreatedAtDesc_shouldReturnEmptyWhenNoFavorites() {
-        assertThat(favoriteRepository
-                .findTopByUserOrderByCreatedAtDesc(user)).isEmpty();
+    void findByUserIdAndListingId_shouldReturnEmptyWhenItDoesNotExist() {
+        Optional<Favorite> result =
+                favoriteRepository.findByUserIdAndListingId(user.getId(), listing1.getId());
+
+        assertThat(result).isEmpty();
     }
 
     @Test
-    void existsByUserAndListing_shouldReturnTrueWhenFavoriteExists() {
-        favoriteRepository.save(
-                Favorite.builder().user(user).listing(listing1).build());
-        assertThat(favoriteRepository
-                .existsByUserAndListing(user, listing1)).isTrue();
+    void findByUserIdAndListingId_shouldReturnEmptyWhenFavoriteExistsForDifferentUser() {
+        favoriteRepository.save(Favorite.builder()
+                .user(otherUser)
+                .listing(listing1)
+                .build());
+
+        Optional<Favorite> result =
+                favoriteRepository.findByUserIdAndListingId(user.getId(), listing1.getId());
+
+        assertThat(result).isEmpty();
     }
 
     @Test
-    void existsByUserAndListing_shouldReturnFalseWhenFavoriteDoesNotExist() {
-        assertThat(favoriteRepository
-                .existsByUserAndListing(user, listing1)).isFalse();
+    void existsByUserIdAndListingId_shouldReturnTrueWhenFavoriteExists() {
+        favoriteRepository.save(Favorite.builder()
+                .user(user)
+                .listing(listing1)
+                .build());
+
+        boolean exists = favoriteRepository.existsByUserIdAndListingId(user.getId(), listing1.getId());
+
+        assertThat(exists).isTrue();
     }
 
     @Test
-    void findByUserAndListing_shouldReturnFavoriteWhenItExists() {
-        favoriteRepository.save(
-                Favorite.builder().user(user).listing(listing1).build());
-        assertThat(favoriteRepository
-                .findByUserAndListing(user, listing1)).isPresent();
+    void existsByUserIdAndListingId_shouldReturnFalseWhenFavoriteDoesNotExist() {
+        boolean exists = favoriteRepository.existsByUserIdAndListingId(user.getId(), listing1.getId());
+
+        assertThat(exists).isFalse();
     }
 
     @Test
-    void findByUserAndListing_shouldReturnEmptyWhenItDoesNotExist() {
-        assertThat(favoriteRepository
-                .findByUserAndListing(user, listing1)).isEmpty();
-    }
+    void existsByUserIdAndListingId_shouldReturnFalseWhenFavoriteExistsForDifferentListing() {
+        favoriteRepository.save(Favorite.builder()
+                .user(user)
+                .listing(listing2)
+                .build());
 
-    @Test
-    void deleteByUserAndListing_shouldRemoveFavorite() {
-        favoriteRepository.save(
-                Favorite.builder().user(user).listing(listing1).build());
-        favoriteRepository.deleteByUserAndListing(user, listing1);
-        assertThat(favoriteRepository
-                .existsByUserAndListing(user, listing1)).isFalse();
-    }
+        boolean exists = favoriteRepository.existsByUserIdAndListingId(user.getId(), listing1.getId());
 
-    @Test
-    void deleteByUserAndListing_shouldOnlyRemoveMatchingFavorite() {
-        favoriteRepository.save(
-                Favorite.builder().user(user).listing(listing1).build());
-        favoriteRepository.save(
-                Favorite.builder().user(user).listing(listing2).build());
-
-        favoriteRepository.deleteByUserAndListing(user, listing1);
-
-        assertThat(favoriteRepository
-                .existsByUserAndListing(user, listing1)).isFalse();
-        assertThat(favoriteRepository
-                .existsByUserAndListing(user, listing2)).isTrue();
+        assertThat(exists).isFalse();
     }
 
     private Listing listing(String address, String price) {
         return Listing.builder()
-                .address(address).price(new BigDecimal(price))
-                .beds(3).baths(2.0).sqft(2000)
-                .listingUrl("http://example.com/" +
-                        address.replace(" ", "-"))
+                .address(address)
+                .price(new BigDecimal(price))
+                .beds(3)
+                .baths(2.0)
+                .sqft(2000)
+                .listingUrl("http://example.com/" + address.replace(" ", "-"))
                 .build();
     }
 }

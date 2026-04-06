@@ -85,17 +85,6 @@
             <version>${mapstruct.version}</version>
         </dependency>
 
-        <!-- Spring Retry — UC-1.4 Exception 2, UC-1.5 Exception 3 -->
-        <dependency>
-            <groupId>org.springframework.retry</groupId>
-            <artifactId>spring-retry</artifactId>
-            <version>2.0.12</version>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-aspects</artifactId>
-        </dependency>
-
         <!-- Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -32,4 +32,9 @@ public class Favorite {
 
     @Column(name = "created_at", nullable = false, updatable = false, insertable = false)
     private LocalDateTime createdAt;
+
+    public Favorite(User user, Listing listing) {
+        this.user = user;
+        this.listing = listing;
+    }
 }
