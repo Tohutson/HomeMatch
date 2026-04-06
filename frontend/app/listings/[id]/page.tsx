@@ -56,7 +56,7 @@ export default function ListingDetailPage() {
 
   useEffect(() => {
     if (!userId || !listing) return;
-    fetch(`${API_BASE}/api/favorites?userId=${userId}`)
+    fetch(`${API_BASE}/api/users/${userId}/favorites`)
       .then((r) => r.json())
       .then((favs: { listing: { id: number } }[]) =>
         setIsFavorited(favs.some((f) => f.listing.id === listing.id))
@@ -65,7 +65,7 @@ export default function ListingDetailPage() {
   }, [userId, listing]);
 
   const clearUndoTimer = () => {
-    if (undoTimerRef.current)    clearTimeout(undoTimerRef.current);
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
     if (undoIntervalRef.current) clearInterval(undoIntervalRef.current);
   };
 
@@ -76,7 +76,10 @@ export default function ListingDetailPage() {
 
     undoIntervalRef.current = setInterval(() => {
       setUndoTimeLeft((t) => {
-        if (t <= 1) { clearInterval(undoIntervalRef.current!); return 0; }
+        if (t <= 1) {
+          clearInterval(undoIntervalRef.current!);
+          return 0;
+        }
         return t - 1;
       });
     }, 1000);
@@ -95,7 +98,7 @@ export default function ListingDetailPage() {
 
     if (isFavorited) {
       await fetch(
-        `${API_BASE}/api/favorites?userId=${userId}&listingId=${listing.id}`,
+        `${API_BASE}/api/users/${userId}/favorites/${listing.id}`,
         { method: "DELETE" }
       );
       setIsFavorited(false);
@@ -107,23 +110,26 @@ export default function ListingDetailPage() {
     }
 
     const res = await fetch(
-      `${API_BASE}/api/favorites?userId=${userId}&listingId=${listing.id}`,
-      { method: "POST" }
+      `${API_BASE}/api/users/${userId}/favorites`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ listingId: listing.id }),
+      }
     );
 
     if (res.status === 409) {
       setToast("This home is already in your favorites");
       return;
     }
-    if (res.status === 503) {
+    if (!res.ok) {
       setToast("Unable to save favorite. Please try again.");
       return;
     }
-    if (res.ok) {
-      setIsFavorited(true);
-      startUndoTimer(listing);
-      setToast("Added to Favorites");
-    }
+
+    setIsFavorited(true);
+    startUndoTimer(listing);
+    setToast("Added to Favorites");
   };
 
   const handleUndo = async () => {
@@ -133,11 +139,11 @@ export default function ListingDetailPage() {
     }
 
     const res = await fetch(
-      `${API_BASE}/api/favorites/last?userId=${userId}`,
+      `${API_BASE}/api/users/${userId}/favorites/${undoListing.id}`,
       { method: "DELETE" }
     );
 
-    if (res.status === 503) {
+    if (!res.ok) {
       setToast("Unable to undo. Please try again.");
       return;
     }
@@ -149,7 +155,7 @@ export default function ListingDetailPage() {
     setToast(`Removed ${undoListing.address ?? "property"} from favorites`);
   };
 
-  const canUndo     = undoListing !== null && undoTimeLeft > 0;
+  const canUndo = undoListing !== null && undoTimeLeft > 0;
   const undoVisible = undoTimeLeft > 0;
 
   if (loading) {
@@ -244,10 +250,10 @@ export default function ListingDetailPage() {
           </p>
 
           <div className="mb-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <Stat label="Bedrooms"  value={listing.beds} />
+            <Stat label="Bedrooms" value={listing.beds} />
             <Stat label="Bathrooms" value={listing.baths} />
-            <Stat label="Sq Ft"     value={listing.sqft?.toLocaleString()} />
-            <Stat label="Energy"    value={listing.energyStarScore} />
+            <Stat label="Sq Ft" value={listing.sqft?.toLocaleString()} />
+            <Stat label="Energy" value={listing.energyStarScore} />
           </div>
 
           {listing.listingUrl ? (

@@ -16,7 +16,6 @@ type Listing = {
 
 type Favorite = {
   id: number;
-  userId: number;
   listing: Listing;
   createdAt: string;
 };
@@ -26,13 +25,13 @@ type SortOption = "date_desc" | "date_asc" | "price_asc" | "price_desc";
 const API_BASE = "http://localhost:8081";
 
 export default function FavoritesPage() {
-  const [favorites, setFavorites]             = useState<Favorite[]>([]);
-  const [loading, setLoading]                 = useState(true);
-  const [error, setError]                     = useState("");
-  const [sortOption, setSortOption]           = useState<SortOption>("date_desc");
-  const [userId, setUserId]                   = useState<number | null>(null);
+  const [favorites, setFavorites] = useState<Favorite[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [sortOption, setSortOption] = useState<SortOption>("date_desc");
+  const [userId, setUserId] = useState<number | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
-  const [unavailableIds, setUnavailableIds]   = useState<Set<number>>(new Set());
+  const [unavailableIds, setUnavailableIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     getOrCreateUserId().then(setUserId).catch(console.error);
@@ -42,7 +41,7 @@ export default function FavoritesPage() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`${API_BASE}/api/favorites?userId=${uid}`);
+      const res = await fetch(`${API_BASE}/api/users/${uid}/favorites`);
       if (!res.ok) throw new Error("Failed to load favorites");
       setFavorites(await res.json());
     } catch (err: unknown) {
@@ -58,14 +57,14 @@ export default function FavoritesPage() {
 
   const checkAvailability = useCallback(async (favs: Favorite[]) => {
     if (favs.length === 0) return;
+
     const results = await Promise.all(
       favs.map(async (fav) => {
-        const res = await fetch(
-          `${API_BASE}/api/listings/${fav.listing.id}`
-        );
+        const res = await fetch(`${API_BASE}/api/listings/${fav.listing.id}`);
         return { id: fav.listing.id, available: res.ok };
       })
     );
+
     setUnavailableIds(
       new Set(results.filter((r) => !r.available).map((r) => r.id))
     );
@@ -78,11 +77,17 @@ export default function FavoritesPage() {
   const handleRemove = useCallback(
     async (listingId: number) => {
       if (!userId) return;
+
       try {
-        await fetch(
-          `${API_BASE}/api/favorites?userId=${userId}&listingId=${listingId}`,
+        const res = await fetch(
+          `${API_BASE}/api/users/${userId}/favorites/${listingId}`,
           { method: "DELETE" }
         );
+
+        if (!res.ok) {
+          throw new Error("Failed to remove favorite");
+        }
+
         setFavorites((prev) =>
           prev.filter((f) => f.listing.id !== listingId)
         );
@@ -98,33 +103,33 @@ export default function FavoritesPage() {
   const sorted = [...favorites].sort((a, b) => {
     switch (sortOption) {
       case "date_asc":
-        return (
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        );
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       case "price_asc":
         return (a.listing.price ?? 0) - (b.listing.price ?? 0);
       case "price_desc":
         return (b.listing.price ?? 0) - (a.listing.price ?? 0);
       default:
-        return (
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     }
   });
 
-  if (loading) return (
-    <main className="min-h-screen bg-zinc-50 p-8 text-black">
-      <h1 className="mb-4 text-3xl font-bold">My Favorites</h1>
-      <p>Loading favorites...</p>
-    </main>
-  );
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-zinc-50 p-8 text-black">
+        <h1 className="mb-4 text-3xl font-bold">My Favorites</h1>
+        <p>Loading favorites...</p>
+      </main>
+    );
+  }
 
-  if (error) return (
-    <main className="min-h-screen bg-zinc-50 p-8 text-black">
-      <h1 className="mb-4 text-3xl font-bold">My Favorites</h1>
-      <p className="text-red-600">Error: {error}</p>
-    </main>
-  );
+  if (error) {
+    return (
+      <main className="min-h-screen bg-zinc-50 p-8 text-black">
+        <h1 className="mb-4 text-3xl font-bold">My Favorites</h1>
+        <p className="text-red-600">Error: {error}</p>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-zinc-50 p-8 text-black">
@@ -137,11 +142,11 @@ export default function FavoritesPage() {
             My Favorites ({favorites.length})
           </h1>
         </div>
+
         <select
           value={sortOption}
           onChange={(e) => setSortOption(e.target.value as SortOption)}
-          className="rounded-lg border border-zinc-300 bg-white
-                     px-3 py-2 text-sm"
+          className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm"
           aria-label="Sort favorites"
         >
           <option value="date_desc">Newest First</option>
@@ -152,8 +157,7 @@ export default function FavoritesPage() {
       </div>
 
       {favorites.length === 0 ? (
-        <div className="rounded-xl border border-zinc-200 bg-white
-                        p-12 text-center">
+        <div className="rounded-xl border border-zinc-200 bg-white p-12 text-center">
           <p className="mb-4 text-zinc-500">No favorites yet.</p>
           <Link href="/" className="text-rose-500 hover:underline">
             Start browsing →
@@ -164,15 +168,12 @@ export default function FavoritesPage() {
           {sorted.map((fav) => (
             <div
               key={fav.id}
-              className="relative rounded-xl border border-zinc-200
-                         bg-white p-4 shadow-sm"
+              className="relative rounded-xl border border-zinc-200 bg-white p-4 shadow-sm"
               data-testid={`favorite-card-${fav.listing.id}`}
             >
               {unavailableIds.has(fav.listing.id) && (
                 <div
-                  className="mb-3 rounded-lg border border-amber-200
-                             bg-amber-50 px-3 py-2 text-xs font-medium
-                             text-amber-800"
+                  className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800"
                   data-testid={`unavailable-notice-${fav.listing.id}`}
                 >
                   ⚠ This property is no longer available in the database.
@@ -186,9 +187,7 @@ export default function FavoritesPage() {
                   className="mb-4 h-40 w-full rounded-lg object-cover"
                 />
               ) : (
-                <div className="mb-4 flex h-40 w-full items-center
-                                justify-center rounded-lg bg-zinc-100
-                                text-sm text-zinc-400">
+                <div className="mb-4 flex h-40 w-full items-center justify-center rounded-lg bg-zinc-100 text-sm text-zinc-400">
                   No Image
                 </div>
               )}
@@ -202,8 +201,7 @@ export default function FavoritesPage() {
                   : "Price N/A"}
               </p>
               <p className="text-sm text-zinc-500">
-                {fav.listing.beds ?? "?"} bd ·{" "}
-                {fav.listing.baths ?? "?"} ba ·{" "}
+                {fav.listing.beds ?? "?"} bd · {fav.listing.baths ?? "?"} ba ·{" "}
                 {fav.listing.sqft
                   ? `${fav.listing.sqft.toLocaleString()} sqft`
                   : "? sqft"}
@@ -214,8 +212,7 @@ export default function FavoritesPage() {
 
               <Link
                 href={`/listings/${fav.listing.id}`}
-                className="mt-2 inline-block text-sm font-medium
-                           text-rose-500 hover:underline"
+                className="mt-2 inline-block text-sm font-medium text-rose-500 hover:underline"
                 data-testid={`details-link-${fav.listing.id}`}
               >
                 View Details →
@@ -225,15 +222,13 @@ export default function FavoritesPage() {
                 <div className="mt-3 flex gap-2">
                   <button
                     onClick={() => handleRemove(fav.listing.id)}
-                    className="flex-1 rounded-md bg-red-500 px-3 py-1.5
-                               text-sm text-white hover:bg-red-600"
+                    className="flex-1 rounded-md bg-red-500 px-3 py-1.5 text-sm text-white hover:bg-red-600"
                   >
                     Confirm Remove
                   </button>
                   <button
                     onClick={() => setConfirmDeleteId(null)}
-                    className="flex-1 rounded-md border border-zinc-300
-                               px-3 py-1.5 text-sm hover:bg-zinc-50"
+                    className="flex-1 rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50"
                   >
                     Cancel
                   </button>
@@ -242,8 +237,7 @@ export default function FavoritesPage() {
                 <button
                   onClick={() => setConfirmDeleteId(fav.listing.id)}
                   aria-label="Remove from favorites"
-                  className="absolute right-4 top-4 text-zinc-400
-                             transition-colors hover:text-red-500"
+                  className="absolute right-4 top-4 text-zinc-400 transition-colors hover:text-red-500"
                   data-testid={`remove-button-${fav.listing.id}`}
                 >
                   ✕

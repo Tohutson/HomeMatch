@@ -10,11 +10,9 @@ export function enqueueOfflineFavorite(item: QueuedFavorite): void {
   const already = existing.some(
     (q) => q.userId === item.userId && q.listingId === item.listingId
   );
+
   if (!already) {
-    localStorage.setItem(
-      QUEUE_KEY,
-      JSON.stringify([...existing, item])
-    );
+    localStorage.setItem(QUEUE_KEY, JSON.stringify([...existing, item]));
   }
 }
 
@@ -43,12 +41,18 @@ export async function flushOfflineQueue(apiBase: string): Promise<number> {
   if (queue.length === 0) return 0;
 
   let synced = 0;
+
   for (const item of queue) {
     try {
       const res = await fetch(
-        `${apiBase}/api/favorites?userId=${item.userId}&listingId=${item.listingId}`,
-        { method: "POST" }
+        `${apiBase}/api/users/${item.userId}/favorites`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ listingId: item.listingId }),
+        }
       );
+
       if (res.ok || res.status === 409) {
         removeFromOfflineQueue(item);
         synced++;
@@ -57,5 +61,6 @@ export async function flushOfflineQueue(apiBase: string): Promise<number> {
       // Network still down — leave in queue
     }
   }
+
   return synced;
 }

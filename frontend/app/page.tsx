@@ -47,7 +47,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!userId) return;
-    fetch(`${API_BASE}/api/favorites?userId=${userId}`)
+    fetch(`${API_BASE}/api/users/${userId}/favorites`)
       .then((r) => r.json())
       .then((data: { listing: Listing }[]) =>
         setFavoriteIds(new Set(data.map((f) => f.listing.id)))
@@ -79,9 +79,7 @@ export default function Home() {
       setToast("Connection restored. Syncing your favorites...");
       const synced = await flushOfflineQueue(API_BASE);
       if (synced > 0) {
-        const res = await fetch(
-          `${API_BASE}/api/favorites?userId=${userId}`
-        );
+        const res = await fetch(`${API_BASE}/api/users/${userId}/favorites`);
         if (res.ok) {
           const data: { listing: Listing }[] = await res.json();
           setFavoriteIds(new Set(data.map((f) => f.listing.id)));
@@ -144,7 +142,7 @@ export default function Home() {
 
       if (favoriteIds.has(listing.id)) {
         await fetch(
-          `${API_BASE}/api/favorites?userId=${userId}&listingId=${listing.id}`,
+          `${API_BASE}/api/users/${userId}/favorites/${listing.id}`,
           { method: "DELETE" }
         );
         setFavoriteIds((prev) => {
@@ -167,8 +165,12 @@ export default function Home() {
       let res: Response;
       try {
         res = await fetch(
-          `${API_BASE}/api/favorites?userId=${userId}&listingId=${listing.id}`,
-          { method: "POST" }
+          `${API_BASE}/api/users/${userId}/favorites`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ listingId: listing.id }),
+          }
         );
       } catch {
         enqueueOfflineFavorite({ userId, listingId: listing.id });
@@ -183,7 +185,7 @@ export default function Home() {
         setToast("This home is already in your favorites");
         return;
       }
-      if (res.status === 503) {
+      if (!res.ok) {
         setToast("Unable to save favorite. Please try again.");
         return;
       }
@@ -212,10 +214,10 @@ export default function Home() {
     let failed = false;
     try {
       const res = await fetch(
-        `${API_BASE}/api/favorites/last?userId=${userId}`,
+        `${API_BASE}/api/users/${userId}/favorites/${poppedListing.id}`,
         { method: "DELETE" }
       );
-      if (res.status === 503) {
+      if (!res.ok) {
         failed = true;
         setToast("Unable to undo. Please try again.");
       }
@@ -246,8 +248,12 @@ export default function Home() {
     if (!userId || redoStack.length === 0) return;
     const listingToRedo = redoStack[redoStack.length - 1];
     const res = await fetch(
-      `${API_BASE}/api/favorites?userId=${userId}&listingId=${listingToRedo.id}`,
-      { method: "POST" }
+      `${API_BASE}/api/users/${userId}/favorites`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ listingId: listingToRedo.id }),
+      }
     );
     if (res.ok) {
       setFavoriteIds((prev) => new Set(prev).add(listingToRedo.id));
@@ -255,6 +261,14 @@ export default function Home() {
       setUndoStack((prev) => [...prev, listingToRedo]);
       startUndoTimer();
       setToast("Added back to Favorites");
+    }
+    if (res.status === 409) {
+      setToast("This home is already in your favorites");
+      return;
+    }
+    if (!res.ok) {
+      setToast("Unable to add back to favorites. Please try again.");
+      return;
     }
   }, [userId, redoStack, startUndoTimer]);
 
