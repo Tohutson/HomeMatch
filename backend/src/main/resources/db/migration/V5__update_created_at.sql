@@ -1,0 +1,13 @@
+BEGIN;
+
+UPDATE favorites
+SET created_at = CURRENT_TIMESTAMP
+WHERE created_at IS NULL;
+
+ALTER TABLE favorites
+    ALTER COLUMN created_at SET DEFAULT CURRENT_TIMESTAMP;
+
+ALTER TABLE favorites
+    ALTER COLUMN created_at SET NOT NULL;
+
+COMMIT;

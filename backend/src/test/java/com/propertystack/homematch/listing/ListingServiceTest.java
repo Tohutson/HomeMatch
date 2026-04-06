@@ -1,6 +1,7 @@
 package com.propertystack.homematch.listing;
 
 import com.propertystack.homematch.listing.dto.ListingDTO;
+import com.propertystack.homematch.listing.exception.ListingNotFoundException;
 import com.propertystack.homematch.listing.mapper.ListingMapper;
 import com.propertystack.homematch.listing.query.ListingFilter;
 import org.junit.jupiter.api.Test;
@@ -19,9 +20,9 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -127,37 +128,37 @@ class ListingServiceTest {
         @Test
         void getListingById_shouldReturnMappedDtoWhenListingExists() {
                 Listing listing = Listing.builder()
-                                .id(1L)
-                                .address("30 Pitt St")
-                                .price(new BigDecimal("250000"))
-                                .energyStarScore(75)
-                                .build();
+                        .id(1L)
+                        .address("30 Pitt St")
+                        .price(new BigDecimal("250000"))
+                        .energyStarScore(75)
+                        .build();
 
                 ListingDTO dto = ListingDTO.builder()
-                                .id(1L)
-                                .address("30 Pitt St")
-                                .price(new BigDecimal("250000"))
-                                .energyStarScore(75)
-                                .build();
+                        .id(1L)
+                        .address("30 Pitt St")
+                        .price(new BigDecimal("250000"))
+                        .energyStarScore(75)
+                        .build();
 
-                when(listingRepository.findById(1L)).thenReturn(Optional.of(listing));
+                when(listingRepository.findById(1L)).thenReturn(java.util.Optional.of(listing));
                 when(listingMapper.toDTO(listing)).thenReturn(dto);
 
-                Optional<ListingDTO> result = listingService.getListingById(1L);
+                ListingDTO result = listingService.getListingById(1L);
 
-                assertThat(result).contains(dto);
+                assertThat(result).isEqualTo(dto);
 
                 verify(listingRepository).findById(1L);
                 verify(listingMapper).toDTO(listing);
         }
 
         @Test
-        void getListingById_shouldReturnEmptyWhenListingDoesNotExist() {
-                when(listingRepository.findById(1L)).thenReturn(Optional.empty());
+        void getListingById_shouldThrowWhenListingDoesNotExist() {
+                when(listingRepository.findById(1L)).thenReturn(java.util.Optional.empty());
 
-                Optional<ListingDTO> result = listingService.getListingById(1L);
-
-                assertThat(result).isEmpty();
+                assertThatThrownBy(() -> listingService.getListingById(1L))
+                        .isInstanceOf(ListingNotFoundException.class)
+                        .hasMessage("Listing not found: 1");
 
                 verify(listingRepository).findById(1L);
                 verifyNoInteractions(listingMapper);

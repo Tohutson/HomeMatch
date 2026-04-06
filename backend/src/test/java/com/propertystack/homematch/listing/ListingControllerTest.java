@@ -1,6 +1,7 @@
 package com.propertystack.homematch.listing;
 
 import com.propertystack.homematch.listing.dto.ListingDTO;
+import com.propertystack.homematch.listing.exception.ListingNotFoundException;
 import com.propertystack.homematch.listing.query.ListingFilter;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -15,7 +16,6 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -198,7 +198,7 @@ class ListingControllerTest {
 
     @Test
     void shouldReturnListingById() throws Exception {
-        when(listingService.getListingById(1L)).thenReturn(Optional.of(listingDto()));
+        when(listingService.getListingById(1L)).thenReturn(listingDto());
 
         mockMvc.perform(get("/api/listings/1"))
                 .andExpect(status().isOk())
@@ -220,7 +220,8 @@ class ListingControllerTest {
 
     @Test
     void shouldReturnNotFoundWhenListingDoesNotExist() throws Exception {
-        when(listingService.getListingById(999L)).thenReturn(Optional.empty());
+        when(listingService.getListingById(999L))
+                .thenThrow(new ListingNotFoundException(999L));
 
         mockMvc.perform(get("/api/listings/999"))
                 .andExpect(status().isNotFound());

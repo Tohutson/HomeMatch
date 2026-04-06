@@ -29,8 +29,6 @@ public class ListingController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ListingDTO> getListingById(@PathVariable Long id) {
-        return listingService.getListingById(id)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        return ResponseEntity.ok(listingService.getListingById(id));
     }
 }

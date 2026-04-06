@@ -1,14 +1,13 @@
 package com.propertystack.homematch.listing;
 
 import com.propertystack.homematch.listing.dto.ListingDTO;
+import com.propertystack.homematch.listing.exception.ListingNotFoundException;
 import com.propertystack.homematch.listing.mapper.ListingMapper;
 import com.propertystack.homematch.listing.query.ListingFilter;
 import com.propertystack.homematch.listing.query.ListingSpecification;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-
-import java.util.Optional;
 
 @Service
 public class ListingService {
@@ -27,9 +26,9 @@ public class ListingService {
                 .map(listingMapper::toDTO);
     }
 
-    public Optional<ListingDTO> getListingById(Long id) {
+    public ListingDTO getListingById(Long id) {
         return listingRepository.findById(id)
-                .map(listingMapper::toDTO);
+                .map(listingMapper::toDTO)
+                .orElseThrow(() -> new ListingNotFoundException(id));
     }
-
 }
