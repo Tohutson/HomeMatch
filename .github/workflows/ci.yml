@@ -1,9 +1,6 @@
 name: CI
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
 
 jobs:
@@ -12,7 +9,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:17.6
         env:
           POSTGRES_DB: homefinder
           POSTGRES_USER: postgres
@@ -20,7 +17,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd="pg_isready -U postgres"
+          --health-cmd="pg_isready -U postgres -d homefinder"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
@@ -39,7 +36,7 @@ jobs:
           java-version: 25
           cache: maven
 
-      - name: Build and test backend (includes favorite action integration tests)
+      - name: Build and test backend
         env:
           SPRING_PROFILES_ACTIVE: test
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/homefinder
@@ -47,7 +44,7 @@ jobs:
           SPRING_DATASOURCE_PASSWORD: postgres
           LOGGING_LEVEL_ORG_FLYWAYDB: INFO
           LOGGING_LEVEL_ORG_SPRINGFRAMEWORK: WARN
-        run: ./mvnw -B -q clean verify
+        run: ./mvnw -B clean verify
 
   frontend:
     runs-on: ubuntu-latest
@@ -71,5 +68,5 @@ jobs:
       - name: Build frontend
         run: npm run build
 
-      - name: Run frontend tests (includes favoriting and swipe gesture tests)
+      - name: Run frontend tests
         run: npm test -- --watchAll=false
