@@ -1,12 +1,13 @@
 import nextJest from "next/jest.js";
 
-const createJestConfig = nextJest({ dir: "./" });
+const createJestConfig = nextJest({
+  dir: "./",
+});
 
-export default createJestConfig({
+const customJestConfig = {
   testEnvironment: "jsdom",
   setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
-  testMatch: ["**/__tests__/**/*.[jt]s?(x)"],
-  moduleNameMapper: {
-    "^@/(.*)$": "<rootDir>/$1",
-  },
-});
+  clearMocks: true,
+};
+
+export default createJestConfig(customJestConfig);

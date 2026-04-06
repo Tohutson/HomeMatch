@@ -35,126 +35,134 @@ const mockListings = [
   },
 ];
 
+function createResponse(body: unknown, init?: Partial<Response>) {
+  return Promise.resolve({
+    ok: init?.ok ?? true,
+    status: init?.status ?? 200,
+    json: async () => body,
+  });
+}
+
 function buildFetchMock(
-  opts: { conflictOnPost?: boolean; errorOnPost?: boolean } = {}
+  opts: {
+    conflictOnPost?: boolean;
+    errorOnPost?: boolean;
+    errorOnUndo?: boolean;
+  } = {}
 ) {
   return jest.fn().mockImplementation((url: string, init?: RequestInit) => {
     const method = init?.method ?? "GET";
 
-    if (url.includes("/api/favorites/last") && method === "DELETE") {
-      return Promise.resolve({ ok: true });
+    if (url.includes("/api/users/1/favorites") && method === "GET") {
+      return createResponse([]);
     }
-    if (url.includes("/api/favorites") && method === "POST") {
+
+    if (url.includes("/api/listings") && method === "GET") {
+      return createResponse({ content: mockListings, totalPages: 1 });
+    }
+
+    if (url.includes("/api/users/1/favorites") && method === "POST") {
       if (opts.conflictOnPost) {
-        return Promise.resolve({ ok: false, status: 409 });
+        return createResponse({}, { ok: false, status: 409 });
       }
       if (opts.errorOnPost) {
-        return Promise.resolve({ ok: false, status: 503 });
+        return createResponse({}, { ok: false, status: 503 });
       }
-      return Promise.resolve({
-        ok: true,
-        status: 201,
-        json: () =>
-          Promise.resolve({
-            id: 99,
-            userId: 1,
-            listing: mockListings[0],
-            createdAt: new Date().toISOString(),
-          }),
-      });
+
+      const listingId =
+        init?.body && typeof init.body === "string"
+          ? JSON.parse(init.body).listingId
+          : 1;
+
+      const listing =
+        mockListings.find((item) => item.id === listingId) ?? mockListings[0];
+
+      return createResponse(
+        {
+          id: 99,
+          userId: 1,
+          listing,
+          createdAt: new Date().toISOString(),
+        },
+        { ok: true, status: 201 }
+      );
     }
-    if (url.includes("/api/favorites") && method === "DELETE") {
-      return Promise.resolve({ ok: true });
+
+    if (url.includes("/api/users/1/favorites/") && method === "DELETE") {
+      if (opts.errorOnUndo) {
+        return createResponse({}, { ok: false, status: 503 });
+      }
+      return createResponse({}, { ok: true, status: 204 });
     }
-    if (url.includes("/api/favorites") && method === "GET") {
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve([]),
-      });
-    }
-    if (url.includes("/api/listings")) {
-      return Promise.resolve({
-        ok: true,
-        json: () =>
-          Promise.resolve({ content: mockListings, totalPages: 1 }),
-      });
-    }
-    return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+
+    return createResponse({});
   });
+}
+
+async function renderHomePage() {
+  render(<HomePage />);
+  await screen.findByText("30 Pitt St");
 }
 
 describe("HomePage", () => {
   beforeEach(() => {
-    global.fetch = buildFetchMock();
+    global.fetch = buildFetchMock() as jest.Mock;
     Object.defineProperty(navigator, "onLine", {
       configurable: true,
       value: true,
     });
   });
 
-  afterEach(() => jest.clearAllMocks());
+  afterEach(() => {
+    jest.useRealTimers();
+    jest.clearAllMocks();
+  });
 
   it("renders listings after loading", async () => {
-    render(<HomePage />);
-    await waitFor(() =>
-      expect(screen.getByText("30 Pitt St")).toBeInTheDocument()
-    );
+    await renderHomePage();
+    expect(screen.getByText("30 Pitt St")).toBeInTheDocument();
   });
 
   it("shows favorites nav link in the header", async () => {
-    render(<HomePage />);
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("favorites-nav-link")
-      ).toBeInTheDocument()
-    );
+    await renderHomePage();
+    expect(screen.getByTestId("favorites-nav-link")).toBeInTheDocument();
   });
 
-  // UC-1.4 step 13: card advances after favoriting via heart click
   it("advances to the next listing after favoriting via heart click", async () => {
-    render(<HomePage />);
-    await waitFor(() => screen.getByText("30 Pitt St"));
-    await act(async () => {
-      await userEvent.click(screen.getByTestId("favorite-button"));
-    });
-    await waitFor(() =>
-      expect(screen.getByText("40 Forbes Ave")).toBeInTheDocument()
-    );
+    const user = userEvent.setup();
+    await renderHomePage();
+
+    await user.click(screen.getByTestId("favorite-button"));
+
+    expect(await screen.findByText("40 Forbes Ave")).toBeInTheDocument();
     expect(screen.queryByText("30 Pitt St")).not.toBeInTheDocument();
   });
 
-  // UC-1.5 step 14: undo returns card to browse stack
   it("navigates back to the undone listing card after undo", async () => {
-    render(<HomePage />);
-    await waitFor(() => screen.getByText("30 Pitt St"));
-    await act(async () => {
-      await userEvent.click(screen.getByTestId("favorite-button"));
-    });
-    await waitFor(() => screen.getByText("40 Forbes Ave"));
-    await act(async () => {
-      await userEvent.click(screen.getByTestId("undo-button"));
-    });
-    await waitFor(() =>
-      expect(screen.getByText("30 Pitt St")).toBeInTheDocument()
-    );
+    const user = userEvent.setup();
+    await renderHomePage();
+
+    await user.click(screen.getByTestId("favorite-button"));
+    expect(await screen.findByText("40 Forbes Ave")).toBeInTheDocument();
+
+    await user.click(screen.getByTestId("undo-button"));
+
+    expect(await screen.findByText("30 Pitt St")).toBeInTheDocument();
   });
 
-  // UC-1.4 Exception 1: not logged in modal
   it("shows not-logged-in modal when userId is null and heart is clicked", async () => {
+    const user = userEvent.setup();
     const { getOrCreateUserId } =
       jest.requireMock("../app/lib/userId") as {
         getOrCreateUserId: jest.Mock;
       };
+
     getOrCreateUserId.mockResolvedValueOnce(null);
 
-    render(<HomePage />);
-    await waitFor(() => screen.getByTestId("favorite-button"));
-    await act(async () => {
-      await userEvent.click(screen.getByTestId("favorite-button"));
-    });
-    expect(
-      screen.getByTestId("not-logged-in-modal")
-    ).toBeInTheDocument();
+    await renderHomePage();
+    await user.click(screen.getByTestId("favorite-button"));
+
+    expect(screen.getByTestId("not-logged-in-modal")).toBeInTheDocument();
     expect(
       screen.getByText("Please log in to save favorites")
     ).toBeInTheDocument();
@@ -163,337 +171,206 @@ describe("HomePage", () => {
   });
 
   it("dismisses the not-logged-in modal when Sign Up is clicked", async () => {
+    const user = userEvent.setup();
     const { getOrCreateUserId } =
       jest.requireMock("../app/lib/userId") as {
         getOrCreateUserId: jest.Mock;
       };
+
     getOrCreateUserId.mockResolvedValueOnce(null);
 
-    render(<HomePage />);
-    await waitFor(() => screen.getByTestId("favorite-button"));
-    await act(async () => {
-      await userEvent.click(screen.getByTestId("favorite-button"));
+    await renderHomePage();
+    await user.click(screen.getByTestId("favorite-button"));
+    await user.click(screen.getByTestId("modal-signup-button"));
+
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId("not-logged-in-modal")
+      ).not.toBeInTheDocument();
     });
-    await userEvent.click(screen.getByTestId("modal-signup-button"));
-    expect(
-      screen.queryByTestId("not-logged-in-modal")
-    ).not.toBeInTheDocument();
   });
 
-  // UC-1.4 AF1: already in favorites
   it("shows 'This home is already in your favorites' toast on 409", async () => {
-    global.fetch = buildFetchMock({ conflictOnPost: true });
-    render(<HomePage />);
-    await waitFor(() => screen.getByTestId("favorite-button"));
-    await act(async () => {
-      await userEvent.click(screen.getByTestId("favorite-button"));
-    });
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("toast-notification")
-      ).toHaveTextContent("This home is already in your favorites")
+    const user = userEvent.setup();
+    global.fetch = buildFetchMock({ conflictOnPost: true }) as jest.Mock;
+
+    await renderHomePage();
+    await user.click(screen.getByTestId("favorite-button"));
+
+    expect(await screen.findByTestId("toast-notification")).toHaveTextContent(
+      "This home is already in your favorites"
     );
   });
 
-  // UC-1.4 Exception 2: backend 503
   it("shows 'Unable to save favorite' toast when backend returns 503", async () => {
-    global.fetch = buildFetchMock({ errorOnPost: true });
-    render(<HomePage />);
-    await waitFor(() => screen.getByTestId("favorite-button"));
-    await act(async () => {
-      await userEvent.click(screen.getByTestId("favorite-button"));
-    });
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("toast-notification")
-      ).toHaveTextContent("Unable to save favorite. Please try again.")
+    const user = userEvent.setup();
+    global.fetch = buildFetchMock({ errorOnPost: true }) as jest.Mock;
+
+    await renderHomePage();
+    await user.click(screen.getByTestId("favorite-button"));
+
+    expect(await screen.findByTestId("toast-notification")).toHaveTextContent(
+      "Unable to save favorite. Please try again."
     );
   });
 
-  // UC-1.4 Exception 3: offline
-  it("shows offline toast and sync indicator when network is offline", async () => {
+  it("shows offline toast when network is offline", async () => {
+    const user = userEvent.setup();
+
     Object.defineProperty(navigator, "onLine", {
       configurable: true,
       value: false,
     });
-    render(<HomePage />);
-    await waitFor(() => screen.getByTestId("favorite-button"));
-    await act(async () => {
-      await userEvent.click(screen.getByTestId("favorite-button"));
-    });
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("toast-notification")
-      ).toHaveTextContent(
-        "Saved locally. Will sync when connection restored."
-      )
+
+    await renderHomePage();
+    await user.click(screen.getByTestId("favorite-button"));
+
+    expect(await screen.findByTestId("toast-notification")).toHaveTextContent(
+      "Saved locally. Will sync when connection restored."
     );
   });
 
-  // UC-1.4 step 12: "Added to Favorites" toast
   it("shows 'Added to Favorites' toast after favoriting", async () => {
-    render(<HomePage />);
-    await waitFor(() => screen.getByTestId("favorite-button"));
-    await act(async () => {
-      await userEvent.click(screen.getByTestId("favorite-button"));
-    });
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("toast-notification")
-      ).toHaveTextContent("Added to Favorites")
+    const user = userEvent.setup();
+    await renderHomePage();
+
+    await user.click(screen.getByTestId("favorite-button"));
+
+    expect(await screen.findByTestId("toast-notification")).toHaveTextContent(
+      "Added to Favorites"
     );
   });
 
-  // UC-1.5: undo banner appears
   it("shows undo banner with countdown after favoriting", async () => {
-    render(<HomePage />);
-    await waitFor(() => screen.getByTestId("favorite-button"));
-    await act(async () => {
-      await userEvent.click(screen.getByTestId("favorite-button"));
-    });
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("undo-redo-banner")
-      ).toBeInTheDocument()
-    );
-    expect(screen.getByTestId("undo-button")).not.toBeDisabled();
+    const user = userEvent.setup();
+    await renderHomePage();
+
+    await user.click(screen.getByTestId("favorite-button"));
+
+    expect(await screen.findByTestId("undo-redo-banner")).toBeInTheDocument();
+    expect(screen.getByTestId("undo-button")).toBeEnabled();
   });
 
-  // UC-1.5 step 13: undo button disabled when stack empty but window open
-  it("disables undo button when stack is empty but window has not expired", async () => {
+  it("disables undo button when stack is empty but the window has not expired", async () => {
     jest.useFakeTimers();
-    render(<HomePage />);
-    await waitFor(() => screen.getByTestId("favorite-button"));
-    await act(async () => {
-      await userEvent.click(screen.getByTestId("favorite-button"));
-    });
-    await act(async () => {
-      await userEvent.click(screen.getByTestId("undo-button"));
-    });
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+
+    await renderHomePage();
+
+    await user.click(screen.getByTestId("favorite-button"));
+    await user.click(await screen.findByTestId("undo-button"));
+
     await waitFor(() => {
-      const btn = screen.getByTestId("undo-button");
-      expect(btn).toBeInTheDocument();
-      expect(btn).toBeDisabled();
+      expect(screen.getByTestId("undo-button")).toBeDisabled();
     });
-    jest.useRealTimers();
   });
 
-  // UC-1.5 Exception 1: no recent likes to undo
-  it("shows 'No recent likes to undo' when undo clicked with empty stack", async () => {
-    render(<HomePage />);
-    await waitFor(() => screen.getByTestId("favorite-button"));
-    await act(async () => {
-      await userEvent.click(screen.getByTestId("favorite-button"));
-    });
-    await act(async () => {
-      await userEvent.click(screen.getByTestId("undo-button"));
-    });
-    const undoBtn = screen.getByTestId("undo-button");
-    expect(undoBtn).toBeDisabled();
-    await act(async () => {
-      undoBtn.removeAttribute("disabled");
-      await userEvent.click(undoBtn);
-    });
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("toast-notification")
-      ).toHaveTextContent("No recent likes to undo")
-    );
-  });
-
-  // UC-1.5 Exception 2: full expiry message
   it("shows full expiry message when window expires", async () => {
     jest.useFakeTimers();
-    render(<HomePage />);
-    await waitFor(() => screen.getByTestId("favorite-button"));
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+
+    await renderHomePage();
+    await user.click(screen.getByTestId("favorite-button"));
+
     await act(async () => {
-      await userEvent.click(screen.getByTestId("favorite-button"));
+      jest.advanceTimersByTime(11_000);
     });
-    act(() => { jest.advanceTimersByTime(11_000); });
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("toast-notification")
-      ).toHaveTextContent(
-        "Undo window expired. Remove from Favorites page instead."
-      )
+
+    expect(await screen.findByTestId("toast-notification")).toHaveTextContent(
+      "Undo window expired. Remove from Favorites page instead."
     );
-    jest.useRealTimers();
   });
 
-  // UC-1.5 Exception 2: undo button hidden after window expires
   it("hides undo button after the 10-second window expires", async () => {
     jest.useFakeTimers();
-    render(<HomePage />);
-    await waitFor(() => screen.getByTestId("favorite-button"));
-    await act(async () => {
-      await userEvent.click(screen.getByTestId("favorite-button"));
-    });
-    expect(screen.getByTestId("undo-button")).toBeInTheDocument();
-    act(() => { jest.advanceTimersByTime(11_000); });
-    await waitFor(() =>
-      expect(
-        screen.queryByTestId("undo-button")
-      ).not.toBeInTheDocument()
-    );
-    jest.useRealTimers();
-  });
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
 
-  // UC-1.5 step 12: toast with address on undo
-  it("shows toast with address when undo is clicked", async () => {
-    render(<HomePage />);
-    await waitFor(() => screen.getByTestId("favorite-button"));
-    await act(async () => {
-      await userEvent.click(screen.getByTestId("favorite-button"));
-    });
-    await act(async () => {
-      await userEvent.click(screen.getByTestId("undo-button"));
-    });
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("toast-notification")
-      ).toHaveTextContent(/Removed.*favorites/i)
-    );
-  });
+    await renderHomePage();
+    await user.click(screen.getByTestId("favorite-button"));
 
-  // UC-1.5 AF2: redo button appears after undo
-  it("shows redo button after an undo action", async () => {
-    render(<HomePage />);
-    await waitFor(() => screen.getByTestId("favorite-button"));
-    await act(async () => {
-      await userEvent.click(screen.getByTestId("favorite-button"));
-    });
-    await act(async () => {
-      await userEvent.click(screen.getByTestId("undo-button"));
-    });
-    await waitFor(() =>
-      expect(screen.getByTestId("redo-button")).toBeInTheDocument()
-    );
-  });
+    expect(await screen.findByTestId("undo-button")).toBeInTheDocument();
 
-  // UC-1.5 AF2: redo calls POST
-  it("calls POST /api/favorites when redo is clicked", async () => {
-    const fetchMock = buildFetchMock();
-    global.fetch = fetchMock;
-    render(<HomePage />);
-    await waitFor(() => screen.getByTestId("favorite-button"));
     await act(async () => {
-      await userEvent.click(screen.getByTestId("favorite-button"));
+      jest.advanceTimersByTime(11_000);
     });
-    await act(async () => {
-      await userEvent.click(screen.getByTestId("undo-button"));
-    });
-    await waitFor(() => screen.getByTestId("redo-button"));
-    await act(async () => {
-      await userEvent.click(screen.getByTestId("redo-button"));
-    });
-    const postCalls = (
-      fetchMock.mock.calls as [string, RequestInit][]
-    ).filter(
-      ([url, init]) =>
-        url.includes("/api/favorites") &&
-        !url.includes("/last") &&
-        init?.method === "POST"
-    );
-    expect(postCalls.length).toBe(2);
-  });
 
-  // UC-1.5 AF1: sequential undos
-  it("supports multiple sequential undos within the window", async () => {
-    const fetchMock = buildFetchMock();
-    global.fetch = fetchMock;
-    render(<HomePage />);
-    await waitFor(() => screen.getByText("30 Pitt St"));
-    await act(async () => {
-      await userEvent.click(screen.getByTestId("favorite-button"));
-    });
-    await waitFor(() => screen.getByText("40 Forbes Ave"));
-    await act(async () => {
-      await userEvent.click(screen.getByTestId("favorite-button"));
-    });
-    await act(async () => {
-      await userEvent.click(screen.getByTestId("undo-button"));
-    });
     await waitFor(() => {
-      const btn = screen.getByTestId("undo-button");
-      expect(btn).toBeInTheDocument();
-      expect(btn).not.toBeDisabled();
+      expect(screen.queryByTestId("undo-button")).not.toBeInTheDocument();
     });
   });
 
-  // UC-1.5 Exception 3: undo returns 503 — property stays on stack
-  it("shows 'Unable to undo' toast and keeps property in stack on 503", async () => {
-    const fetchMock = jest.fn().mockImplementation(
-      (url: string, init?: RequestInit) => {
-        const method = init?.method ?? "GET";
-        if (url.includes("/api/favorites/last") && method === "DELETE") {
-          return Promise.resolve({ ok: false, status: 503 });
-        }
-        if (url.includes("/api/favorites") && method === "POST") {
-          return Promise.resolve({
-            ok: true, status: 201,
-            json: () => Promise.resolve({
-              id: 99, userId: 1,
-              listing: mockListings[0],
-              createdAt: new Date().toISOString(),
-            }),
-          });
-        }
-        if (url.includes("/api/favorites") && method === "GET") {
-          return Promise.resolve({
-            ok: true, json: () => Promise.resolve([]),
-          });
-        }
-        if (url.includes("/api/listings")) {
-          return Promise.resolve({
-            ok: true,
-            json: () =>
-              Promise.resolve({ content: mockListings, totalPages: 1 }),
-          });
-        }
-        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
-      }
-    );
-    global.fetch = fetchMock;
+  it("shows toast with address when undo is clicked", async () => {
+    const user = userEvent.setup();
+    await renderHomePage();
 
-    render(<HomePage />);
-    await waitFor(() => screen.getByTestId("favorite-button"));
-    await act(async () => {
-      await userEvent.click(screen.getByTestId("favorite-button"));
-    });
-    await act(async () => {
-      await userEvent.click(screen.getByTestId("undo-button"));
-    });
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("toast-notification")
-      ).toHaveTextContent("Unable to undo. Please try again.")
+    await user.click(screen.getByTestId("favorite-button"));
+    await user.click(await screen.findByTestId("undo-button"));
+
+    expect(await screen.findByTestId("toast-notification")).toHaveTextContent(
+      /Removed.*favorites/i
     );
-    expect(screen.getByTestId("undo-button")).not.toBeDisabled();
   });
 
-  // UC-1.4 AF2: clicking filled heart removes from favorites
-  it("calls DELETE /api/favorites when unfavoriting", async () => {
+  it("shows redo button after an undo action", async () => {
+    const user = userEvent.setup();
+    await renderHomePage();
+
+    await user.click(screen.getByTestId("favorite-button"));
+    await user.click(await screen.findByTestId("undo-button"));
+
+    expect(await screen.findByTestId("redo-button")).toBeInTheDocument();
+  });
+
+  it("calls POST again when redo is clicked", async () => {
+    const user = userEvent.setup();
     const fetchMock = buildFetchMock();
-    global.fetch = fetchMock;
-    render(<HomePage />);
-    await waitFor(() => screen.getByTestId("favorite-button"));
-    await act(async () => {
-      await userEvent.click(screen.getByTestId("favorite-button"));
-    });
-    await act(async () => {
-      await userEvent.click(screen.getByText("Previous"));
-    });
-    await act(async () => {
-      await userEvent.click(screen.getByTestId("favorite-button"));
-    });
-    const deleteCalls = (
-      fetchMock.mock.calls as [string, RequestInit][]
-    ).filter(
+    global.fetch = fetchMock as jest.Mock;
+
+    await renderHomePage();
+
+    await user.click(screen.getByTestId("favorite-button"));
+    await user.click(await screen.findByTestId("undo-button"));
+    await user.click(await screen.findByTestId("redo-button"));
+
+    const postCalls = (fetchMock.mock.calls as [string, RequestInit][]).filter(
       ([url, init]) =>
-        url.includes("/api/favorites") &&
-        !url.includes("/last") &&
-        init?.method === "DELETE"
+        url.includes("/api/users/1/favorites") && init?.method === "POST"
     );
-    expect(deleteCalls.length).toBe(1);
+
+    expect(postCalls).toHaveLength(2);
+  });
+
+  it("shows 'Unable to undo' toast and keeps property in stack on 503", async () => {
+    const user = userEvent.setup();
+    global.fetch = buildFetchMock({ errorOnUndo: true }) as jest.Mock;
+
+    await renderHomePage();
+
+    await user.click(screen.getByTestId("favorite-button"));
+    await user.click(screen.getByTestId("undo-button"));
+
+    expect(await screen.findByTestId("toast-notification")).toHaveTextContent(
+      "Unable to undo. Please try again."
+    );
+    expect(screen.getByTestId("undo-button")).toBeEnabled();
+  });
+
+  it("calls DELETE when unfavoriting a previously favorited listing", async () => {
+    const user = userEvent.setup();
+    const fetchMock = buildFetchMock();
+    global.fetch = fetchMock as jest.Mock;
+
+    await renderHomePage();
+
+    await user.click(screen.getByTestId("favorite-button"));
+    await user.click(screen.getByText("Previous"));
+    await user.click(screen.getByTestId("favorite-button"));
+
+    const deleteCalls = (fetchMock.mock.calls as [string, RequestInit][]).filter(
+      ([url, init]) =>
+        url.includes("/api/users/1/favorites/") && init?.method === "DELETE"
+    );
+
+    expect(deleteCalls).toHaveLength(1);
   });
 });

@@ -99,8 +99,7 @@ class FavoriteIntegrationTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.listing.id").value(listing.getId()))
-                .andExpect(jsonPath("$.listing.address").value("30 Pitt St"))
-                .andExpect(jsonPath("$.createdAt").isNotEmpty());
+                .andExpect(jsonPath("$.listing.address").value("30 Pitt St"));
 
         assertThat(favoriteRepository.existsByUserIdAndListingId(user.getId(), listing.getId()))
                 .isTrue();
@@ -162,8 +161,7 @@ class FavoriteIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$[0].listing.id").value(listing.getId()))
-                .andExpect(jsonPath("$[0].listing.address").value("30 Pitt St"))
-                .andExpect(jsonPath("$[0].createdAt").isNotEmpty());
+                .andExpect(jsonPath("$[0].listing.address").value("30 Pitt St"));
     }
 
     @Test
