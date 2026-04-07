@@ -9,10 +9,9 @@ import { useFavoriteUndo } from "@/features/favorites/hooks/use-favorite-undo";
 import { useFavoritesSync } from "@/features/favorites/hooks/use-favorites-sync";
 import { useFavoriteListings } from "../hooks/use-favorite-listings";
 import { FavoriteRecord } from "../types";
+import { API_BASE } from "@/lib/env";
 
 type SortOption = "date_desc" | "date_asc" | "price_asc" | "price_desc";
-
-const API_BASE = "http://localhost:8081";
 
 export default function FavoritesPage() {
   const [userId, setUserId] = useState<number | null>(null);
