@@ -30,6 +30,7 @@ export function ListingsPagination({
       </p>
 
       <button
+        data-testid="pagination-next"
         onClick={onNext}
         disabled={!canGoNext}
         className="rounded-lg bg-zinc-800 px-4 py-2 text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:bg-zinc-400"
