@@ -1,8 +1,8 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import FavoritesPage from "../app/favorites/page";
+import FavoritesPage from "../src/app/favorites/page";
 
-jest.mock("../app/lib/userId", () => ({
+jest.mock("../src/lib/userId", () => ({
   getOrCreateUserId: jest.fn().mockResolvedValue(1),
 }));
 
@@ -45,16 +45,32 @@ function createResponse(body: unknown, init?: Partial<Response>) {
   });
 }
 
-function setupFetch(overrides: { listingId?: number } = {}) {
+function setupFetch(
+  overrides: {
+    listingId?: number;
+    favoritesAfterDelete?: typeof mockFavorites;
+  } = {}
+) {
+  let deletedListingId: number | null = null;
+
   (global.fetch as jest.Mock).mockImplementation(
     (url: string, opts?: RequestInit) => {
       const method = opts?.method ?? "GET";
 
       if (url.includes("/api/users/1/favorites") && method === "GET") {
+        if (deletedListingId !== null) {
+          return createResponse(
+            overrides.favoritesAfterDelete ??
+              mockFavorites.filter((fav) => fav.listing.id !== deletedListingId)
+          );
+        }
+
         return createResponse(mockFavorites);
       }
 
       if (url.includes("/api/users/1/favorites/") && method === "DELETE") {
+        const match = url.match(/\/api\/users\/1\/favorites\/(\d+)/);
+        deletedListingId = match ? Number(match[1]) : null;
         return createResponse({}, { ok: true, status: 204 });
       }
 
@@ -127,13 +143,17 @@ describe("FavoritesPage", () => {
     expect(
       await screen.findByTestId("unavailable-notice-1")
     ).toBeInTheDocument();
-    expect(screen.queryByTestId("unavailable-notice-2")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("unavailable-notice-2")
+    ).not.toBeInTheDocument();
   });
 
   it("does not show unavailable notice when all listings still exist", async () => {
     render(<FavoritesPage />);
     await screen.findByText("30 Pitt St");
-    expect(screen.queryByTestId("unavailable-notice-1")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("unavailable-notice-1")
+    ).not.toBeInTheDocument();
   });
 
   it("shows confirmation prompt when remove button is clicked", async () => {
@@ -175,7 +195,10 @@ describe("FavoritesPage", () => {
     render(<FavoritesPage />);
 
     await screen.findByText("30 Pitt St");
-    await user.selectOptions(screen.getByLabelText("Sort favorites"), "price_asc");
+    await user.selectOptions(
+      screen.getByLabelText("Sort favorites"),
+      "price_asc"
+    );
 
     const cards = screen.getAllByTestId(/^favorite-card-/);
     expect(cards[0]).toHaveAttribute("data-testid", "favorite-card-1");
@@ -187,7 +210,10 @@ describe("FavoritesPage", () => {
     render(<FavoritesPage />);
 
     await screen.findByText("30 Pitt St");
-    await user.selectOptions(screen.getByLabelText("Sort favorites"), "price_desc");
+    await user.selectOptions(
+      screen.getByLabelText("Sort favorites"),
+      "price_desc"
+    );
 
     const cards = screen.getAllByTestId(/^favorite-card-/);
     expect(cards[0]).toHaveAttribute("data-testid", "favorite-card-2");

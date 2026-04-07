@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import ListingCard from "../app/components/ListingCard";
+import ListingCard from "@/features/listings/components/listing-card";
 
 const listing = {
   id: 1,
