@@ -1,35 +1,23 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Toast from "@/components/Toast";
 import { getOrCreateUserId } from "@/lib/userId";
-
-type Listing = {
-  id: number;
-  address?: string;
-  price?: number;
-  beds?: number;
-  baths?: number;
-  sqft?: number;
-  photoUrls?: string[];
-};
-
-type Favorite = {
-  id: number;
-  listing: Listing;
-  createdAt: string;
-};
+import { useFavorites } from "@/features/favorites/hooks/use-favorites";
+import { useFavoriteUndo } from "@/features/favorites/hooks/use-favorite-undo";
+import { useFavoritesSync } from "@/features/favorites/hooks/use-favorites-sync";
+import { useFavoriteListings } from "../hooks/use-favorite-listings";
+import { FavoriteRecord } from "../types";
 
 type SortOption = "date_desc" | "date_asc" | "price_asc" | "price_desc";
 
 const API_BASE = "http://localhost:8081";
 
 export default function FavoritesPage() {
-  const [favorites, setFavorites] = useState<Favorite[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [sortOption, setSortOption] = useState<SortOption>("date_desc");
   const [userId, setUserId] = useState<number | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const [sortOption, setSortOption] = useState<SortOption>("date_desc");
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [unavailableIds, setUnavailableIds] = useState<Set<number>>(new Set());
 
@@ -37,83 +25,132 @@ export default function FavoritesPage() {
     getOrCreateUserId().then(setUserId).catch(console.error);
   }, []);
 
-  const loadFavorites = useCallback(async (uid: number) => {
-    setLoading(true);
-    setError("");
+  const { favorites, loading, error, refetchFavorites } = useFavoriteListings({
+    userId,
+  });
+
+  const {
+    addFavorite: addFavoriteRequest,
+    removeFavorite: removeFavoriteRequest,
+  } = useFavorites({ userId });
+
+  const removeFavoriteFromPage = useCallback(
+    async (listingId: number) => {
+      const result = await removeFavoriteRequest(listingId);
+
+      if (result.ok) {
+        await refetchFavorites();
+        setUnavailableIds((prev) => {
+          const next = new Set(prev);
+          next.delete(listingId);
+          return next;
+        });
+      }
+
+      return result;
+    },
+    [removeFavoriteRequest, refetchFavorites]
+  );
+
+  const restoreFavoriteToPage = useCallback(
+    async (listingId: number) => {
+      const result = await addFavoriteRequest(listingId);
+
+      if (result.ok) {
+        await refetchFavorites();
+      }
+
+      return result;
+    },
+    [addFavoriteRequest, refetchFavorites]
+  );
+
+  const {
+    recordAddedFavorite,
+    handleUndo,
+    handleRedo,
+    canUndo,
+    canRedo,
+    undoVisible,
+    undoTimeLeft,
+    showBanner,
+  } = useFavoriteUndo({
+    // Inverted intentionally so the page can support:
+    // remove -> undo restore -> redo remove
+    addFavorite: removeFavoriteFromPage,
+    removeFavorite: restoreFavoriteToPage,
+  });
+
+  const { syncingIds } = useFavoritesSync({
+    refetchFavorites,
+    onToast: setToast,
+  });
+
+  const checkAvailability = useCallback(async (favs: FavoriteRecord[]) => {
+    if (favs.length === 0) {
+      setUnavailableIds(new Set());
+      return;
+    }
+
     try {
-      const res = await fetch(`${API_BASE}/api/users/${uid}/favorites`);
-      if (!res.ok) throw new Error("Failed to load favorites");
-      setFavorites(await res.json());
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setLoading(false);
+      const results = await Promise.all(
+        favs.map(async (fav) => {
+          const res = await fetch(`${API_BASE}/api/listings/${fav.listing.id}`);
+          return { id: fav.listing.id, available: res.ok };
+        })
+      );
+
+      setUnavailableIds(
+        new Set(results.filter((r) => !r.available).map((r) => r.id))
+      );
+    } catch (err) {
+      console.error("Failed to check listing availability:", err);
     }
   }, []);
 
   useEffect(() => {
-    if (userId) loadFavorites(userId);
-  }, [userId, loadFavorites]);
-
-  const checkAvailability = useCallback(async (favs: Favorite[]) => {
-    if (favs.length === 0) return;
-
-    const results = await Promise.all(
-      favs.map(async (fav) => {
-        const res = await fetch(`${API_BASE}/api/listings/${fav.listing.id}`);
-        return { id: fav.listing.id, available: res.ok };
-      })
-    );
-
-    setUnavailableIds(
-      new Set(results.filter((r) => !r.available).map((r) => r.id))
-    );
-  }, []);
-
-  useEffect(() => {
-    checkAvailability(favorites);
+    void checkAvailability(favorites);
   }, [favorites, checkAvailability]);
 
   const handleRemove = useCallback(
-    async (listingId: number) => {
-      if (!userId) return;
+    async (favorite: FavoriteRecord) => {
+      const result = await removeFavoriteFromPage(favorite.listing.id);
 
-      try {
-        const res = await fetch(
-          `${API_BASE}/api/users/${userId}/favorites/${listingId}`,
-          { method: "DELETE" }
-        );
-
-        if (!res.ok) {
-          throw new Error("Failed to remove favorite");
-        }
-
-        setFavorites((prev) => prev.filter((f) => f.listing.id !== listingId));
-      } catch (err) {
-        console.error(err);
-      } finally {
+      if (!result.ok) {
+        setToast("Failed to remove favorite");
         setConfirmDeleteId(null);
+        return;
       }
+
+      recordAddedFavorite(favorite.listing);
+      setConfirmDeleteId(null);
+      setToast("Removed from favorites");
     },
-    [userId]
+    [removeFavoriteFromPage, recordAddedFavorite]
   );
 
-  const sorted = [...favorites].sort((a, b) => {
-    switch (sortOption) {
-      case "date_asc":
-        return (
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        );
-      case "price_asc":
-        return (a.listing.price ?? 0) - (b.listing.price ?? 0);
-      case "price_desc":
-        return (b.listing.price ?? 0) - (a.listing.price ?? 0);
-      default:
-        return (
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
-    }
-  });
+  const sortedFavorites = useMemo(() => {
+    const next = [...favorites];
+
+    next.sort((a, b) => {
+      switch (sortOption) {
+        case "date_asc":
+          return (
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+        case "price_asc":
+          return (a.listing.price ?? 0) - (b.listing.price ?? 0);
+        case "price_desc":
+          return (b.listing.price ?? 0) - (a.listing.price ?? 0);
+        default:
+          return (
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+      }
+    });
+
+    return next;
+  }, [favorites, sortOption]);
 
   if (loading) {
     return (
@@ -135,6 +172,43 @@ export default function FavoritesPage() {
 
   return (
     <main className="min-h-screen bg-zinc-50 p-8 text-black">
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
+
+      {showBanner && (
+        <div className="mb-6 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              {undoVisible ? (
+                <p className="text-sm text-zinc-700">
+                  Favorite removed. Undo available for {undoTimeLeft}s.
+                </p>
+              ) : canRedo ? (
+                <p className="text-sm text-zinc-700">
+                  Removal undone. Redo is available.
+                </p>
+              ) : null}
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => void handleUndo()}
+                disabled={!canUndo}
+                className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Undo
+              </button>
+              <button
+                onClick={() => void handleRedo()}
+                disabled={!canRedo}
+                className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Redo
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <Link href="/" className="text-zinc-500 hover:text-zinc-800">
@@ -167,7 +241,7 @@ export default function FavoritesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {sorted.map((fav) => (
+          {sortedFavorites.map((fav) => (
             <div
               key={fav.id}
               className="relative rounded-xl border border-zinc-200 bg-white p-4 shadow-sm"
@@ -179,6 +253,12 @@ export default function FavoritesPage() {
                   data-testid={`unavailable-notice-${fav.listing.id}`}
                 >
                   ⚠ This property is no longer available in the database.
+                </div>
+              )}
+
+              {syncingIds.has(fav.listing.id) && (
+                <div className="mb-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-medium text-blue-800">
+                  Syncing favorite...
                 </div>
               )}
 
@@ -223,7 +303,7 @@ export default function FavoritesPage() {
               {confirmDeleteId === fav.listing.id ? (
                 <div className="mt-3 flex gap-2">
                   <button
-                    onClick={() => handleRemove(fav.listing.id)}
+                    onClick={() => void handleRemove(fav)}
                     className="flex-1 rounded-md bg-red-500 px-3 py-1.5 text-sm text-white hover:bg-red-600"
                   >
                     Confirm Remove
