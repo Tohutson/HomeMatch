@@ -7,6 +7,7 @@ export type Listing = {
   sqft?: number | null;
   listingUrl?: string | null;
   photoUrls?: string[];
+  energyStarScore?: number | null;
 };
 
 export type ListingsResponse = {

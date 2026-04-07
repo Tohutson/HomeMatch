@@ -1,168 +1,95 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useParams } from "next/navigation";
-import { getOrCreateUserId } from "../../../lib/userId";
 import Toast from "../../../components/Toast";
-
-type Listing = {
-  id: number;
-  address?: string;
-  price?: number;
-  beds?: number;
-  baths?: number;
-  sqft?: number;
-  energyStarScore?: number;
-  listingUrl?: string;
-  photoUrls?: string[];
-};
-
-const API_BASE = "http://localhost:8081";
-const UNDO_MS = 10_000;
+import { getOrCreateUserId } from "../../../lib/userId";
+import { useFavorites } from "@/features/favorites/hooks/use-favorites";
+import { useFavoriteUndo } from "@/features/favorites/hooks/use-favorite-undo";
+import { useListingDetails } from "@/features/listings/hooks/use-listing-details";
 
 export default function ListingDetailsPage() {
   const params = useParams();
   const id = params.id as string;
 
-  const [listing, setListing] = useState<Listing | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-  const [isFavorited, setIsFavorited] = useState(false);
   const [userId, setUserId] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [undoListing, setUndoListing] = useState<Listing | null>(null);
-  const [undoTimeLeft, setUndoTimeLeft] = useState(0);
-
-  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const undoIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     getOrCreateUserId().then(setUserId).catch(console.error);
   }, []);
 
-  useEffect(() => {
-    if (!id) return;
-    fetch(`${API_BASE}/api/listings/${id}`)
-      .then((res) => {
-        if (res.status === 404) {
-          setNotFound(true);
-          return null;
-        }
-        if (!res.ok) throw new Error("Failed to fetch listing");
-        return res.json();
-      })
-      .then((data) => {
-        if (data) setListing(data);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [id]);
+  const { listing, loading, error, notFound } = useListingDetails({ id });
 
-  useEffect(() => {
-    if (!userId || !listing) return;
-    fetch(`${API_BASE}/api/users/${userId}/favorites`)
-      .then((r) => r.json())
-      .then((favs: { listing: { id: number } }[]) =>
-        setIsFavorited(favs.some((f) => f.listing.id === listing.id))
-      )
-      .catch(console.error);
-  }, [userId, listing]);
+  const { isFavorited, addFavorite, removeFavorite } = useFavorites({ userId });
 
-  const clearUndoTimer = () => {
-    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-    if (undoIntervalRef.current) clearInterval(undoIntervalRef.current);
-  };
+  const {
+    recordAddedFavorite,
+    handleUndo,
+    handleRedo,
+    canUndo,
+    canRedo,
+    undoVisible,
+    undoTimeLeft,
+    showBanner,
+  } = useFavoriteUndo({
+    addFavorite,
+    removeFavorite,
+    onToast: setToast,
+  });
 
-  const startUndoTimer = (favorited: Listing) => {
-    clearUndoTimer();
-    setUndoListing(favorited);
-    setUndoTimeLeft(UNDO_MS / 1000);
-
-    undoIntervalRef.current = setInterval(() => {
-      setUndoTimeLeft((t) => {
-        if (t <= 1) {
-          clearInterval(undoIntervalRef.current!);
-          return 0;
-        }
-        return t - 1;
-      });
-    }, 1000);
-
-    undoTimerRef.current = setTimeout(() => {
-      setUndoListing(null);
-      setUndoTimeLeft(0);
-      setToast("Undo window expired. Remove from Favorites page instead.");
-    }, UNDO_MS);
-  };
-
-  useEffect(() => () => clearUndoTimer(), []);
+  const favorited = listing ? isFavorited(listing.id) : false;
 
   const handleFavoriteToggle = async () => {
-    if (!userId || !listing) return;
+    if (!listing || !userId) return;
 
-    if (isFavorited) {
-      await fetch(`${API_BASE}/api/users/${userId}/favorites/${listing.id}`, {
-        method: "DELETE",
-      });
-      setIsFavorited(false);
-      clearUndoTimer();
-      setUndoListing(null);
-      setUndoTimeLeft(0);
+    if (favorited) {
+      const result = await removeFavorite(listing.id);
+
+      if (!result.ok) {
+        setToast("Unable to remove favorite. Please try again.");
+        return;
+      }
+
       setToast("Removed from Favorites");
       return;
     }
 
-    const res = await fetch(`${API_BASE}/api/users/${userId}/favorites`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ listingId: listing.id }),
-    });
+    const result = await addFavorite(listing.id);
 
-    if (res.status === 409) {
-      setToast("This home is already in your favorites");
-      return;
-    }
-    if (!res.ok) {
-      setToast("Unable to save favorite. Please try again.");
+    if (!result.ok) {
+      if (result.reason === "already_exists") {
+        setToast("This home is already in your favorites");
+      } else if (result.reason === "missing_user") {
+        setToast("Please log in to save favorites");
+      } else {
+        setToast("Unable to save favorite. Please try again.");
+      }
       return;
     }
 
-    setIsFavorited(true);
-    startUndoTimer(listing);
+    recordAddedFavorite(listing);
     setToast("Added to Favorites");
   };
-
-  const handleUndo = async () => {
-    if (!userId || !undoListing) {
-      setToast("No recent likes to undo");
-      return;
-    }
-
-    const res = await fetch(
-      `${API_BASE}/api/users/${userId}/favorites/${undoListing.id}`,
-      { method: "DELETE" }
-    );
-
-    if (!res.ok) {
-      setToast("Unable to undo. Please try again.");
-      return;
-    }
-
-    setIsFavorited(false);
-    clearUndoTimer();
-    setUndoListing(null);
-    setUndoTimeLeft(0);
-    setToast(`Removed ${undoListing.address ?? "property"} from favorites`);
-  };
-
-  const canUndo = undoListing !== null && undoTimeLeft > 0;
-  const undoVisible = undoTimeLeft > 0;
 
   if (loading) {
     return (
       <main className="min-h-screen bg-zinc-50 p-8 text-black">
         <p>Loading property details...</p>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="min-h-screen bg-zinc-50 p-8 text-black">
+        <h1 className="mb-4 text-2xl font-bold">Unable to Load Property</h1>
+        <p className="mb-4 text-zinc-500">{error}</p>
+        <Link href="/" className="text-rose-500 hover:underline">
+          Back to Browse
+        </Link>
       </main>
     );
   }
@@ -186,20 +113,38 @@ export default function ListingDetailsPage() {
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
 
       <div className="mx-auto max-w-3xl">
-        {undoVisible && (
+        {showBanner && (
           <div
             className="mb-4 flex items-center gap-3 rounded-lg bg-zinc-800 px-4 py-3 text-white"
             data-testid="detail-undo-banner"
           >
-            <span className="flex-1">Added to favorites!</span>
-            <button
-              onClick={handleUndo}
-              disabled={!canUndo}
-              className="rounded-md bg-white px-3 py-1 text-sm font-medium text-zinc-800 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-40"
-              data-testid="detail-undo-button"
-            >
-              {canUndo ? `Undo (${undoTimeLeft}s)` : "Undo"}
-            </button>
+            <span className="flex-1">
+              {undoVisible
+                ? "Added to favorites!"
+                : canRedo
+                ? "Favorite removed."
+                : ""}
+            </span>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => void handleUndo()}
+                disabled={!canUndo}
+                className="rounded-md bg-white px-3 py-1 text-sm font-medium text-zinc-800 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-40"
+                data-testid="detail-undo-button"
+              >
+                {canUndo ? `Undo (${undoTimeLeft}s)` : "Undo"}
+              </button>
+
+              <button
+                onClick={() => void handleRedo()}
+                disabled={!canRedo}
+                className="rounded-md border border-white/30 px-3 py-1 text-sm font-medium text-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                data-testid="detail-redo-button"
+              >
+                Redo
+              </button>
+            </div>
           </div>
         )}
 
@@ -208,32 +153,42 @@ export default function ListingDetailsPage() {
             Back to Browse
           </Link>
           <button
-            onClick={handleFavoriteToggle}
+            onClick={() => void handleFavoriteToggle()}
             aria-label={
-              isFavorited ? "Remove from favorites" : "Add to favorites"
+              favorited ? "Remove from favorites" : "Add to favorites"
             }
             className={`flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-colors ${
-              isFavorited
+              favorited
                 ? "bg-rose-500 text-white hover:bg-rose-600"
                 : "border border-zinc-300 bg-white hover:bg-zinc-50"
             }`}
             data-testid="detail-favorite-button"
           >
-            {isFavorited ? "Favorited" : "Add to Favorites"}
+            {favorited ? "Favorited" : "Add to Favorites"}
           </button>
         </div>
 
         {listing.photoUrls && listing.photoUrls.length > 0 ? (
           <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
             {listing.photoUrls.slice(0, 4).map((url, i) => (
-              <img
+              <div
                 key={i}
-                src={url}
-                alt={`Property photo ${i + 1}`}
-                className={`w-full rounded-xl object-cover ${
+                className={`relative overflow-hidden rounded-xl ${
                   i === 0 ? "h-72 sm:col-span-2" : "h-48"
                 }`}
-              />
+              >
+                <Image
+                  src={url}
+                  alt={`Property photo ${i + 1}`}
+                  fill
+                  className="object-cover"
+                  sizes={
+                    i === 0
+                      ? "(min-width: 640px) 100vw, 100vw"
+                      : "(min-width: 640px) 50vw, 100vw"
+                  }
+                />
+              </div>
             ))}
           </div>
         ) : (
@@ -278,11 +233,11 @@ function Stat({
   value,
 }: {
   label: string;
-  value?: string | number | null;
+  value: string | number | null | undefined;
 }) {
   return (
-    <div className="rounded-lg bg-zinc-50 p-3 text-center">
-      <p className="text-xs text-zinc-500">{label}</p>
+    <div className="rounded-lg bg-zinc-50 p-4 text-center">
+      <p className="text-sm text-zinc-500">{label}</p>
       <p className="text-lg font-semibold">{value ?? "N/A"}</p>
     </div>
   );
