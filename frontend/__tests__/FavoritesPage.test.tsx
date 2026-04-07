@@ -45,16 +45,32 @@ function createResponse(body: unknown, init?: Partial<Response>) {
   });
 }
 
-function setupFetch(overrides: { listingId?: number } = {}) {
+function setupFetch(
+  overrides: {
+    listingId?: number;
+    favoritesAfterDelete?: typeof mockFavorites;
+  } = {}
+) {
+  let deletedListingId: number | null = null;
+
   (global.fetch as jest.Mock).mockImplementation(
     (url: string, opts?: RequestInit) => {
       const method = opts?.method ?? "GET";
 
       if (url.includes("/api/users/1/favorites") && method === "GET") {
+        if (deletedListingId !== null) {
+          return createResponse(
+            overrides.favoritesAfterDelete ??
+              mockFavorites.filter((fav) => fav.listing.id !== deletedListingId)
+          );
+        }
+
         return createResponse(mockFavorites);
       }
 
       if (url.includes("/api/users/1/favorites/") && method === "DELETE") {
+        const match = url.match(/\/api\/users\/1\/favorites\/(\d+)/);
+        deletedListingId = match ? Number(match[1]) : null;
         return createResponse({}, { ok: true, status: 204 });
       }
 
