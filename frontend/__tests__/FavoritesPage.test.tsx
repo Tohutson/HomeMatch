@@ -1,8 +1,8 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import FavoritesPage from "../app/favorites/page";
+import FavoritesPage from "../src/app/favorites/page";
 
-jest.mock("../app/lib/userId", () => ({
+jest.mock("../src/lib/userId", () => ({
   getOrCreateUserId: jest.fn().mockResolvedValue(1),
 }));
 
@@ -127,13 +127,17 @@ describe("FavoritesPage", () => {
     expect(
       await screen.findByTestId("unavailable-notice-1")
     ).toBeInTheDocument();
-    expect(screen.queryByTestId("unavailable-notice-2")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("unavailable-notice-2")
+    ).not.toBeInTheDocument();
   });
 
   it("does not show unavailable notice when all listings still exist", async () => {
     render(<FavoritesPage />);
     await screen.findByText("30 Pitt St");
-    expect(screen.queryByTestId("unavailable-notice-1")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("unavailable-notice-1")
+    ).not.toBeInTheDocument();
   });
 
   it("shows confirmation prompt when remove button is clicked", async () => {
@@ -175,7 +179,10 @@ describe("FavoritesPage", () => {
     render(<FavoritesPage />);
 
     await screen.findByText("30 Pitt St");
-    await user.selectOptions(screen.getByLabelText("Sort favorites"), "price_asc");
+    await user.selectOptions(
+      screen.getByLabelText("Sort favorites"),
+      "price_asc"
+    );
 
     const cards = screen.getAllByTestId(/^favorite-card-/);
     expect(cards[0]).toHaveAttribute("data-testid", "favorite-card-1");
@@ -187,7 +194,10 @@ describe("FavoritesPage", () => {
     render(<FavoritesPage />);
 
     await screen.findByText("30 Pitt St");
-    await user.selectOptions(screen.getByLabelText("Sort favorites"), "price_desc");
+    await user.selectOptions(
+      screen.getByLabelText("Sort favorites"),
+      "price_desc"
+    );
 
     const cards = screen.getAllByTestId(/^favorite-card-/);
     expect(cards[0]).toHaveAttribute("data-testid", "favorite-card-2");

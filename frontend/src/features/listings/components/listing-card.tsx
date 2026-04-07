@@ -1,24 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import { useSwipe } from "../hooks/useSwipe";
-
-export type Listing = {
-  id: number;
-  address?: string;
-  price?: number;
-  beds?: number;
-  baths?: number;
-  sqft?: number;
-  photoUrls?: string[];
-};
+import type { Listing } from "@/features/listings/types";
+import { useSwipe } from "@/app/hooks/useSwipe";
 
 type ListingCardProps = {
   listing: Listing;
   isFavorited?: boolean;
   isSyncing?: boolean;
-  onFavorite?: (listing: Listing) => void;
+  onFavorite?: (listing: Listing) => void | Promise<void>;
   onSwipeRight?: () => void;
   onSwipeLeft?: () => void;
 };
@@ -26,41 +18,41 @@ type ListingCardProps = {
 export default function ListingCard({
   listing,
   isFavorited = false,
-  isSyncing   = false,
+  isSyncing = false,
   onFavorite,
   onSwipeRight,
   onSwipeLeft,
 }: ListingCardProps) {
   const swipeHandlers = useSwipe({ onSwipeRight, onSwipeLeft });
 
-  const [bouncing, setBouncing]   = useState(false);
-  const prevFavoritedRef          = useRef(isFavorited);
+  const [bouncing, setBouncing] = useState(false);
+  const prevFavoritedRef = useRef(isFavorited);
 
   useEffect(() => {
     if (isFavorited && !prevFavoritedRef.current) {
       setBouncing(true);
-      const t = setTimeout(() => setBouncing(false), 500);
+      const timeoutId = setTimeout(() => setBouncing(false), 500);
       prevFavoritedRef.current = isFavorited;
-      return () => clearTimeout(t);
+      return () => clearTimeout(timeoutId);
     }
+
     prevFavoritedRef.current = isFavorited;
   }, [isFavorited]);
 
   return (
     <div
-      className="relative rounded-xl border border-zinc-200 bg-white p-4
-                 shadow-sm select-none"
+      className="relative select-none rounded-xl border border-zinc-200 bg-white p-4 shadow-sm"
       data-testid="listing-card"
       {...swipeHandlers}
     >
       <button
+        type="button"
         onClick={(e) => {
           e.stopPropagation();
-          onFavorite?.(listing);
+          void onFavorite?.(listing);
         }}
         aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
-        className="absolute top-6 right-6 z-10 rounded-full bg-white p-2
-                   shadow-md transition-transform hover:scale-110"
+        className="absolute top-6 right-6 z-10 rounded-full bg-white p-2 shadow-md transition-transform hover:scale-110"
         data-testid="favorite-button"
       >
         <svg
@@ -69,9 +61,9 @@ export default function ListingCard({
           fill={isFavorited ? "currentColor" : "none"}
           stroke="currentColor"
           strokeWidth={2}
-          className={`h-6 w-6 transition-colors
-            ${isFavorited ? "text-rose-500" : "text-zinc-400"}
-            ${bouncing ? "animate-heart-bounce" : ""}`}
+          className={`h-6 w-6 transition-colors ${
+            isFavorited ? "text-rose-500" : "text-zinc-400"
+          } ${bouncing ? "animate-heart-bounce" : ""}`}
           data-testid="heart-icon"
         >
           <path
@@ -88,24 +80,23 @@ export default function ListingCard({
             className="absolute -top-1 -right-1 flex h-3 w-3"
             data-testid="sync-indicator"
           >
-            <span className="animate-ping absolute inline-flex h-full w-full
-                             rounded-full bg-amber-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-3 w-3
-                             bg-amber-500" />
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+            <span className="relative inline-flex h-3 w-3 rounded-full bg-amber-500" />
           </span>
         )}
       </button>
 
       {listing.photoUrls?.[0] ? (
-        <img
+        <Image
           src={listing.photoUrls[0]}
           alt={listing.address || "Property image"}
+          width={800}
+          height={400}
           className="mb-4 h-48 w-full rounded-lg object-cover"
           draggable={false}
         />
       ) : (
-        <div className="mb-4 flex h-48 w-full items-center justify-center
-                        rounded-lg bg-zinc-200 text-zinc-500">
+        <div className="mb-4 flex h-48 w-full items-center justify-center rounded-lg bg-zinc-200 text-zinc-500">
           No Image Available
         </div>
       )}
@@ -113,18 +104,20 @@ export default function ListingCard({
       <h2 className="mb-1 pr-12 text-lg font-semibold">
         {listing.address || "No address available"}
       </h2>
+
       <p>
         <span className="font-medium">Price:</span>{" "}
-        {listing.price ? `$${listing.price.toLocaleString()}` : "N/A"}
+        {listing.price != null ? `$${listing.price.toLocaleString()}` : "N/A"}
       </p>
+
       <p>
-        <span className="font-medium">Bedrooms:</span>{" "}
-        {listing.beds ?? "N/A"}
+        <span className="font-medium">Bedrooms:</span> {listing.beds ?? "N/A"}
       </p>
+
       <p>
-        <span className="font-medium">Bathrooms:</span>{" "}
-        {listing.baths ?? "N/A"}
+        <span className="font-medium">Bathrooms:</span> {listing.baths ?? "N/A"}
       </p>
+
       <p>
         <span className="font-medium">Square Feet:</span>{" "}
         {listing.sqft ?? "N/A"}
@@ -133,8 +126,7 @@ export default function ListingCard({
       <Link
         href={`/listings/${listing.id}`}
         onClick={(e) => e.stopPropagation()}
-        className="mt-3 inline-block text-sm font-medium
-                   text-rose-500 hover:underline"
+        className="mt-3 inline-block text-sm font-medium text-rose-500 hover:underline"
         data-testid="view-details-link"
       >
         View Details →

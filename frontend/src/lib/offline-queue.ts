@@ -1,3 +1,5 @@
+import { API_BASE } from "@/lib/env";
+
 const QUEUE_KEY = "homematch_offline_favorite_queue";
 
 export type QueuedFavorite = {
@@ -5,7 +7,13 @@ export type QueuedFavorite = {
   listingId: number;
 };
 
+function isBrowser(): boolean {
+  return typeof window !== "undefined";
+}
+
 export function enqueueOfflineFavorite(item: QueuedFavorite): void {
+  if (!isBrowser()) return;
+
   const existing = getOfflineQueue();
   const already = existing.some(
     (q) => q.userId === item.userId && q.listingId === item.listingId
@@ -17,6 +25,8 @@ export function enqueueOfflineFavorite(item: QueuedFavorite): void {
 }
 
 export function getOfflineQueue(): QueuedFavorite[] {
+  if (!isBrowser()) return [];
+
   try {
     const raw = localStorage.getItem(QUEUE_KEY);
     return raw ? (JSON.parse(raw) as QueuedFavorite[]) : [];
@@ -26,6 +36,8 @@ export function getOfflineQueue(): QueuedFavorite[] {
 }
 
 export function removeFromOfflineQueue(item: QueuedFavorite): void {
+  if (!isBrowser()) return;
+
   const updated = getOfflineQueue().filter(
     (q) => !(q.userId === item.userId && q.listingId === item.listingId)
   );
@@ -33,10 +45,13 @@ export function removeFromOfflineQueue(item: QueuedFavorite): void {
 }
 
 export function clearOfflineQueue(): void {
+  if (!isBrowser()) return;
   localStorage.removeItem(QUEUE_KEY);
 }
 
-export async function flushOfflineQueue(apiBase: string): Promise<number> {
+export async function flushOfflineQueue(): Promise<number> {
+  if (!isBrowser()) return 0;
+
   const queue = getOfflineQueue();
   if (queue.length === 0) return 0;
 
@@ -45,7 +60,7 @@ export async function flushOfflineQueue(apiBase: string): Promise<number> {
   for (const item of queue) {
     try {
       const res = await fetch(
-        `${apiBase}/api/users/${item.userId}/favorites`,
+        `${API_BASE}/api/users/${item.userId}/favorites`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -58,7 +73,7 @@ export async function flushOfflineQueue(apiBase: string): Promise<number> {
         synced++;
       }
     } catch {
-      // Network still down — leave in queue
+      // Leave item in queue for a later retry
     }
   }
 

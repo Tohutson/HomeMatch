@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { getOrCreateUserId } from "../lib/userId";
+import { getOrCreateUserId } from "../../lib/userId";
 
 type Listing = {
   id: number;

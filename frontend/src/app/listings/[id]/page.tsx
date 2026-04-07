@@ -3,8 +3,8 @@
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { getOrCreateUserId } from "../../lib/userId";
-import Toast from "../../components/Toast";
+import { getOrCreateUserId } from "../../../lib/userId";
+import Toast from "../../../components/Toast";
 
 type Listing = {
   id: number;

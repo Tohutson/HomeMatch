@@ -1,12 +1,12 @@
 import { render, screen, waitFor, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import HomePage from "../app/page";
+import HomePage from "../src/app/page";
 
-jest.mock("../app/lib/userId", () => ({
+jest.mock("../src/lib/userId", () => ({
   getOrCreateUserId: jest.fn().mockResolvedValue(1),
 }));
 
-jest.mock("../app/lib/offlineQueue", () => ({
+jest.mock("../src/lib/offline-queue", () => ({
   enqueueOfflineFavorite: jest.fn(),
   flushOfflineQueue: jest.fn().mockResolvedValue(0),
   getOfflineQueue: jest.fn().mockReturnValue([]),
@@ -128,34 +128,40 @@ describe("HomePage", () => {
     expect(screen.getByTestId("favorites-nav-link")).toBeInTheDocument();
   });
 
-  it("advances to the next listing after favoriting via heart click", async () => {
+  it("does not advance to next listing when favoriting via heart click", async () => {
     const user = userEvent.setup();
     await renderHomePage();
 
     await user.click(screen.getByTestId("favorite-button"));
 
-    expect(await screen.findByText("40 Forbes Ave")).toBeInTheDocument();
-    expect(screen.queryByText("30 Pitt St")).not.toBeInTheDocument();
+    expect(screen.getByText("30 Pitt St")).toBeInTheDocument();
   });
 
-  it("navigates back to the undone listing card after undo", async () => {
+  it("stays on the current listing after undoing a favorite", async () => {
     const user = userEvent.setup();
     await renderHomePage();
 
+    expect(screen.getByText("30 Pitt St")).toBeInTheDocument();
+
     await user.click(screen.getByTestId("favorite-button"));
-    expect(await screen.findByText("40 Forbes Ave")).toBeInTheDocument();
+
+    expect(await screen.findByText("30 Pitt St")).toBeInTheDocument();
+    expect(screen.getByTestId("heart-icon")).toHaveAttribute(
+      "fill",
+      "currentColor"
+    );
 
     await user.click(screen.getByTestId("undo-button"));
 
     expect(await screen.findByText("30 Pitt St")).toBeInTheDocument();
+    expect(screen.getByTestId("heart-icon")).toHaveAttribute("fill", "none");
   });
 
   it("shows not-logged-in modal when userId is null and heart is clicked", async () => {
     const user = userEvent.setup();
-    const { getOrCreateUserId } =
-      jest.requireMock("../app/lib/userId") as {
-        getOrCreateUserId: jest.Mock;
-      };
+    const { getOrCreateUserId } = jest.requireMock("../src/lib/userId") as {
+      getOrCreateUserId: jest.Mock;
+    };
 
     getOrCreateUserId.mockResolvedValueOnce(null);
 
@@ -172,10 +178,9 @@ describe("HomePage", () => {
 
   it("dismisses the not-logged-in modal when Sign Up is clicked", async () => {
     const user = userEvent.setup();
-    const { getOrCreateUserId } =
-      jest.requireMock("../app/lib/userId") as {
-        getOrCreateUserId: jest.Mock;
-      };
+    const { getOrCreateUserId } = jest.requireMock("../src/lib/userId") as {
+      getOrCreateUserId: jest.Mock;
+    };
 
     getOrCreateUserId.mockResolvedValueOnce(null);
 
@@ -190,7 +195,7 @@ describe("HomePage", () => {
     });
   });
 
-  it("shows 'This home is already in your favorites' toast on 409", async () => {
+  it("shows 'Already in favorites' toast on 409", async () => {
     const user = userEvent.setup();
     global.fetch = buildFetchMock({ conflictOnPost: true }) as jest.Mock;
 
@@ -198,7 +203,7 @@ describe("HomePage", () => {
     await user.click(screen.getByTestId("favorite-button"));
 
     expect(await screen.findByTestId("toast-notification")).toHaveTextContent(
-      "This home is already in your favorites"
+      "Already in favorites"
     );
   });
 
@@ -210,7 +215,7 @@ describe("HomePage", () => {
     await user.click(screen.getByTestId("favorite-button"));
 
     expect(await screen.findByTestId("toast-notification")).toHaveTextContent(
-      "Unable to save favorite. Please try again."
+      "Failed to add favorite"
     );
   });
 
@@ -226,18 +231,18 @@ describe("HomePage", () => {
     await user.click(screen.getByTestId("favorite-button"));
 
     expect(await screen.findByTestId("toast-notification")).toHaveTextContent(
-      "Saved locally. Will sync when connection restored."
+      "Saved offline. Will sync when back online."
     );
   });
 
-  it("shows 'Added to Favorites' toast after favoriting", async () => {
+  it("shows 'Added to favorites' toast after favoriting", async () => {
     const user = userEvent.setup();
     await renderHomePage();
 
     await user.click(screen.getByTestId("favorite-button"));
 
     expect(await screen.findByTestId("toast-notification")).toHaveTextContent(
-      "Added to Favorites"
+      "Added to favorites"
     );
   });
 
@@ -251,21 +256,18 @@ describe("HomePage", () => {
     expect(screen.getByTestId("undo-button")).toBeEnabled();
   });
 
-  it("disables undo button when stack is empty but the window has not expired", async () => {
-    jest.useFakeTimers();
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
-
+  it("shows redo button after undo", async () => {
+    const user = userEvent.setup();
     await renderHomePage();
 
     await user.click(screen.getByTestId("favorite-button"));
     await user.click(await screen.findByTestId("undo-button"));
 
-    await waitFor(() => {
-      expect(screen.getByTestId("undo-button")).toBeDisabled();
-    });
+    expect(await screen.findByTestId("redo-button")).toBeInTheDocument();
+    expect(screen.queryByTestId("undo-button")).not.toBeInTheDocument();
   });
 
-  it("shows full expiry message when window expires", async () => {
+  it("hides the undo button after the undo window expires", async () => {
     jest.useFakeTimers();
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
 
@@ -276,9 +278,7 @@ describe("HomePage", () => {
       jest.advanceTimersByTime(11_000);
     });
 
-    expect(await screen.findByTestId("toast-notification")).toHaveTextContent(
-      "Undo window expired. Remove from Favorites page instead."
-    );
+    expect(screen.queryByTestId("undo-button")).not.toBeInTheDocument();
   });
 
   it("hides undo button after the 10-second window expires", async () => {
@@ -340,7 +340,7 @@ describe("HomePage", () => {
     expect(postCalls).toHaveLength(2);
   });
 
-  it("shows 'Unable to undo' toast and keeps property in stack on 503", async () => {
+  it("shows 'Failed to undo favorite' toast and keeps property in stack on 503", async () => {
     const user = userEvent.setup();
     global.fetch = buildFetchMock({ errorOnUndo: true }) as jest.Mock;
 
@@ -350,7 +350,7 @@ describe("HomePage", () => {
     await user.click(screen.getByTestId("undo-button"));
 
     expect(await screen.findByTestId("toast-notification")).toHaveTextContent(
-      "Unable to undo. Please try again."
+      "Failed to undo favorite"
     );
     expect(screen.getByTestId("undo-button")).toBeEnabled();
   });
@@ -366,7 +366,9 @@ describe("HomePage", () => {
     await user.click(screen.getByText("Previous"));
     await user.click(screen.getByTestId("favorite-button"));
 
-    const deleteCalls = (fetchMock.mock.calls as [string, RequestInit][]).filter(
+    const deleteCalls = (
+      fetchMock.mock.calls as [string, RequestInit][]
+    ).filter(
       ([url, init]) =>
         url.includes("/api/users/1/favorites/") && init?.method === "DELETE"
     );
