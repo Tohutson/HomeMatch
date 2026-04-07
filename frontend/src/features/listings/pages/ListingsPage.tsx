@@ -9,21 +9,15 @@ import { ListingsBanner } from "@/features/listings/components/listings-banner";
 import { ListingsHeader } from "@/features/listings/components/listings-header";
 import { ListingsPagination } from "@/features/listings/components/listings-pagination";
 
-import type { Listing } from "@/features/listings/types";
 import { useListings } from "@/features/listings/hooks/use-listings";
-import { useFavorites } from "@/features/favorites/hooks/use-favorites";
-import { useFavoriteUndo } from "@/features/favorites/hooks/use-favorite-undo";
-import { useFavoritesSync } from "@/features/favorites/hooks/use-favorites-sync";
 import { usePagedListingNavigation } from "@/features/listings/hooks/use-paged-listing-navigation";
-
+import { useListingsFavoriteWorkflow } from "@/features/favorites/hooks/use-listings-favorite-workflow";
 import { getOrCreateUserId } from "@/lib/userId";
-import { enqueueOfflineFavorite } from "@/lib/offline-queue";
 
 const PAGE_SIZE = 12;
 
 export default function ListingsPage() {
   const [currentPage, setCurrentPage] = useState(0);
-
   const [userId, setUserId] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [showNotLoggedIn, setShowNotLoggedIn] = useState(false);
@@ -34,14 +28,8 @@ export default function ListingsPage() {
 
   const {
     favoriteIds,
-    isFavorited,
-    addFavorite,
-    removeFavorite,
-    refetchFavorites,
-  } = useFavorites({ userId });
-
-  const {
-    recordAddedFavorite,
+    syncingIds,
+    handleFavorite,
     handleUndo,
     handleRedo,
     canUndo,
@@ -49,15 +37,10 @@ export default function ListingsPage() {
     undoVisible,
     undoTimeLeft,
     showBanner,
-  } = useFavoriteUndo({
-    addFavorite,
-    removeFavorite,
+  } = useListingsFavoriteWorkflow({
+    userId,
     onToast: setToast,
-  });
-
-  const { syncingIds, markQueued } = useFavoritesSync({
-    refetchFavorites,
-    onToast: setToast,
+    onRequireLogin: () => setShowNotLoggedIn(true),
   });
 
   const { listings, totalPages, loading, error } = useListings({
@@ -79,62 +62,6 @@ export default function ListingsPage() {
     onPageChange: setCurrentPage,
     loading,
   });
-
-  const handleFavorite = useCallback(
-    async (listing: Listing) => {
-      if (!userId) {
-        setShowNotLoggedIn(true);
-        return;
-      }
-
-      if (isFavorited(listing.id)) {
-        const result = await removeFavorite(listing.id);
-
-        if (!result.ok) {
-          setToast("Failed to remove favorite");
-          return;
-        }
-
-        setToast("Removed from favorites");
-        return;
-      }
-
-      if (typeof navigator !== "undefined" && !navigator.onLine) {
-        enqueueOfflineFavorite({
-          userId,
-          listingId: listing.id,
-        });
-        markQueued(listing.id);
-        recordAddedFavorite(listing);
-        setToast("Saved offline. Will sync when back online.");
-        return;
-      }
-
-      const result = await addFavorite(listing.id);
-
-      if (!result.ok) {
-        if (result.reason === "already_exists") {
-          setToast("Already in favorites");
-        } else if (result.reason === "missing_user") {
-          setShowNotLoggedIn(true);
-        } else {
-          setToast("Failed to add favorite");
-        }
-        return;
-      }
-
-      recordAddedFavorite(listing);
-      setToast("Added to favorites");
-    },
-    [
-      userId,
-      isFavorited,
-      addFavorite,
-      removeFavorite,
-      markQueued,
-      recordAddedFavorite,
-    ]
-  );
 
   const handleSwipeRight = useCallback(() => {
     if (!currentListing) return;
@@ -172,14 +99,13 @@ export default function ListingsPage() {
       </main>
     );
 
-  if (!currentListing) {
+  if (!currentListing)
     return (
       <main className="min-h-screen bg-zinc-50 p-8 text-black">
         <h1 className="mb-4 text-3xl font-bold">HomeMatch Listings</h1>
         <p>No current listing available.</p>
       </main>
     );
-  }
 
   return (
     <main className="min-h-screen bg-zinc-50 p-8 text-black">
