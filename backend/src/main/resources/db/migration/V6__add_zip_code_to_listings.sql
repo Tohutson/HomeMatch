@@ -3,7 +3,7 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 -- 1. Add the column
 ALTER TABLE listings
-    ADD COLUMN zip_code VARCHAR(5);
+    ADD COLUMN IF NOT EXISTS zip_code VARCHAR(5);
 
 -- 2. Populate zip_code from address
 UPDATE listings
