@@ -1,13 +1,18 @@
 package com.propertystack.homematch.listing.dto;
 
-import com.propertystack.homematch.listing.query.ListingFilter;
-import jakarta.validation.constraints.*;
-import lombok.Getter;
-import lombok.Setter;
+import java.math.BigDecimal;
+
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
-import java.math.BigDecimal;
+import com.propertystack.homematch.listing.query.ListingFilter;
+
+import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import lombok.Getter;
+import lombok.Setter;
 
 @Getter
 @Setter
@@ -36,12 +41,15 @@ public class ListingSearchRequest {
     private Integer minSqft;
 
     @Min(0)
+    private Integer maxSqft;
+
+    @Min(0)
     private Integer minEnergyStarScore;
 
     private SortOption sortOption;
 
     public ListingFilter toFilter() {
-        return new ListingFilter(minPrice, maxPrice, minBeds, minBaths, minSqft, minEnergyStarScore);
+        return new ListingFilter(minPrice, maxPrice, minBeds, minBaths, minSqft, maxSqft, minEnergyStarScore);
     }
 
     public PageRequest toPageable() {

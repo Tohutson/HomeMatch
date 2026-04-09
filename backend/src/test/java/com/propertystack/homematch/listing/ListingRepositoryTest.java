@@ -1,10 +1,13 @@
 package com.propertystack.homematch.listing;
 
-import com.propertystack.homematch.listing.query.ListingFilter;
-import com.propertystack.homematch.listing.query.ListingSpecification;
+import static org.assertj.core.api.Assertions.*;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.data.domain.Page;
@@ -12,15 +15,12 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import com.propertystack.homematch.listing.query.ListingFilter;
+import com.propertystack.homematch.listing.query.ListingSpecification;
 
 @DataJpaTest
 @ActiveProfiles("test")
@@ -78,7 +78,7 @@ class ListingRepositoryTest {
                                 buildListing("30 Pitt St", "250000", 3, 1.5, 2250, 50),
                                 buildListing("40 Oak Ave", "400000", 4, 2.5, 3000, 79)));
 
-                ListingFilter filter = new ListingFilter(null, null, null, null, null, null);
+                ListingFilter filter = new ListingFilter(null, null, null, null, null, null, null);
 
                 Page<Listing> result = listingRepository.findAll(
                                 ListingSpecification.fromFilter(filter),
@@ -95,6 +95,7 @@ class ListingRepositoryTest {
 
                 ListingFilter filter = new ListingFilter(
                                 new BigDecimal("300000"),
+                                null,
                                 null,
                                 null,
                                 null,
@@ -124,6 +125,7 @@ class ListingRepositoryTest {
                                 3,
                                 2.0,
                                 1500,
+                                2000,
                                 50);
 
                 Page<Listing> result = listingRepository.findAll(
@@ -141,7 +143,7 @@ class ListingRepositoryTest {
                                 buildListing("B St", "200000", 2, 1.0, 1000, 55),
                                 buildListing("C St", "300000", 2, 1.0, 1000, 70)));
 
-                ListingFilter filter = new ListingFilter(null, null, null, null, null, null);
+                ListingFilter filter = new ListingFilter(null, null, null, null, null, null, null);
 
                 Page<Listing> result = listingRepository.findAll(
                                 ListingSpecification.fromFilter(filter),
@@ -159,7 +161,7 @@ class ListingRepositoryTest {
                                 buildListing("Low", "100000", 2, 1.0, 1000, 40),
                                 buildListing("Mid", "200000", 2, 1.0, 1000, 40)));
 
-                ListingFilter filter = new ListingFilter(null, null, null, null, null, null);
+                ListingFilter filter = new ListingFilter(null, null, null, null, null, null, null);
 
                 Page<Listing> result = listingRepository.findAll(
                                 ListingSpecification.fromFilter(filter),
@@ -177,7 +179,7 @@ class ListingRepositoryTest {
                                 buildListing("Low", "100000", 2, 1.0, 1000, 40),
                                 buildListing("Mid", "200000", 2, 1.0, 1000, 40)));
 
-                ListingFilter filter = new ListingFilter(null, null, null, null, null, null);
+                ListingFilter filter = new ListingFilter(null, null, null, null, null, null, null);
 
                 Page<Listing> result = listingRepository.findAll(
                                 ListingSpecification.fromFilter(filter),
@@ -199,6 +201,7 @@ class ListingRepositoryTest {
                                 new BigDecimal("250000"),
                                 null,
                                 3,
+                                null,
                                 null,
                                 null,
                                 null);

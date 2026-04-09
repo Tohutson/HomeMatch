@@ -1,9 +1,12 @@
 package com.propertystack.homematch.listing;
 
-import com.propertystack.homematch.listing.dto.ListingDTO;
-import com.propertystack.homematch.listing.exception.ListingNotFoundException;
-import com.propertystack.homematch.listing.mapper.ListingMapper;
-import com.propertystack.homematch.listing.query.ListingFilter;
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+import java.math.BigDecimal;
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -18,14 +21,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.math.BigDecimal;
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import com.propertystack.homematch.listing.dto.ListingDTO;
+import com.propertystack.homematch.listing.exception.ListingNotFoundException;
+import com.propertystack.homematch.listing.mapper.ListingMapper;
+import com.propertystack.homematch.listing.query.ListingFilter;
 
 @ExtendWith(MockitoExtension.class)
 @ActiveProfiles("test")
@@ -54,6 +53,7 @@ class ListingServiceTest {
                                 2,
                                 2.0,
                                 1000,
+                                1500,
                                 50);
                 Pageable pageable = PageRequest.of(0, 20);
 
@@ -93,7 +93,7 @@ class ListingServiceTest {
                                 .energyStarScore(75)
                                 .build();
 
-                ListingFilter filter = new ListingFilter(null, null, null, null, null, null);
+                ListingFilter filter = new ListingFilter(null, null, null, null, null, null, null);
                 Pageable pageable = PageRequest.of(0, 20);
 
                 when(listingRepository.findAll(any(Specification.class), any(Pageable.class)))
@@ -110,7 +110,7 @@ class ListingServiceTest {
 
         @Test
         void getListings_shouldReturnEmptyPageWhenRepositoryReturnsNoResults() {
-                ListingFilter filter = new ListingFilter(null, null, null, null, null, null);
+                ListingFilter filter = new ListingFilter(null, null, null, null, null, null, null);
                 Pageable pageable = PageRequest.of(0, 20);
 
                 when(listingRepository.findAll(any(Specification.class), any(Pageable.class)))
@@ -166,7 +166,7 @@ class ListingServiceTest {
 
         @Test
         void getListings_shouldPassSortedPageableToRepository() {
-                ListingFilter filter = new ListingFilter(null, null, null, null, null, null);
+                ListingFilter filter = new ListingFilter(null, null, null, null, null, null, null);
                 Pageable pageable = PageRequest.of(0, 20, org.springframework.data.domain.Sort.by(
                                 org.springframework.data.domain.Sort.Direction.DESC, "price"));
 
