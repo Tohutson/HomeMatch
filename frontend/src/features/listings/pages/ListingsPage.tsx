@@ -64,6 +64,7 @@ export default function ListingsPage() {
 
   const handleApplyFilters = useCallback(() => {
     setCurrentPage(0);
+    setCurrentIndex(0);
     applyFilters();
   }, [applyFilters]);
 
@@ -81,10 +82,13 @@ export default function ListingsPage() {
   const {
     currentIndex,
     currentListing,
+    isAtAbsoluteStart,
+    isAtAbsoluteEnd,
     canGoPrevious,
     canGoNext,
     goNext,
     goPrevious,
+    setCurrentIndex,
   } = usePagedListingNavigation({
     listings,
     currentPage,
@@ -161,7 +165,9 @@ export default function ListingsPage() {
       <div className="mx-auto max-w-2xl">
         {listings.length === 0 || !currentListing ? (
           <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
-            <h2 className="mb-2 text-xl font-semibold">No homes found matching your criteria</h2>
+            <h2 className="mb-2 text-xl font-semibold">
+              No homes found matching your criteria
+            </h2>
             <p className="text-zinc-500">
               Try changing or clearing your filters
             </p>
