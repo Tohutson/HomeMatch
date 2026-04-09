@@ -14,6 +14,7 @@ function buildListingsQuery(params: GetListingsParams): string {
   searchParams.set("size", String(params.size ?? 12));
 
   const filters = params.filters;
+  
   if (filters?.minPrice !== undefined) {
     searchParams.set("minPrice", String(filters.minPrice));
   }
@@ -28,6 +29,9 @@ function buildListingsQuery(params: GetListingsParams): string {
   }
   if (filters?.minSqft !== undefined) {
     searchParams.set("minSqft", String(filters.minSqft));
+  }
+  if (filters?.maxSqft !== undefined) {
+    searchParams.set("maxSqft", String(filters.maxSqft));
   }
 
   return searchParams.toString();
