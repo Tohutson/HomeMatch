@@ -92,6 +92,10 @@ Pagination:
 
 Filtering:
 
+- `location` (string, optional)
+  - If a **5-digit ZIP code**, performs exact match on `zipCode`
+  - Otherwise performs **case-insensitive partial match** on address
+  - Blank or omitted → no location filtering
 - `minPrice` (decimal)
 - `maxPrice` (decimal)
 - `minBeds` (int)
@@ -123,6 +127,12 @@ PowerShell:
 
 ```powershell
 Invoke-RestMethod -Method GET -Uri "http://localhost:8081/api/listings?page=0&size=10&minPrice=200000&maxPrice=500000&minBeds=3&minBaths=2"
+```
+
+#### Example: Search by Location
+
+```bash
+curl "http://localhost:8081/api/listings?location=15213&page=0&size=10"
 ```
 
 ---
@@ -158,6 +168,54 @@ Returns a single listing.
 
 ```bash
 curl "http://localhost:8081/api/listings/1"
+```
+
+---
+
+## Search Suggestions API
+
+Provides autocomplete suggestions for search input.
+
+### Endpoint
+
+| Method | Path                        | Description                     |
+| ------ | --------------------------- | ------------------------------- |
+| GET    | `/api/listings/suggestions` | Get address and ZIP suggestions |
+
+---
+
+### GET `/api/listings/suggestions`
+
+Returns a list of search suggestions based on a query string.
+
+#### Query Parameters
+
+- `q` (string, **required**) — search input
+- `limit` (int, optional, default `5`) — max number of results
+
+---
+
+### Behavior
+
+- Returns a mix of:
+  - **Address suggestions**
+  - **ZIP code suggestions**
+- Address suggestions:
+  - Include `listingId`
+  - Include associated `zipCode`
+- ZIP suggestions:
+  - Only include ZIP values
+- Results:
+  - Prioritize **prefix matches**
+  - Then include **partial matches**
+  - Sorted alphabetically within groups
+
+---
+
+### Example Request
+
+```bash
+curl "http://localhost:8081/api/listings/suggestions?q=for"
 ```
 
 ---
