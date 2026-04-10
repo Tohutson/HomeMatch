@@ -20,6 +20,7 @@ class ListingMapperTest {
         Listing listing = Listing.builder()
                 .id(1L)
                 .address("30 Pitt St")
+                .zipCode("12345")
                 .price(new BigDecimal("250000"))
                 .sqft(2250)
                 .beds(3)
@@ -32,6 +33,7 @@ class ListingMapperTest {
 
         assertThat(dto.getId()).isEqualTo(1L);
         assertThat(dto.getAddress()).isEqualTo("30 Pitt St");
+        assertThat(dto.getZipCode()).isEqualTo("12345");
         assertThat(dto.getPrice()).isEqualByComparingTo("250000");
         assertThat(dto.getSqft()).isEqualTo(2250);
         assertThat(dto.getBeds()).isEqualTo(3);

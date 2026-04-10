@@ -38,6 +38,7 @@ public class ListingSearchRequest {
     @Min(0)
     private Integer minEnergyStarScore;
 
+    @Size(max = 100)
     private String location;
 
     private SortOption sortOption;
