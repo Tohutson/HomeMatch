@@ -38,10 +38,13 @@ public class ListingSearchRequest {
     @Min(0)
     private Integer minEnergyStarScore;
 
+    @Size(max = 100)
+    private String location;
+
     private SortOption sortOption;
 
     public ListingFilter toFilter() {
-        return new ListingFilter(minPrice, maxPrice, minBeds, minBaths, minSqft, minEnergyStarScore);
+        return new ListingFilter(location, minPrice, maxPrice, minBeds, minBaths, minSqft, minEnergyStarScore);
     }
 
     public PageRequest toPageable() {

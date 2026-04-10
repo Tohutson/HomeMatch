@@ -3,13 +3,13 @@ package com.propertystack.homematch.listing;
 import com.propertystack.homematch.listing.dto.ListingDTO;
 import com.propertystack.homematch.listing.exception.ListingNotFoundException;
 import com.propertystack.homematch.listing.query.ListingFilter;
+import com.propertystack.homematch.search.SearchSuggestionDTO;
+import com.propertystack.homematch.search.SuggestionService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.*;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -19,9 +19,11 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.data.domain.Sort.Direction.ASC;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -34,6 +36,9 @@ class ListingControllerTest {
 
     @MockitoBean
     private ListingService listingService;
+
+    @MockitoBean
+    private SuggestionService suggestionService;
 
     @Test
     void shouldReturnPaginatedListings() throws Exception {
@@ -250,10 +255,95 @@ class ListingControllerTest {
         assertThat(pageable.getSort().getOrderFor("price").isDescending()).isTrue();
     }
 
+    @Test
+    void shouldBindLocationAndPassFilterAndDefaultPageableToService() throws Exception {
+        ListingDTO dto = listingDto();
+        Page<ListingDTO> page = new PageImpl<>(
+                List.of(dto),
+                PageRequest.of(0, 20, Sort.by(ASC, "price")),
+                1
+        );
+
+        given(listingService.getListings(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
+                .willReturn(page);
+
+        mockMvc.perform(get("/api/listings")
+                        .param("location", "15213"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.size").value(20))
+                .andExpect(jsonPath("$.number").value(0))
+                .andExpect(jsonPath("$.totalElements").value(1));
+
+        ArgumentCaptor<ListingFilter> filterCaptor = ArgumentCaptor.forClass(ListingFilter.class);
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+
+        verify(listingService).getListings(filterCaptor.capture(), pageableCaptor.capture());
+
+        ListingFilter filter = filterCaptor.getValue();
+        Pageable pageable = pageableCaptor.getValue();
+
+        assertThat(filter.location()).isEqualTo("15213");
+        assertThat(filter.minPrice()).isNull();
+        assertThat(filter.maxPrice()).isNull();
+        assertThat(filter.minBeds()).isNull();
+        assertThat(pageable.getPageNumber()).isEqualTo(0);
+        assertThat(pageable.getPageSize()).isEqualTo(20);
+        assertThat(pageable.getSort()).isEqualTo(Sort.by(ASC, "price"));
+
+        verifyNoMoreInteractions(listingService);
+    }
+
+    @Test
+    void shouldUseDefaultSuggestionLimitWhenLimitIsOmitted() throws Exception {
+        List<SearchSuggestionDTO> suggestions = List.of(
+                new SearchSuggestionDTO("zip", "15213", null, "15213")
+        );
+
+        given(suggestionService.getSuggestions("152", 5)).willReturn(suggestions);
+
+        mockMvc.perform(get("/api/listings/suggestions")
+                        .param("q", "152"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].type").value("zip"))
+                .andExpect(jsonPath("$[0].label").value("15213"))
+                .andExpect(jsonPath("$[0].zipCode").value("15213"));
+
+        verify(suggestionService).getSuggestions("152", 5);
+
+        verifyNoMoreInteractions(listingService);
+    }
+
+    @Test
+    void shouldPassExplicitSuggestionLimitToService() throws Exception {
+        List<SearchSuggestionDTO> suggestions = List.of(
+                new SearchSuggestionDTO("address", "1111 Forbes Ave", 10L, "15213")
+        );
+
+        given(suggestionService.getSuggestions("for", 3)).willReturn(suggestions);
+
+        mockMvc.perform(get("/api/listings/suggestions")
+                        .param("q", "for")
+                        .param("limit", "3"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].type").value("address"))
+                .andExpect(jsonPath("$[0].listingId").value(10));
+
+        verify(suggestionService).getSuggestions("for", 3);
+        verifyNoMoreInteractions(listingService);
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenSuggestionQueryIsMissing() throws Exception {
+        mockMvc.perform(get("/api/listings/suggestions"))
+                .andExpect(status().isBadRequest());
+    }
+
     private ListingDTO listingDto() {
         return ListingDTO.builder()
                 .id(1L)
                 .address("30 Pitt St")
+                .zipCode("15213")
                 .price(new BigDecimal("250000"))
                 .sqft(2250)
                 .beds(3)
