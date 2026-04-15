@@ -1,12 +1,9 @@
 package com.propertystack.homematch.listing;
 
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
-import java.math.BigDecimal;
-import java.util.List;
-
+import com.propertystack.homematch.listing.dto.ListingDTO;
+import com.propertystack.homematch.listing.exception.ListingNotFoundException;
+import com.propertystack.homematch.listing.mapper.ListingMapper;
+import com.propertystack.homematch.listing.query.ListingFilter;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -21,12 +18,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 
-<<<<<<< feature/property-filtering
-import com.propertystack.homematch.listing.dto.ListingDTO;
-import com.propertystack.homematch.listing.exception.ListingNotFoundException;
-import com.propertystack.homematch.listing.mapper.ListingMapper;
-import com.propertystack.homematch.listing.query.ListingFilter;
-=======
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
@@ -38,7 +29,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
->>>>>>> dev
 
 @ExtendWith(MockitoExtension.class)
 class ListingServiceTest {
@@ -61,16 +51,6 @@ class ListingServiceTest {
         @Test
         void getListings_shouldBuildSpecificationAndPassPageableToRepository() {
                 ListingFilter filter = new ListingFilter(
-<<<<<<< feature/property-filtering
-                                new BigDecimal("100000"),
-                                new BigDecimal("500000"),
-                                2,
-                                2.0,
-                                1000,
-                                1500,
-                                50);
-                Pageable pageable = PageRequest.of(0, 20);
-=======
                         "15213",
                         new BigDecimal("100000"),
                         new BigDecimal("500000"),
@@ -80,7 +60,6 @@ class ListingServiceTest {
                         50
                 );
                 Pageable pageable = PageRequest.of(0, 20, Sort.by(Sort.Direction.ASC, "price"));
->>>>>>> dev
 
                 when(listingRepository.findAll(any(Specification.class), any(Pageable.class)))
                         .thenReturn(Page.empty());
@@ -94,39 +73,9 @@ class ListingServiceTest {
         }
 
         @Test
-<<<<<<< feature/property-filtering
-        void getListings_shouldMapRepositoryResultsToDtoPage() {
-                Listing listing = Listing.builder()
-                                .id(1L)
-                                .address("30 Pitt St")
-                                .price(new BigDecimal("250000"))
-                                .sqft(2250)
-                                .beds(3)
-                                .baths(1.5)
-                                .listingUrl("http://example.com")
-                                .photoUrls(List.of("url1.jpg", "url2.jpg"))
-                                .energyStarScore(75)
-                                .build();
-
-                ListingDTO dto = ListingDTO.builder()
-                                .id(1L)
-                                .address("30 Pitt St")
-                                .price(new BigDecimal("250000"))
-                                .sqft(2250)
-                                .beds(3)
-                                .baths(1.5)
-                                .listingUrl("http://example.com")
-                                .photoUrls(List.of("url1.jpg", "url2.jpg"))
-                                .energyStarScore(75)
-                                .build();
-
-                ListingFilter filter = new ListingFilter(null, null, null, null, null, null, null);
-                Pageable pageable = PageRequest.of(0, 20);
-=======
         void getListings_shouldReturnMappedDtoPageWhenRepositoryReturnsResults() {
                 Listing listing = listing();
                 ListingDTO dto = listingDto();
->>>>>>> dev
 
                 ListingFilter filter = new ListingFilter(
                         "15213",
@@ -156,9 +105,6 @@ class ListingServiceTest {
 
         @Test
         void getListings_shouldReturnEmptyPageWhenRepositoryReturnsNoResults() {
-<<<<<<< feature/property-filtering
-                ListingFilter filter = new ListingFilter(null, null, null, null, null, null, null);
-=======
                 ListingFilter filter = new ListingFilter(
                         null,
                         null,
@@ -168,7 +114,6 @@ class ListingServiceTest {
                         null,
                         null
                 );
->>>>>>> dev
                 Pageable pageable = PageRequest.of(0, 20);
 
                 when(listingRepository.findAll(any(Specification.class), eq(pageable)))
@@ -240,20 +185,6 @@ class ListingServiceTest {
                 verifyNoInteractions(listingMapper);
         }
 
-<<<<<<< feature/property-filtering
-        @Test
-        void getListings_shouldPassSortedPageableToRepository() {
-                ListingFilter filter = new ListingFilter(null, null, null, null, null, null, null);
-                Pageable pageable = PageRequest.of(0, 20, org.springframework.data.domain.Sort.by(
-                                org.springframework.data.domain.Sort.Direction.DESC, "price"));
-
-                when(listingRepository.findAll(any(Specification.class), any(Pageable.class)))
-                                .thenReturn(Page.empty());
-
-                listingService.getListings(filter, pageable);
-
-                verify(listingRepository).findAll(specificationCaptor.capture(), pageableCaptor.capture());
-=======
         private Listing listing() {
                 return Listing.builder()
                         .id(1L)
@@ -268,7 +199,6 @@ class ListingServiceTest {
                         .energyStarScore(75)
                         .build();
         }
->>>>>>> dev
 
         private ListingDTO listingDto() {
                 return ListingDTO.builder()

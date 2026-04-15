@@ -1,13 +1,10 @@
 package com.propertystack.homematch.listing;
 
-import static org.assertj.core.api.Assertions.*;
-
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.Optional;
-
+import com.propertystack.homematch.listing.query.ListingFilter;
+import com.propertystack.homematch.listing.query.ListingSpecification;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.data.domain.Page;
@@ -15,12 +12,15 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
-import com.propertystack.homematch.listing.query.ListingFilter;
-import com.propertystack.homematch.listing.query.ListingSpecification;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.propertystack.homematch.search.AddressSuggestionProjection;
 import jakarta.persistence.EntityManager;
