@@ -8,7 +8,8 @@ INSERT INTO
         beds,
         baths,
         listing_url,
-        all_photo_urls
+        all_photo_urls,
+        energy_star_score
     )
 VALUES (
         '123 Main St',
@@ -17,7 +18,8 @@ VALUES (
         3,
         2.0,
         'https://example.com/123-main',
-        '/test-house.jpg'
+        '/test-house.jpg',
+        80
     ),
     (
         '456 Oak Ave',
@@ -26,5 +28,6 @@ VALUES (
         4,
         3.0,
         'https://example.com/456-oak',
-        '/test-house.jpg'
+        '/test-house.jpg',
+     55
     );

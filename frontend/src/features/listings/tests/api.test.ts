@@ -38,6 +38,32 @@ describe("buildListingsQuery", () => {
     expect(query).not.toContain("maxSqft=");
   });
 
+  it("includes minEnergyStarScore when provided", () => {
+    const query = buildListingsQuery({
+      page: 0,
+      size: 12,
+      filters: {
+        minEnergyStarScore: 30,
+      },
+    });
+
+    expect(query).toContain("minEnergyStarScore=30");
+  });
+
+  it("omits minEnergyStarScore when undefined", () => {
+    const query = buildListingsQuery({
+      page: 0,
+      size: 12,
+      filters: {
+        minSqft: 1200,
+        minEnergyStarScore: undefined,
+      },
+    });
+
+    expect(query).toContain("minSqft=1200");
+    expect(query).not.toContain("minEnergyStarScore=");
+  });
+
   it("includes multiple filters together", () => {
     const query = buildListingsQuery({
       page: 0,
@@ -49,6 +75,7 @@ describe("buildListingsQuery", () => {
         minBaths: 2,
         minSqft: 1400,
         maxSqft: 2200,
+        minEnergyStarScore: 30,
       },
     });
 
@@ -58,6 +85,7 @@ describe("buildListingsQuery", () => {
     expect(query).toContain("minBaths=2");
     expect(query).toContain("minSqft=1400");
     expect(query).toContain("maxSqft=2200");
+    expect(query).toContain("minEnergyStarScore=30");
   });
 
   it("omits undefined filters", () => {
@@ -71,6 +99,7 @@ describe("buildListingsQuery", () => {
         minBaths: undefined,
         minSqft: undefined,
         maxSqft: undefined,
+        minEnergyStarScore: undefined,
       },
     });
 
@@ -80,5 +109,6 @@ describe("buildListingsQuery", () => {
     expect(query).not.toContain("minBaths=");
     expect(query).not.toContain("minSqft=");
     expect(query).not.toContain("maxSqft=");
+    expect(query).not.toContain("minEnergyStarScore=");
   });
 });

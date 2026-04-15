@@ -12,6 +12,7 @@ describe("useListingFilters", () => {
       minBaths: "",
       minSqft: "",
       maxSqft: "",
+      minEnergyStarScore: "",
     });
 
     expect(result.current.appliedFilters).toEqual({
@@ -21,6 +22,7 @@ describe("useListingFilters", () => {
       minBaths: undefined,
       minSqft: undefined,
       maxSqft: undefined,
+      minEnergyStarScore: undefined,
     });
 
     expect(result.current.hasActiveFilters).toBe(false);
@@ -40,6 +42,7 @@ describe("useListingFilters", () => {
       minBaths: "",
       minSqft: "",
       maxSqft: "",
+      minEnergyStarScore: "",
     });
 
     expect(result.current.appliedFilters).toEqual({
@@ -49,6 +52,7 @@ describe("useListingFilters", () => {
       minBaths: undefined,
       minSqft: undefined,
       maxSqft: undefined,
+      minEnergyStarScore: undefined,
     });
   });
 
@@ -67,6 +71,7 @@ describe("useListingFilters", () => {
       minBaths: undefined,
       minSqft: undefined,
       maxSqft: undefined,
+      minEnergyStarScore: undefined,
     });
 
     expect(result.current.hasActiveFilters).toBe(false);
@@ -82,6 +87,7 @@ describe("useListingFilters", () => {
       result.current.updateDraftFilter("minBaths", "2");
       result.current.updateDraftFilter("minSqft", "1400");
       result.current.updateDraftFilter("maxSqft", "2200");
+      result.current.updateDraftFilter("minEnergyStarScore", "30");
     });
 
     act(() => {
@@ -95,6 +101,7 @@ describe("useListingFilters", () => {
       minBaths: 2,
       minSqft: 1400,
       maxSqft: 2200,
+      minEnergyStarScore: 30,
     });
 
     expect(result.current.hasActiveFilters).toBe(true);
@@ -120,6 +127,7 @@ describe("useListingFilters", () => {
       minBaths: undefined,
       minSqft: undefined,
       maxSqft: undefined,
+      minEnergyStarScore: undefined,
     });
 
     expect(result.current.hasActiveFilters).toBe(false);
@@ -161,6 +169,7 @@ describe("useListingFilters", () => {
       minBaths: undefined,
       minSqft: undefined,
       maxSqft: 1800,
+      minEnergyStarScore: undefined,
     });
 
     expect(result.current.hasActiveFilters).toBe(true);
@@ -176,6 +185,7 @@ describe("useListingFilters", () => {
       minBaths: "",
       minSqft: "",
       maxSqft: "",
+      minEnergyStarScore: "",
     });
 
     expect(result.current.appliedFilters).toEqual({
@@ -185,6 +195,7 @@ describe("useListingFilters", () => {
       minBaths: undefined,
       minSqft: undefined,
       maxSqft: undefined,
+      minEnergyStarScore: undefined,
     });
 
     expect(result.current.hasActiveFilters).toBe(false);

@@ -1,4 +1,5 @@
 import type { ListingFilters } from "@/features/listings/types";
+import { error } from "console";
 import { useMemo, useState } from "react";
 
 type DraftListingFilters = {
@@ -8,6 +9,7 @@ type DraftListingFilters = {
   minBaths: string;
   minSqft: string;
   maxSqft: string;
+  minEnergyStarScore: string;
 };
 
 const DEFAULT_DRAFT_FILTERS: DraftListingFilters = {
@@ -17,6 +19,7 @@ const DEFAULT_DRAFT_FILTERS: DraftListingFilters = {
   minBaths: "",
   minSqft: "",
   maxSqft: "",
+  minEnergyStarScore: "",
 };
 
 const DEFAULT_APPLIED_FILTERS: ListingFilters = {
@@ -26,6 +29,7 @@ const DEFAULT_APPLIED_FILTERS: ListingFilters = {
   minBaths: undefined,
   minSqft: undefined,
   maxSqft: undefined,
+  minEnergyStarScore: undefined,
 };
 
 function toNumberOrUndefined(value: string): number | undefined {
@@ -65,6 +69,7 @@ export function useListingFilters() {
       minBaths: toNumberOrUndefined(draftFilters.minBaths),
       minSqft: toNumberOrUndefined(draftFilters.minSqft),
       maxSqft: toNumberOrUndefined(draftFilters.maxSqft),
+      minEnergyStarScore: toNumberOrUndefined(draftFilters.minEnergyStarScore),
     }),
     [draftFilters]
   );
@@ -80,7 +85,9 @@ export function useListingFilters() {
       draftFilters.minBeds !== (appliedFilters.minBeds?.toString() ?? "") ||
       draftFilters.minBaths !== (appliedFilters.minBaths?.toString() ?? "") ||
       draftFilters.minSqft !== (appliedFilters.minSqft?.toString() ?? "") ||
-      draftFilters.maxSqft !== (appliedFilters.maxSqft?.toString() ?? "")
+      draftFilters.maxSqft !== (appliedFilters.maxSqft?.toString() ?? "") ||
+      draftFilters.minEnergyStarScore !==
+        (appliedFilters.minEnergyStarScore?.toString() ?? "")
     );
   }, [draftFilters, appliedFilters]);
 
@@ -143,6 +150,13 @@ export function useListingFilters() {
       parsedDraftFilters.minSqft > parsedDraftFilters.maxSqft
     ) {
       errors.minSqft = "Min sqft cannot be greater than max sqft.";
+    }
+
+    if (
+      parsedDraftFilters.minEnergyStarScore !== undefined &&
+      parsedDraftFilters.minEnergyStarScore < 0
+    ) {
+      errors.minEnergyStarScore = "Min energy star score cannot be negative.";
     }
 
     return errors;
