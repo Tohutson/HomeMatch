@@ -24,6 +24,9 @@ public class Listing {
     @Column(name = "address", nullable = false)
     private String address;
 
+    @Column(name = "zip_code", length = 5)
+    private String zipCode;
+
     @Column(name = "price", precision = 12, scale = 2)
     private BigDecimal price;
 

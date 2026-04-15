@@ -3,6 +3,7 @@ package com.propertystack.homematch.listing.query;
 import java.math.BigDecimal;
 
 public record ListingFilter(
+        String location,
         BigDecimal minPrice,
         BigDecimal maxPrice,
         Integer minBeds,

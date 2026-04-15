@@ -11,14 +11,15 @@ import lombok.Value;
 public class ListingDTO {
     Long id;
     String address;
+    String zipCode;
     BigDecimal price;
     Integer sqft;
     Integer beds;
     Double baths;
-
+    Integer energyStarScore;
     String listingUrl;
 
     List<String> photoUrls;
 
-    Integer energyStarScore;
+
 }

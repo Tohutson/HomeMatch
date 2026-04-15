@@ -112,6 +112,25 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 
+    @org.springframework.web.bind.annotation.ExceptionHandler(
+            org.springframework.web.bind.MissingServletRequestParameterException.class
+    )
+    public ResponseEntity<ApiErrorResponse> handleMissingServletRequestParameter(
+            org.springframework.web.bind.MissingServletRequestParameterException ex,
+            HttpServletRequest request
+    ) {
+        ApiErrorResponse body = ApiErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
+                .message(ex.getMessage())
+                .path(request.getRequestURI())
+                .validationErrors(null)
+                .build();
+
+        return ResponseEntity.badRequest().body(body);
+    }
+
     private ResponseEntity<ApiErrorResponse> buildResponse(
             HttpStatus status,
             String message,
