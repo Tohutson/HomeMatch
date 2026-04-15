@@ -157,8 +157,8 @@ export default function ListingsPage() {
         <ListingFilters
           filters={draftFilters}
           onFilterChange={updateDraftFilter}
-          onApply={applyFilters}
-          onClear={clearFilters}
+          onApply={handleApplyFilters}
+          onClear={handleClearFilters}
           validationErrors={validationErrors}
           isApplyDisabled={isApplyDisabled}
           isClearDisabled={isClearDisabled}
