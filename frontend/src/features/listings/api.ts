@@ -33,6 +33,9 @@ export function buildListingsQuery(params: GetListingsParams): string {
   if (filters?.maxSqft !== undefined) {
     searchParams.set("maxSqft", String(filters.maxSqft));
   }
+  if (filters?.minEnergyStarScore !== undefined) {
+    searchParams.set("minEnergyStarScore", String(filters.minEnergyStarScore));
+  }
 
   return searchParams.toString();
 }

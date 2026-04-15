@@ -5,6 +5,7 @@ type DraftListingFilters = {
   minBaths: string;
   minSqft: string;
   maxSqft: string;
+  minEnergyStarScore: string;
 };
 
 type ValidationErrors = Partial<Record<keyof DraftListingFilters, string>>;
@@ -86,6 +87,16 @@ export default function ListingFilters({
           onChange={(e) => onFilterChange("maxSqft", e.target.value)}
           className="rounded-lg border border-zinc-300 p-2"
         />
+
+        <input
+          type="number"
+          min={0}
+          max={100}
+          placeholder="Min Energy Star Score"
+          value={filters.minEnergyStarScore}
+          onChange={(e) => onFilterChange("minEnergyStarScore", e.target.value)}
+          className="rounded-lg border border-zinc-300 p-2"
+        />
       </div>
 
       <div className="mt-2 space-y-1">
@@ -111,6 +122,12 @@ export default function ListingFilters({
 
         {validationErrors.maxSqft && (
           <p className="text-sm text-red-600">{validationErrors.maxSqft}</p>
+        )}
+
+        {validationErrors.minEnergyStarScore && (
+          <p className="text-sm text-red-600">
+            {validationErrors.minEnergyStarScore}
+          </p>
         )}
       </div>
 

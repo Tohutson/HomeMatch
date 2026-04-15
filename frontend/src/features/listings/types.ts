@@ -25,4 +25,5 @@ export type ListingFilters = {
   minBaths?: number;
   minSqft?: number;
   maxSqft?: number;
+  minEnergyStarScore?: number;
 };

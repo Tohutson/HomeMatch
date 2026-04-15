@@ -3,7 +3,7 @@
 import NotLoggedInModal from "@/components/NotLoggedInModal";
 import Toast from "@/components/Toast";
 import ListingCard from "@/features/listings/components/listing-card";
-import ListingFilters from "@/features/listings/components/listing-filters";
+import ListingFilters from "../components/listing-filters";
 import { useCallback, useEffect, useState } from "react";
 
 import { ListingsBanner } from "@/features/listings/components/listings-banner";
@@ -11,7 +11,7 @@ import { ListingsHeader } from "@/features/listings/components/listings-header";
 import { ListingsPagination } from "@/features/listings/components/listings-pagination";
 
 import { useListingsFavoriteWorkflow } from "@/features/favorites/hooks/use-listings-favorite-workflow";
-import { useListingFilters } from "@/features/listings/hooks/use-listing-filters";
+import { useListingFilters } from "../hooks/use-listing-filters";
 import { useListings } from "@/features/listings/hooks/use-listings";
 import { usePagedListingNavigation } from "@/features/listings/hooks/use-paged-listing-navigation";
 import type { ListingFilters as ListingFiltersType } from "@/features/listings/types";
