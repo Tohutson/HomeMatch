@@ -8,7 +8,8 @@ INSERT INTO
         beds,
         baths,
         listing_url,
-        all_photo_urls
+        all_photo_urls,
+        energy_star_score
     )
 VALUES (
         'Page 1 Listing A',
@@ -17,7 +18,8 @@ VALUES (
         2,
         1.5,
         'https://example.com/1',
-        '/test-house.jpg'
+        '/test-house.jpg',
+50
     ),
     (
         'Page 1 Listing B',
@@ -26,7 +28,8 @@ VALUES (
         2,
         1.5,
         'https://example.com/2',
-        '/test-house.jpg'
+        '/test-house.jpg',
+50
     ),
     (
         'Page 1 Listing C',
@@ -35,7 +38,8 @@ VALUES (
         3,
         2.0,
         'https://example.com/3',
-        '/test-house.jpg'
+        '/test-house.jpg',
+50
     ),
     (
         'Page 1 Listing D',
@@ -44,7 +48,8 @@ VALUES (
         3,
         2.0,
         'https://example.com/4',
-        '/test-house.jpg'
+        '/test-house.jpg',
+50
     ),
     (
         'Page 1 Listing E',
@@ -53,7 +58,8 @@ VALUES (
         3,
         2.0,
         'https://example.com/5',
-        '/test-house.jpg'
+        '/test-house.jpg',
+50
     ),
     (
         'Page 1 Listing F',
@@ -62,7 +68,8 @@ VALUES (
         3,
         2.0,
         'https://example.com/6',
-        '/test-house.jpg'
+        '/test-house.jpg',
+50
     ),
     (
         'Page 1 Listing G',
@@ -71,7 +78,8 @@ VALUES (
         3,
         2.0,
         'https://example.com/7',
-        '/test-house.jpg'
+        '/test-house.jpg',
+50
     ),
     (
         'Page 1 Listing H',
@@ -80,7 +88,8 @@ VALUES (
         3,
         2.0,
         'https://example.com/8',
-        '/test-house.jpg'
+        '/test-house.jpg',
+50
     ),
     (
         'Page 1 Listing I',
@@ -89,7 +98,8 @@ VALUES (
         3,
         2.5,
         'https://example.com/9',
-        '/test-house.jpg'
+        '/test-house.jpg',
+50
     ),
     (
         'Page 1 Listing J',
@@ -98,7 +108,8 @@ VALUES (
         3,
         2.5,
         'https://example.com/10',
-        '/test-house.jpg'
+        '/test-house.jpg',
+50
     ),
     (
         'Page 1 Listing K',
@@ -107,7 +118,8 @@ VALUES (
         3,
         2.5,
         'https://example.com/11',
-        '/test-house.jpg'
+        '/test-house.jpg',
+50
     ),
     (
         'Page 1 Listing L',
@@ -116,7 +128,8 @@ VALUES (
         3,
         2.5,
         'https://example.com/12',
-        '/test-house.jpg'
+        '/test-house.jpg',
+50
     ),
     (
         'Page 2 Listing A',
@@ -125,5 +138,6 @@ VALUES (
         4,
         3.0,
         'https://example.com/13',
-        '/test-house.jpg'
+        '/test-house.jpg',
+50
     );

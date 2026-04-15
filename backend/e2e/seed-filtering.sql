@@ -4,30 +4,30 @@ INSERT INTO
     listings (
         address,
         price,
-        sqft,
         beds,
         baths,
+        sqft,
         listing_url,
         all_photo_urls,
         energy_star_score
     )
 VALUES (
-        '123 Main St',
-        250000.00,
-        1400,
-        3,
-        2.0,
-        'https://example.com/123-main',
+        'Large House',
+        450000,
+        4,
+        3.0,
+        2500,
+        'https://example.com/large-house',
         '/test-house.jpg',
         80
     ),
     (
-        '456 Oak Ave',
-        450000.00,
-        2200,
-        4,
-        3.0,
-        'https://example.com/456-oak',
+        'Small House',
+        250000,
+        2,
+        1.5,
+        1000,
+        'https://example.com/small-house',
         '/test-house.jpg',
-     55
+        65
     );
