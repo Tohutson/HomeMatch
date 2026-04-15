@@ -15,9 +15,10 @@ describe("ListingFilters", () => {
     onFilterChange: jest.fn(),
     onApply: jest.fn(),
     onClear: jest.fn(),
-    hasActiveFilters: false,
-    matchCount: 0,
     isApplyDisabled: false,
+    isClearDisabled: true,
+    validationErrors: {},
+    matchCount: 0,
   };
 
   beforeEach(() => {
@@ -33,6 +34,26 @@ describe("ListingFilters", () => {
     expect(screen.getByPlaceholderText("Min baths")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Min sqft")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Max sqft")).toBeInTheDocument();
+  });
+
+  it("sets min=0 on all numeric inputs", () => {
+    render(<ListingFilters {...defaultProps} />);
+
+    expect(screen.getByPlaceholderText("Min price")).toHaveAttribute(
+      "min",
+      "0"
+    );
+    expect(screen.getByPlaceholderText("Max price")).toHaveAttribute(
+      "min",
+      "0"
+    );
+    expect(screen.getByPlaceholderText("Min beds")).toHaveAttribute("min", "0");
+    expect(screen.getByPlaceholderText("Min baths")).toHaveAttribute(
+      "min",
+      "0"
+    );
+    expect(screen.getByPlaceholderText("Min sqft")).toHaveAttribute("min", "0");
+    expect(screen.getByPlaceholderText("Max sqft")).toHaveAttribute("min", "0");
   });
 
   it("renders the singular match count correctly", () => {
@@ -78,7 +99,7 @@ describe("ListingFilters", () => {
   it("calls onApply when Apply Filters is clicked", async () => {
     const user = userEvent.setup();
 
-    render(<ListingFilters {...defaultProps} />);
+    render(<ListingFilters {...defaultProps} isApplyDisabled={false} />);
 
     await user.click(screen.getByRole("button", { name: /apply filters/i }));
 
@@ -88,26 +109,26 @@ describe("ListingFilters", () => {
   it("calls onClear when Clear is clicked", async () => {
     const user = userEvent.setup();
 
-    render(<ListingFilters {...defaultProps} hasActiveFilters={true} />);
+    render(<ListingFilters {...defaultProps} isClearDisabled={false} />);
 
     await user.click(screen.getByRole("button", { name: /clear/i }));
 
     expect(defaultProps.onClear).toHaveBeenCalledTimes(1);
   });
 
-  it("disables Clear when there are no active filters", () => {
-    render(<ListingFilters {...defaultProps} hasActiveFilters={false} />);
+  it("disables Clear when isClearDisabled is true", () => {
+    render(<ListingFilters {...defaultProps} isClearDisabled={true} />);
 
     expect(screen.getByRole("button", { name: /clear/i })).toBeDisabled();
   });
 
-  it("enables Clear when there are active filters", () => {
-    render(<ListingFilters {...defaultProps} hasActiveFilters={true} />);
+  it("enables Clear when isClearDisabled is false", () => {
+    render(<ListingFilters {...defaultProps} isClearDisabled={false} />);
 
     expect(screen.getByRole("button", { name: /clear/i })).toBeEnabled();
   });
 
-  it("disables Apply Filters when the current draft filters are invalid", () => {
+  it("disables Apply Filters when isApplyDisabled is true", () => {
     render(<ListingFilters {...defaultProps} isApplyDisabled={true} />);
 
     expect(
@@ -115,11 +136,69 @@ describe("ListingFilters", () => {
     ).toBeDisabled();
   });
 
-  it("enables Apply Filters when the current draft filters are valid", () => {
+  it("enables Apply Filters when isApplyDisabled is false", () => {
     render(<ListingFilters {...defaultProps} isApplyDisabled={false} />);
 
     expect(
       screen.getByRole("button", { name: /apply filters/i })
     ).toBeEnabled();
+  });
+
+  it("renders a price validation error message", () => {
+    render(
+      <ListingFilters
+        {...defaultProps}
+        isApplyDisabled={true}
+        validationErrors={{
+          minPrice: "Min price cannot be greater than max price.",
+        }}
+      />
+    );
+
+    expect(
+      screen.getByText("Min price cannot be greater than max price.")
+    ).toBeInTheDocument();
+  });
+
+  it("renders a sqft validation error message", () => {
+    render(
+      <ListingFilters
+        {...defaultProps}
+        isApplyDisabled={true}
+        validationErrors={{
+          minSqft: "Min sqft cannot be greater than max sqft.",
+        }}
+      />
+    );
+
+    expect(
+      screen.getByText("Min sqft cannot be greater than max sqft.")
+    ).toBeInTheDocument();
+  });
+
+  it("renders a negative value validation error message", () => {
+    render(
+      <ListingFilters
+        {...defaultProps}
+        isApplyDisabled={true}
+        validationErrors={{
+          minPrice: "Min price cannot be negative.",
+        }}
+      />
+    );
+
+    expect(
+      screen.getByText("Min price cannot be negative.")
+    ).toBeInTheDocument();
+  });
+
+  it("does not render validation messages when there are no validation errors", () => {
+    render(<ListingFilters {...defaultProps} validationErrors={{}} />);
+
+    expect(
+      screen.queryByText(/cannot be greater than/i)
+    ).not.toBeInTheDocument();
+
+    expect(screen.queryByText(/cannot be negative/i)).not.toBeInTheDocument();
   });
 });

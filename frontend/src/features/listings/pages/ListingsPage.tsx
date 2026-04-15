@@ -52,7 +52,9 @@ export default function ListingsPage() {
     updateDraftFilter,
     applyFilters,
     clearFilters,
-    hasActiveFilters,
+    validationErrors,
+    isApplyDisabled,
+    isClearDisabled,
   } = useListingFilters();
 
   const handleFilterChange = useCallback(
@@ -154,10 +156,12 @@ export default function ListingsPage() {
       <div className="mx-auto max-w-5xl">
         <ListingFilters
           filters={draftFilters}
-          onFilterChange={handleFilterChange}
-          onApply={handleApplyFilters}
-          onClear={handleClearFilters}
-          hasActiveFilters={hasActiveFilters}
+          onFilterChange={updateDraftFilter}
+          onApply={applyFilters}
+          onClear={clearFilters}
+          validationErrors={validationErrors}
+          isApplyDisabled={isApplyDisabled}
+          isClearDisabled={isClearDisabled}
           matchCount={totalElements}
         />
       </div>

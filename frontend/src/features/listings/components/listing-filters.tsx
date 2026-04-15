@@ -1,5 +1,3 @@
-import type { ListingFilters as ListingFiltersType } from "@/features/listings/types";
-
 type DraftListingFilters = {
   minPrice: string;
   maxPrice: string;
@@ -9,12 +7,16 @@ type DraftListingFilters = {
   maxSqft: string;
 };
 
+type ValidationErrors = Partial<Record<keyof DraftListingFilters, string>>;
+
 type Props = {
   filters: DraftListingFilters;
-  onFilterChange: (key: keyof ListingFiltersType, value: string) => void;
+  onFilterChange: (key: keyof DraftListingFilters, value: string) => void;
   onApply: () => void;
   onClear: () => void;
-  hasActiveFilters: boolean;
+  isApplyDisabled: boolean;
+  isClearDisabled: boolean;
+  validationErrors: ValidationErrors;
   matchCount: number;
 };
 
@@ -23,7 +25,9 @@ export default function ListingFilters({
   onFilterChange,
   onApply,
   onClear,
-  hasActiveFilters,
+  isApplyDisabled,
+  isClearDisabled,
+  validationErrors,
   matchCount,
 }: Props) {
   return (
@@ -31,6 +35,7 @@ export default function ListingFilters({
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <input
           type="number"
+          min={0}
           placeholder="Min price"
           value={filters.minPrice}
           onChange={(e) => onFilterChange("minPrice", e.target.value)}
@@ -39,6 +44,7 @@ export default function ListingFilters({
 
         <input
           type="number"
+          min={0}
           placeholder="Max price"
           value={filters.maxPrice}
           onChange={(e) => onFilterChange("maxPrice", e.target.value)}
@@ -47,6 +53,7 @@ export default function ListingFilters({
 
         <input
           type="number"
+          min={0}
           placeholder="Min beds"
           value={filters.minBeds}
           onChange={(e) => onFilterChange("minBeds", e.target.value)}
@@ -55,6 +62,7 @@ export default function ListingFilters({
 
         <input
           type="number"
+          min={0}
           placeholder="Min baths"
           value={filters.minBaths}
           onChange={(e) => onFilterChange("minBaths", e.target.value)}
@@ -63,6 +71,7 @@ export default function ListingFilters({
 
         <input
           type="number"
+          min={0}
           placeholder="Min sqft"
           value={filters.minSqft}
           onChange={(e) => onFilterChange("minSqft", e.target.value)}
@@ -71,6 +80,7 @@ export default function ListingFilters({
 
         <input
           type="number"
+          min={0}
           placeholder="Max sqft"
           value={filters.maxSqft}
           onChange={(e) => onFilterChange("maxSqft", e.target.value)}
@@ -78,11 +88,38 @@ export default function ListingFilters({
         />
       </div>
 
+      <div className="mt-2 space-y-1">
+        {validationErrors.minPrice && (
+          <p className="text-sm text-red-600">{validationErrors.minPrice}</p>
+        )}
+
+        {validationErrors.maxPrice && (
+          <p className="text-sm text-red-600">{validationErrors.maxPrice}</p>
+        )}
+
+        {validationErrors.minBeds && (
+          <p className="text-sm text-red-600">{validationErrors.minBeds}</p>
+        )}
+
+        {validationErrors.minBaths && (
+          <p className="text-sm text-red-600">{validationErrors.minBaths}</p>
+        )}
+
+        {validationErrors.minSqft && (
+          <p className="text-sm text-red-600">{validationErrors.minSqft}</p>
+        )}
+
+        {validationErrors.maxSqft && (
+          <p className="text-sm text-red-600">{validationErrors.maxSqft}</p>
+        )}
+      </div>
+
       <div className="mt-4 flex items-center gap-3">
         <button
           type="button"
           onClick={onApply}
-          className="rounded-lg bg-black px-4 py-2 text-white"
+          disabled={isApplyDisabled}
+          className="rounded-lg bg-black px-4 py-2 text-white disabled:cursor-not-allowed disabled:opacity-50"
         >
           Apply Filters
         </button>
@@ -90,7 +127,8 @@ export default function ListingFilters({
         <button
           type="button"
           onClick={onClear}
-          className="rounded-lg border border-zinc-300 px-4 py-2"
+          disabled={isClearDisabled}
+          className="rounded-lg border border-zinc-300 px-4 py-2 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Clear
         </button>
