@@ -36,6 +36,9 @@ public class ListingSearchRequest {
     private Integer minSqft;
 
     @Min(0)
+    private Integer maxSqft;
+
+    @Min(0)
     private Integer minEnergyStarScore;
 
     @Size(max = 100)
@@ -44,7 +47,16 @@ public class ListingSearchRequest {
     private SortOption sortOption;
 
     public ListingFilter toFilter() {
-        return new ListingFilter(location, minPrice, maxPrice, minBeds, minBaths, minSqft, minEnergyStarScore);
+        return new ListingFilter(
+                location,
+                minPrice,
+                maxPrice,
+                minBeds,
+                minBaths,
+                minSqft,
+                maxSqft,
+                minEnergyStarScore
+        );
     }
 
     public PageRequest toPageable() {
@@ -58,5 +70,10 @@ public class ListingSearchRequest {
     @AssertTrue(message = "minPrice must be <= maxPrice")
     public boolean isValidPriceRange() {
         return minPrice == null || maxPrice == null || minPrice.compareTo(maxPrice) <= 0;
+    }
+
+    @AssertTrue(message = "minSqft must be <= maxSqft")
+    public boolean isValidSqftRange() {
+        return minSqft == null || maxSqft == null || minSqft <= maxSqft;
     }
 }

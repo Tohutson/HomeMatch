@@ -7,27 +7,25 @@ import ListingFilters from "../components/listing-filters";
 import { useCallback, useEffect, useState } from "react";
 
 import { ListingsBanner } from "@/features/listings/components/listings-banner";
-import { ListingsHeader } from "@/features/listings/components/listings-header";
 import { ListingsPagination } from "@/features/listings/components/listings-pagination";
 
+import { useFavoritesContext } from "@/features/favorites/context/favorites-context";
 import { useListingsFavoriteWorkflow } from "@/features/favorites/hooks/use-listings-favorite-workflow";
 import { useListingFilters } from "../hooks/use-listing-filters";
 import { useListings } from "@/features/listings/hooks/use-listings";
 import { usePagedListingNavigation } from "@/features/listings/hooks/use-paged-listing-navigation";
-import type { ListingFilters as ListingFiltersType } from "@/features/listings/types";
-import { getOrCreateUserId } from "@/lib/userId";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 const PAGE_SIZE = 12;
 
 export default function ListingsPage() {
   const [currentPage, setCurrentPage] = useState(0);
-  const [userId, setUserId] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [showNotLoggedIn, setShowNotLoggedIn] = useState(false);
-
-  useEffect(() => {
-    getOrCreateUserId().then(setUserId).catch(console.error);
-  }, []);
+  const { ensureUserId } = useFavoritesContext();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const {
     favoriteIds,
@@ -41,7 +39,6 @@ export default function ListingsPage() {
     undoTimeLeft,
     showBanner,
   } = useListingsFavoriteWorkflow({
-    userId,
     onToast: setToast,
     onRequireLogin: () => setShowNotLoggedIn(true),
   });
@@ -55,25 +52,16 @@ export default function ListingsPage() {
     validationErrors,
     isApplyDisabled,
     isClearDisabled,
+    resetFiltersForLocation,
   } = useListingFilters();
 
-  const handleFilterChange = useCallback(
-    (key: keyof ListingFiltersType, value: string) => {
-      updateDraftFilter(key, value);
-    },
-    [updateDraftFilter]
-  );
+  const locationParam = searchParams?.get("location") ?? "";
 
   const handleApplyFilters = useCallback(() => {
     setCurrentPage(0);
     setCurrentIndex(0);
     applyFilters();
   }, [applyFilters]);
-
-  const handleClearFilters = useCallback(() => {
-    setCurrentPage(0);
-    clearFilters();
-  }, [clearFilters]);
 
   const { listings, totalPages, totalElements, loading, error } = useListings({
     page: currentPage,
@@ -82,10 +70,7 @@ export default function ListingsPage() {
   });
 
   const {
-    currentIndex,
     currentListing,
-    isAtAbsoluteStart,
-    isAtAbsoluteEnd,
     canGoPrevious,
     canGoNext,
     goNext,
@@ -98,6 +83,20 @@ export default function ListingsPage() {
     onPageChange: setCurrentPage,
     loading,
   });
+
+  const handleClearFilters = useCallback(() => {
+    setCurrentPage(0);
+    setCurrentIndex(0);
+    clearFilters();
+    router.replace(pathname ?? "/listings");
+  }, [clearFilters, pathname, router, setCurrentIndex]);
+
+  useEffect(() => {
+    resetFiltersForLocation(locationParam);
+
+    setCurrentPage(0);
+    setCurrentIndex(0);
+  }, [locationParam, resetFiltersForLocation, setCurrentIndex]);
 
   const handleSwipeRight = useCallback(() => {
     if (!currentListing) return;
@@ -114,7 +113,6 @@ export default function ListingsPage() {
   if (loading)
     return (
       <main className="min-h-screen p-8 bg-zinc-50 text-black">
-        <h1 className="text-3xl font-bold mb-4">HomeMatch Listings</h1>
         <p>Loading listings...</p>
       </main>
     );
@@ -122,7 +120,6 @@ export default function ListingsPage() {
   if (error)
     return (
       <main className="min-h-screen p-8 bg-zinc-50 text-black">
-        <h1 className="text-3xl font-bold mb-4">HomeMatch Listings</h1>
         <p>Error: {error}</p>
       </main>
     );
@@ -136,12 +133,10 @@ export default function ListingsPage() {
           onDismiss={() => setShowNotLoggedIn(false)}
           onLogIn={() => {
             setShowNotLoggedIn(false);
-            getOrCreateUserId().then(setUserId).catch(console.error);
+            void ensureUserId();
           }}
         />
       )}
-
-      <ListingsHeader favoriteCount={favoriteIds.size} />
 
       <ListingsBanner
         show={showBanner}
@@ -153,52 +148,52 @@ export default function ListingsPage() {
         onRedo={handleRedo}
       />
 
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start">
         <ListingFilters
           filters={draftFilters}
           onFilterChange={updateDraftFilter}
-          onApply={applyFilters}
-          onClear={clearFilters}
+          onApply={handleApplyFilters}
+          onClear={handleClearFilters}
           validationErrors={validationErrors}
           isApplyDisabled={isApplyDisabled}
           isClearDisabled={isClearDisabled}
           matchCount={totalElements}
         />
-      </div>
 
-      <div className="mx-auto max-w-2xl">
-        {listings.length === 0 || !currentListing ? (
-          <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
-            <h2 className="mb-2 text-xl font-semibold">
-              No homes found matching your criteria
-            </h2>
-            <p className="text-zinc-500">
-              Try changing or clearing your filters
-            </p>
-          </div>
-        ) : (
-          <ListingCard
-            listing={currentListing}
-            isFavorited={favoriteIds.has(currentListing.id)}
-            isSyncing={syncingIds.has(currentListing.id)}
-            onFavorite={handleFavorite}
-            onSwipeRight={handleSwipeRight}
-            onSwipeLeft={handleSwipeLeft}
+        <div className="mx-auto w-full max-w-3xl">
+          {listings.length === 0 || !currentListing ? (
+            <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
+              <h2 className="mb-2 text-xl font-semibold">
+                No homes found matching your criteria
+              </h2>
+              <p className="text-zinc-500">
+                Try changing or clearing your filters
+              </p>
+            </div>
+          ) : (
+            <ListingCard
+              listing={currentListing}
+              isFavorited={favoriteIds.has(currentListing.id)}
+              isSyncing={syncingIds.has(currentListing.id)}
+              onFavorite={handleFavorite}
+              onSwipeRight={handleSwipeRight}
+              onSwipeLeft={handleSwipeLeft}
+            />
+          )}
+
+          <ListingsPagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            canGoPrevious={canGoPrevious}
+            canGoNext={canGoNext}
+            onPrevious={goPrevious}
+            onNext={goNext}
           />
-        )}
 
-        <ListingsPagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          canGoPrevious={canGoPrevious}
-          canGoNext={canGoNext}
-          onPrevious={goPrevious}
-          onNext={goNext}
-        />
-
-        <p className="mt-4 text-center text-sm text-zinc-400">
-          Swipe right to favorite · Swipe left to skip
-        </p>
+          <p className="mt-4 text-center text-sm text-zinc-400">
+            Swipe right to favorite · Swipe left to skip
+          </p>
+        </div>
       </div>
     </main>
   );

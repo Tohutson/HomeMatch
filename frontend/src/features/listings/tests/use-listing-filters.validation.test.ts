@@ -32,18 +32,16 @@ describe("useListingFilters validation", () => {
     );
   });
 
-  it("disables apply when a numeric filter is negative", () => {
+  it("sanitizes negative characters out of numeric filters", () => {
     const { result } = renderHook(() => useListingFilters());
 
     act(() => {
       result.current.updateDraftFilter("minPrice", "-1");
     });
 
-    expect(result.current.isApplyDisabled).toBe(true);
-    expect(result.current.hasValidationErrors).toBe(true);
-    expect(result.current.validationErrors.minPrice).toBe(
-      "Min price cannot be negative."
-    );
+    expect(result.current.draftFilters.minPrice).toBe("1");
+    expect(result.current.hasValidationErrors).toBe(false);
+    expect(result.current.validationErrors.minPrice).toBeUndefined();
   });
 
   it("enables apply when all draft filters are valid", () => {
@@ -74,12 +72,14 @@ describe("useListingFilters validation", () => {
     });
 
     expect(result.current.appliedFilters).toEqual({
+      location: undefined,
       minPrice: undefined,
       maxPrice: undefined,
       minBeds: undefined,
       minBaths: undefined,
       minSqft: undefined,
       maxSqft: undefined,
+      minEnergyStarScore: undefined,
     });
   });
 

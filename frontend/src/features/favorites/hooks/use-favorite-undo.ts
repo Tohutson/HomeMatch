@@ -39,9 +39,11 @@ export function useFavoriteUndo({
   const [undoStack, setUndoStack] = useState<FavoriteUndoEntry[]>([]);
   const [redoStack, setRedoStack] = useState<FavoriteUndoEntry[]>([]);
   const [undoTimeLeft, setUndoTimeLeft] = useState(0);
+  const [redoVisible, setRedoVisible] = useState(false);
 
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const undoIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const redoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearUndoTimer = useCallback(() => {
     if (undoTimerRef.current) {
@@ -52,6 +54,13 @@ export function useFavoriteUndo({
     if (undoIntervalRef.current) {
       clearInterval(undoIntervalRef.current);
       undoIntervalRef.current = null;
+    }
+  }, []);
+
+  const clearRedoTimer = useCallback(() => {
+    if (redoTimerRef.current) {
+      clearTimeout(redoTimerRef.current);
+      redoTimerRef.current = null;
     }
   }, []);
 
@@ -69,19 +78,33 @@ export function useFavoriteUndo({
     }, undoWindowSeconds * 1000);
   }, [clearUndoTimer, undoWindowSeconds]);
 
+  const startRedoTimer = useCallback(() => {
+    clearRedoTimer();
+    setRedoVisible(true);
+
+    redoTimerRef.current = setTimeout(() => {
+      setRedoStack([]);
+      setRedoVisible(false);
+      clearRedoTimer();
+    }, undoWindowSeconds * 1000);
+  }, [clearRedoTimer, undoWindowSeconds]);
+
   useEffect(() => {
     return () => {
       clearUndoTimer();
+      clearRedoTimer();
     };
-  }, [clearUndoTimer]);
+  }, [clearRedoTimer, clearUndoTimer]);
 
   const recordAddedFavorite = useCallback(
     (listing: Listing) => {
       setUndoStack([{ listing }]);
       setRedoStack([]);
+      setRedoVisible(false);
+      clearRedoTimer();
       startUndoTimer();
     },
-    [startUndoTimer]
+    [clearRedoTimer, startUndoTimer]
   );
 
   const handleUndo = useCallback(async () => {
@@ -97,10 +120,18 @@ export function useFavoriteUndo({
 
     setUndoStack([]);
     setRedoStack([latest]);
+    startRedoTimer();
     setUndoTimeLeft(0);
     clearUndoTimer();
     onToast?.(`Removed ${latest.listing.address ?? "listing"} from favorites`);
-  }, [undoStack, undoTimeLeft, removeFavorite, clearUndoTimer, onToast]);
+  }, [
+    undoStack,
+    undoTimeLeft,
+    removeFavorite,
+    clearUndoTimer,
+    onToast,
+    startRedoTimer,
+  ]);
 
   const handleRedo = useCallback(async () => {
     const latest = redoStack[redoStack.length - 1];
@@ -111,6 +142,8 @@ export function useFavoriteUndo({
     if (!result.ok) {
       if (result.reason === "already_exists") {
         setRedoStack([]);
+        setRedoVisible(false);
+        clearRedoTimer();
         onToast?.("Listing is already in favorites");
         return;
       }
@@ -120,15 +153,17 @@ export function useFavoriteUndo({
     }
 
     setRedoStack([]);
+    setRedoVisible(false);
+    clearRedoTimer();
     setUndoStack([latest]);
     startUndoTimer();
     onToast?.("Favorite restored");
-  }, [redoStack, addFavorite, startUndoTimer, onToast]);
+  }, [redoStack, addFavorite, clearRedoTimer, startUndoTimer, onToast]);
 
   const canUndo = undoStack.length > 0 && undoTimeLeft > 0;
-  const canRedo = redoStack.length > 0;
+  const canRedo = redoStack.length > 0 && redoVisible;
   const undoVisible = undoStack.length > 0 && undoTimeLeft > 0;
-  const showBanner = undoVisible || canRedo;
+  const showBanner = undoVisible || redoVisible;
 
   return {
     recordAddedFavorite,

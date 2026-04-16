@@ -57,6 +57,7 @@ class ListingServiceTest {
                         2,
                         2.0,
                         1000,
+                        2500,
                         50
                 );
                 Pageable pageable = PageRequest.of(0, 20, Sort.by(Sort.Direction.ASC, "price"));
@@ -79,6 +80,7 @@ class ListingServiceTest {
 
                 ListingFilter filter = new ListingFilter(
                         "15213",
+                        null,
                         null,
                         null,
                         null,
@@ -112,6 +114,7 @@ class ListingServiceTest {
                         null,
                         null,
                         null,
+                        null,
                         null
                 );
                 Pageable pageable = PageRequest.of(0, 20);
@@ -131,6 +134,7 @@ class ListingServiceTest {
         @Test
         void getListings_shouldPreserveSortingWhenPassingPageableToRepository() {
                 ListingFilter filter = new ListingFilter(
+                        null,
                         null,
                         null,
                         null,

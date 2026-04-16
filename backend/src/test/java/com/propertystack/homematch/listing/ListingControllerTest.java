@@ -108,6 +108,7 @@ class ListingControllerTest {
                 .param("minBeds", "2")
                 .param("minBaths", "2.5")
                 .param("minSqft", "1000")
+                .param("maxSqft", "2500")
                 .param("minEnergyStarScore", "50")
                 .param("sortOption", "PRICE_DESC"))
                 .andExpect(status().isOk());
@@ -125,6 +126,7 @@ class ListingControllerTest {
         assertThat(filter.minBeds()).isEqualTo(2);
         assertThat(filter.minBaths()).isEqualTo(2.5);
         assertThat(filter.minSqft()).isEqualTo(1000);
+        assertThat(filter.maxSqft()).isEqualTo(2500);
         assertThat(filter.minEnergyStarScore()).isEqualTo(50);
 
         assertThat(pageable.getPageNumber()).isEqualTo(1);
@@ -287,6 +289,7 @@ class ListingControllerTest {
         assertThat(filter.minPrice()).isNull();
         assertThat(filter.maxPrice()).isNull();
         assertThat(filter.minBeds()).isNull();
+        assertThat(filter.maxSqft()).isNull();
         assertThat(pageable.getPageNumber()).isEqualTo(0);
         assertThat(pageable.getPageSize()).isEqualTo(20);
         assertThat(pageable.getSort()).isEqualTo(Sort.by(ASC, "price"));

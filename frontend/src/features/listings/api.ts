@@ -36,6 +36,9 @@ export function buildListingsQuery(params: GetListingsParams): string {
   if (filters?.minEnergyStarScore !== undefined) {
     searchParams.set("minEnergyStarScore", String(filters.minEnergyStarScore));
   }
+  if (filters?.location !== undefined) {
+    searchParams.set("location", filters.location);
+  }
 
   return searchParams.toString();
 }

@@ -25,9 +25,9 @@ describe("ListingCard", () => {
 
   it("renders bed, bath and sqft details", () => {
     render(<ListingCard listing={listing} />);
-    expect(screen.getByText(/Bedrooms/)).toBeInTheDocument();
-    expect(screen.getByText(/Bathrooms/)).toBeInTheDocument();
-    expect(screen.getByText(/Square Feet/)).toBeInTheDocument();
+    expect(screen.getByText("Beds")).toBeInTheDocument();
+    expect(screen.getByText("Baths")).toBeInTheDocument();
+    expect(screen.getByText("Sq Ft")).toBeInTheDocument();
   });
 
   it("shows placeholder when no photo is available", () => {

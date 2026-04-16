@@ -16,7 +16,7 @@ type ActionResult =
       reason: "missing_user" | "already_exists" | "request_failed";
     };
 
-type UseFavoritesResult = {
+export type UseFavoritesResult = {
   favoriteIds: Set<number>;
   loading: boolean;
   error: string | null;
@@ -25,6 +25,8 @@ type UseFavoritesResult = {
   removeFavorite: (listingId: number) => Promise<ActionResult>;
   refetchFavorites: () => Promise<void>;
 };
+
+export type { ActionResult };
 
 export function useFavorites({
   userId,

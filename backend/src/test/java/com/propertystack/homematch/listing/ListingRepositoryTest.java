@@ -117,6 +117,7 @@ class ListingRepositoryTest {
                         3,
                         2.0,
                         1500,
+                        2000,
                         50
                 );
 
@@ -163,6 +164,7 @@ class ListingRepositoryTest {
                         new BigDecimal("250000"),
                         null,
                         3,
+                        null,
                         null,
                         null,
                         null
@@ -244,6 +246,7 @@ class ListingRepositoryTest {
                         null,
                         null,
                         null,
+                        null,
                         null
                 );
 
@@ -267,6 +270,7 @@ class ListingRepositoryTest {
 
                 ListingFilter filter = new ListingFilter(
                         "forbes",
+                        null,
                         null,
                         null,
                         null,
@@ -299,6 +303,7 @@ class ListingRepositoryTest {
                         null,
                         null,
                         null,
+                        null,
                         null
                 );
 
@@ -314,6 +319,7 @@ class ListingRepositoryTest {
 
         private ListingFilter emptyFilter() {
                 return new ListingFilter(
+                        null,
                         null,
                         null,
                         null,

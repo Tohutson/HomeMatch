@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import FavoritesPage from "../src/app/favorites/page";
+import { FavoritesProvider } from "../src/features/favorites/context/favorites-context";
 
 jest.mock("../src/lib/userId", () => ({
   getOrCreateUserId: jest.fn().mockResolvedValue(1),
@@ -91,6 +92,14 @@ function setupFetch(
 }
 
 describe("FavoritesPage", () => {
+  function renderFavoritesPage() {
+    return render(
+      <FavoritesProvider>
+        <FavoritesPage />
+      </FavoritesProvider>
+    );
+  }
+
   beforeEach(() => {
     global.fetch = jest.fn();
     setupFetch();
@@ -101,18 +110,20 @@ describe("FavoritesPage", () => {
   });
 
   it("displays the count of saved homes in the header", async () => {
-    render(<FavoritesPage />);
-    expect(await screen.findByText(/My Favorites \(2\)/)).toBeInTheDocument();
+    renderFavoritesPage();
+    await screen.findByText("30 Pitt St");
+    expect(screen.getByText("My Favorites")).toBeInTheDocument();
+    expect(screen.getByText(/2\s+saved\s+homes/)).toBeInTheDocument();
   });
 
   it("renders all saved listings", async () => {
-    render(<FavoritesPage />);
+    renderFavoritesPage();
     expect(await screen.findByText("30 Pitt St")).toBeInTheDocument();
     expect(screen.getByText("40 Forbes Ave")).toBeInTheDocument();
   });
 
   it("renders a View Details link for each favorite", async () => {
-    render(<FavoritesPage />);
+    renderFavoritesPage();
     expect(await screen.findByTestId("details-link-1")).toHaveAttribute(
       "href",
       "/listings/1"
@@ -131,14 +142,17 @@ describe("FavoritesPage", () => {
       return createResponse({});
     });
 
-    render(<FavoritesPage />);
-    expect(await screen.findByText("No favorites yet.")).toBeInTheDocument();
-    expect(screen.getByText("Start browsing →")).toBeInTheDocument();
+    renderFavoritesPage();
+    expect(await screen.findByText("Start building your shortlist")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Start browsing" })).toHaveAttribute(
+      "href",
+      "/",
+    );
   });
 
   it("shows unavailable notice when a listing no longer exists", async () => {
     setupFetch({ listingId: 1 });
-    render(<FavoritesPage />);
+    renderFavoritesPage();
 
     expect(
       await screen.findByTestId("unavailable-notice-1")
@@ -149,7 +163,7 @@ describe("FavoritesPage", () => {
   });
 
   it("does not show unavailable notice when all listings still exist", async () => {
-    render(<FavoritesPage />);
+    renderFavoritesPage();
     await screen.findByText("30 Pitt St");
     expect(
       screen.queryByTestId("unavailable-notice-1")
@@ -158,20 +172,20 @@ describe("FavoritesPage", () => {
 
   it("shows confirmation prompt when remove button is clicked", async () => {
     const user = userEvent.setup();
-    render(<FavoritesPage />);
+    renderFavoritesPage();
 
     await user.click(await screen.findByTestId("remove-button-1"));
 
-    expect(screen.getByText("Confirm Remove")).toBeInTheDocument();
+    expect(screen.getByText("Confirm remove")).toBeInTheDocument();
     expect(screen.getByText("Cancel")).toBeInTheDocument();
   });
 
   it("removes the listing after confirmation is clicked", async () => {
     const user = userEvent.setup();
-    render(<FavoritesPage />);
+    renderFavoritesPage();
 
     await user.click(await screen.findByTestId("remove-button-1"));
-    await user.click(screen.getByText("Confirm Remove"));
+    await user.click(screen.getByText("Confirm remove"));
 
     await waitFor(() => {
       expect(screen.queryByText("30 Pitt St")).not.toBeInTheDocument();
@@ -182,7 +196,7 @@ describe("FavoritesPage", () => {
 
   it("cancels removal and keeps the listing visible", async () => {
     const user = userEvent.setup();
-    render(<FavoritesPage />);
+    renderFavoritesPage();
 
     await user.click(await screen.findByTestId("remove-button-1"));
     await user.click(screen.getByText("Cancel"));
@@ -192,7 +206,7 @@ describe("FavoritesPage", () => {
 
   it("sorts by price ascending when that option is selected", async () => {
     const user = userEvent.setup();
-    render(<FavoritesPage />);
+    renderFavoritesPage();
 
     await screen.findByText("30 Pitt St");
     await user.selectOptions(
@@ -207,7 +221,7 @@ describe("FavoritesPage", () => {
 
   it("sorts by price descending when that option is selected", async () => {
     const user = userEvent.setup();
-    render(<FavoritesPage />);
+    renderFavoritesPage();
 
     await screen.findByText("30 Pitt St");
     await user.selectOptions(
