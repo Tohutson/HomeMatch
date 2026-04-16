@@ -1,10 +1,11 @@
 import { API_BASE } from "@/lib/env";
-import type { ListingFilters, ListingsResponse } from "./types";
+import type { Listing, ListingFilters, ListingsResponse } from "./types";
 
 type GetListingsParams = {
   page?: number;
   size?: number;
   filters?: ListingFilters;
+  signal?: AbortSignal;
 };
 
 export function buildListingsQuery(params: GetListingsParams): string {
@@ -51,6 +52,7 @@ export async function getListings(
   const res = await fetch(`${API_BASE}/api/listings?${query}`, {
     method: "GET",
     cache: "no-store",
+    signal: params.signal,
   });
 
   if (!res.ok) {
@@ -66,4 +68,55 @@ export async function getListings(
     size: data.size,
     number: data.number,
   };
+}
+
+export async function getListingById(
+  id: string | number,
+  signal?: AbortSignal
+): Promise<Listing | null> {
+  const res = await fetch(`${API_BASE}/api/listings/${id}`, {
+    method: "GET",
+    cache: "no-store",
+    signal,
+  });
+
+  if (res.status === 404) {
+    return null;
+  }
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch listing");
+  }
+
+  return (await res.json()) as Listing;
+}
+
+export async function getAvailableListingIds(
+  listingIds: number[],
+  signal?: AbortSignal
+): Promise<number[]> {
+  if (listingIds.length === 0) {
+    return [];
+  }
+
+  const searchParams = new URLSearchParams();
+
+  for (const listingId of listingIds) {
+    searchParams.append("ids", String(listingId));
+  }
+
+  const response = await fetch(
+    `${API_BASE}/api/listings/availability?${searchParams.toString()}`,
+    {
+      method: "GET",
+      cache: "no-store",
+      signal,
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch listing availability");
+  }
+
+  return (await response.json()) as number[];
 }

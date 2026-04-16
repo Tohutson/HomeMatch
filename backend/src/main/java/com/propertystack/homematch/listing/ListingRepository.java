@@ -32,4 +32,11 @@ public interface ListingRepository extends JpaRepository<Listing, Long>, JpaSpec
         order by l.zipCode asc
     """)
     List<String> findZipSuggestions(@Param("prefix") String prefix);
+
+    @Query("""
+        select l.id
+        from Listing l
+        where l.id in :ids
+    """)
+    List<Long> findExistingIdsByIdIn(@Param("ids") Collection<Long> ids);
 }

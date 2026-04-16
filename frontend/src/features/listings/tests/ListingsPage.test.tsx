@@ -26,6 +26,7 @@ jest.mock("@/features/favorites/hooks/use-listings-favorite-workflow", () => ({
 
 jest.mock("@/lib/userId", () => ({
   getOrCreateUserId: jest.fn().mockResolvedValue(123),
+  getStoredUserId: jest.fn().mockReturnValue(null),
 }));
 
 jest.mock("next/navigation", () => ({
@@ -289,6 +290,40 @@ describe("ListingsPage", () => {
 
     expect(
       screen.getByText(/try changing or clearing your filters/i)
+    ).toBeInTheDocument();
+  });
+
+  it("shows an end-of-results message after the last available listing is swiped away", async () => {
+    mockUsePagedListingNavigation.mockReturnValue({
+      currentIndex: 1,
+      currentListing: null,
+      isAtAbsoluteStart: false,
+      isAtAbsoluteEnd: true,
+      canGoPrevious: true,
+      canGoNext: false,
+      goNext: jest.fn(),
+      goPrevious: jest.fn(),
+      setCurrentIndex: jest.fn(),
+    });
+
+    mockUseListings.mockReturnValue({
+      listings: [listing],
+      totalPages: 1,
+      totalElements: 1,
+      loading: false,
+      error: null,
+    });
+
+    renderListingsPage();
+
+    expect(
+      await screen.findByText(/you've reached the end of these matches/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/try different filters or go back to revisit the last home/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/adjust your filters to discover more homes/i)
     ).toBeInTheDocument();
   });
 

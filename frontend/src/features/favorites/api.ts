@@ -1,10 +1,14 @@
 import { API_BASE } from "@/lib/env";
 import type { FavoriteRecord } from "./types";
 
-export async function getFavorites(userId: number): Promise<FavoriteRecord[]> {
+export async function getFavorites(
+  userId: number,
+  signal?: AbortSignal
+): Promise<FavoriteRecord[]> {
   const res = await fetch(`${API_BASE}/api/users/${userId}/favorites`, {
     method: "GET",
     cache: "no-store",
+    signal,
   });
 
   if (!res.ok) {

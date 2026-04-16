@@ -5,6 +5,7 @@ import { FavoritesProvider } from "../src/features/favorites/context/favorites-c
 
 jest.mock("../src/lib/userId", () => ({
   getOrCreateUserId: jest.fn().mockResolvedValue(1),
+  getStoredUserId: jest.fn().mockReturnValue(1),
 }));
 
 const mockFavorites = [
@@ -48,7 +49,7 @@ function createResponse(body: unknown, init?: Partial<Response>) {
 
 function setupFetch(
   overrides: {
-    listingId?: number;
+    unavailableListingIds?: number[];
     favoritesAfterDelete?: typeof mockFavorites;
   } = {}
 ) {
@@ -75,15 +76,13 @@ function setupFetch(
         return createResponse({}, { ok: true, status: 204 });
       }
 
-      if (
-        overrides.listingId &&
-        url.includes(`/api/listings/${overrides.listingId}`)
-      ) {
-        return createResponse({}, { ok: false, status: 404 });
-      }
-
-      if (url.includes("/api/listings/")) {
-        return createResponse({}, { ok: true, status: 200 });
+      if (url.includes("/api/listings/availability")) {
+        const query = new URL(url).searchParams;
+        const requestedIds = query.getAll("ids").map(Number);
+        const availableIds = requestedIds.filter(
+          (listingId) => !overrides.unavailableListingIds?.includes(listingId)
+        );
+        return createResponse(availableIds);
       }
 
       return createResponse({});
@@ -151,7 +150,7 @@ describe("FavoritesPage", () => {
   });
 
   it("shows unavailable notice when a listing no longer exists", async () => {
-    setupFetch({ listingId: 1 });
+    setupFetch({ unavailableListingIds: [1] });
     renderFavoritesPage();
 
     expect(

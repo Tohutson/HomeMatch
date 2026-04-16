@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useParams } from "next/navigation";
@@ -34,7 +34,7 @@ export default function ListingDetailsPage() {
   });
 
   const favorited = listing ? isFavorited(listing.id) : false;
-  const photoUrls = listing?.photoUrls ?? [];
+  const photoUrls = useMemo(() => listing?.photoUrls ?? [], [listing?.photoUrls]);
   const hasPhotos = photoUrls.length > 0;
   const activeLightboxUrl =
     lightboxIndex != null ? photoUrls[lightboxIndex] : null;
