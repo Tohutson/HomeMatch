@@ -1,57 +1,60 @@
 type ListingsBannerProps = {
-    show: boolean;
-    canUndo: boolean;
-    canRedo: boolean;
-    undoVisible: boolean;
-    undoTimeLeft: number;
-    onUndo: () => void;
-    onRedo: () => void;
-  };
-  
-  export function ListingsBanner({
-    show,
-    canUndo,
-    canRedo,
-    undoVisible,
-    undoTimeLeft,
-    onUndo,
-    onRedo,
-  }: ListingsBannerProps) {
-    if (!show) return null;
-  
-    return (
-      <div
-        className="mb-4 flex items-center gap-3 rounded-lg bg-zinc-800 px-4 py-3 text-white"
-        data-testid="undo-redo-banner"
-      >
-        <span className="flex-1">
-          {canUndo
-            ? "Added to favorites!"
-            : canRedo
-            ? "Property removed — redo available."
-            : "Undo window expired."}
-        </span>
-  
-        {canRedo && (
-          <button
-            onClick={onRedo}
-            className="rounded-md border border-white px-3 py-1 text-sm font-medium hover:bg-zinc-700"
-            data-testid="redo-button"
-          >
-            Redo
-          </button>
-        )}
-  
+  show: boolean;
+  canUndo: boolean;
+  canRedo: boolean;
+  undoVisible: boolean;
+  undoTimeLeft: number;
+  onUndo: () => void;
+  onRedo: () => void;
+};
+
+export function ListingsBanner({
+  show,
+  canUndo,
+  canRedo,
+  undoVisible,
+  undoTimeLeft,
+  onUndo,
+  onRedo,
+}: ListingsBannerProps) {
+  if (!show) return null;
+
+  return (
+    <div
+      className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-[28px] border border-slate-900/10 bg-slate-900 px-5 py-4 text-white shadow-[0_18px_50px_rgba(15,23,42,0.18)]"
+      data-testid="undo-redo-banner"
+    >
+      <div className="text-sm font-medium text-white/90">
+        {undoVisible ? (
+          <p>Added to favorites. Undo available for {undoTimeLeft}s.</p>
+        ) : canRedo ? (
+          <p>Favorite removed. Redo is available.</p>
+        ) : null}
+      </div>
+
+      <div className="flex items-center gap-2">
         {undoVisible && (
           <button
             onClick={onUndo}
             disabled={!canUndo}
-            className="rounded-md bg-white px-3 py-1 text-sm font-medium text-zinc-800 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-full bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
             data-testid="undo-button"
           >
             {canUndo ? `Undo (${undoTimeLeft}s)` : "Undo"}
           </button>
         )}
+
+        {canRedo && (
+          <button
+            onClick={onRedo}
+            disabled={!canRedo}
+            className="rounded-full border border-white/20 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+            data-testid="redo-button"
+          >
+            Redo
+          </button>
+        )}
       </div>
-    );
-  }
+    </div>
+  );
+}
