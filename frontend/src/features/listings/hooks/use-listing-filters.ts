@@ -69,12 +69,27 @@ function normalizeDraftFilterValue(
   return digitsOnly;
 }
 
-export function useListingFilters() {
+function createInitialFilterState(location: string) {
+  const normalizedLocation = location.trim();
+
+  return {
+    draftFilters: {
+      ...DEFAULT_DRAFT_FILTERS,
+      location: normalizedLocation,
+    },
+    appliedFilters: {
+      ...DEFAULT_APPLIED_FILTERS,
+      location: toLocationOrUndefined(normalizedLocation),
+    },
+  };
+}
+
+export function useListingFilters(initialLocation = "") {
   const [draftFilters, setDraftFilters] = useState<DraftListingFilters>(
-    DEFAULT_DRAFT_FILTERS
+    () => createInitialFilterState(initialLocation).draftFilters
   );
   const [appliedFilters, setAppliedFilters] = useState<ListingFilters>(
-    DEFAULT_APPLIED_FILTERS
+    () => createInitialFilterState(initialLocation).appliedFilters
   );
 
   const updateDraftFilter = useCallback(

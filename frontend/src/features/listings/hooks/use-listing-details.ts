@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Listing } from "@/features/listings/types";
-
-import { API_BASE } from "@/lib/env";
+import { getListingById } from "@/features/listings/api";
+import { isAbortError } from "@/lib/is-abort-error";
 
 type UseListingDetailsParams = {
   id: string | number | null | undefined;
@@ -22,8 +22,12 @@ export function useListingDetails({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const requestIdRef = useRef(0);
+  const activeRequestRef = useRef<AbortController | null>(null);
 
   const refetch = useCallback(async () => {
+    activeRequestRef.current?.abort();
+
     if (!id) {
       setListing(null);
       setNotFound(false);
@@ -32,37 +36,60 @@ export function useListingDetails({
       return;
     }
 
+    const controller = new AbortController();
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+    activeRequestRef.current = controller;
+
     try {
       setLoading(true);
       setError(null);
       setNotFound(false);
 
-      const res = await fetch(`${API_BASE}/api/listings/${id}`);
+      const data = await getListingById(id, controller.signal);
 
-      if (res.status === 404) {
+      if (controller.signal.aborted || requestId !== requestIdRef.current) {
+        return;
+      }
+
+      if (!data) {
         setListing(null);
         setNotFound(true);
         return;
       }
 
-      if (!res.ok) {
-        throw new Error("Failed to fetch listing");
-      }
-
-      const data: Listing = await res.json();
       setListing(data);
     } catch (err) {
+      if (isAbortError(err)) {
+        return;
+      }
+
       console.error("Failed to fetch listing:", err);
+
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+
       setListing(null);
       setNotFound(false);
       setError(err instanceof Error ? err.message : "Failed to fetch listing");
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+      }
+
+      if (activeRequestRef.current === controller) {
+        activeRequestRef.current = null;
+      }
     }
   }, [id]);
 
   useEffect(() => {
     void refetch();
+
+    return () => {
+      activeRequestRef.current?.abort();
+    };
   }, [refetch]);
 
   return {

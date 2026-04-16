@@ -26,6 +26,7 @@ jest.mock("@/features/favorites/hooks/use-listings-favorite-workflow", () => ({
 
 jest.mock("@/lib/userId", () => ({
   getOrCreateUserId: jest.fn().mockResolvedValue(123),
+  getStoredUserId: jest.fn().mockReturnValue(null),
 }));
 
 jest.mock("next/navigation", () => ({

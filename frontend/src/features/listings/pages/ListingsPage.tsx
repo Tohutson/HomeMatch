@@ -4,7 +4,7 @@ import NotLoggedInModal from "@/components/NotLoggedInModal";
 import Toast from "@/components/Toast";
 import ListingCard from "@/features/listings/components/listing-card";
 import ListingFilters from "../components/listing-filters";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
 import { ListingsBanner } from "@/features/listings/components/listings-banner";
 import { ListingsPagination } from "@/features/listings/components/listings-pagination";
@@ -19,13 +19,20 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 const PAGE_SIZE = 12;
 
 export default function ListingsPage() {
+  const locationParam = useSearchParams()?.get("location") ?? "";
+
+  return (
+    <ListingsPageContent key={locationParam} locationParam={locationParam} />
+  );
+}
+
+function ListingsPageContent({ locationParam }: { locationParam: string }) {
   const [currentPage, setCurrentPage] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
   const [showNotLoggedIn, setShowNotLoggedIn] = useState(false);
   const { ensureUserId } = useFavoritesContext();
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   const {
     favoriteIds,
@@ -54,16 +61,7 @@ export default function ListingsPage() {
     validationErrors,
     isApplyDisabled,
     isClearDisabled,
-    resetFiltersForLocation,
-  } = useListingFilters();
-
-  const locationParam = searchParams?.get("location") ?? "";
-
-  const handleApplyFilters = useCallback(() => {
-    setCurrentPage(0);
-    setCurrentIndex(0);
-    applyFilters();
-  }, [applyFilters]);
+  } = useListingFilters(locationParam);
 
   const { listings, totalPages, totalElements, loading, error } = useListings({
     page: currentPage,
@@ -87,6 +85,12 @@ export default function ListingsPage() {
     loading,
   });
 
+  const handleApplyFilters = useCallback(() => {
+    setCurrentPage(0);
+    setCurrentIndex(0);
+    applyFilters();
+  }, [applyFilters, setCurrentIndex]);
+
   const nextListing =
     currentIndex < listings.length - 1 ? listings[currentIndex + 1] : null;
   const isInitialLoading = loading && listings.length === 0;
@@ -97,13 +101,6 @@ export default function ListingsPage() {
     clearFilters();
     router.replace(pathname ?? "/listings");
   }, [clearFilters, pathname, router, setCurrentIndex]);
-
-  useEffect(() => {
-    resetFiltersForLocation(locationParam);
-
-    setCurrentPage(0);
-    setCurrentIndex(0);
-  }, [locationParam, resetFiltersForLocation, setCurrentIndex]);
 
   const handleSwipeRight = useCallback(async () => {
     if (!currentListing) return false;

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { Listing } from "@/features/listings/types";
 
 type UsePagedListingNavigationParams = {
@@ -29,43 +29,24 @@ export function usePagedListingNavigation({
   loading = false,
 }: UsePagedListingNavigationParams): UsePagedListingNavigationResult {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [pendingBoundaryDirection, setPendingBoundaryDirection] = useState<
-    "next" | "previous" | null
-  >(null);
-
-  useEffect(() => {
+  const resolvedCurrentIndex = useMemo(() => {
     if (listings.length === 0) {
-      setCurrentIndex(0);
-      return;
+      return 0;
     }
 
-    if (pendingBoundaryDirection === "next") {
-      setCurrentIndex(0);
-      setPendingBoundaryDirection(null);
-      return;
-    }
-
-    if (pendingBoundaryDirection === "previous") {
-      setCurrentIndex(Math.max(listings.length - 1, 0));
-      setPendingBoundaryDirection(null);
-      return;
-    }
-
-    if (currentIndex >= listings.length) {
-      setCurrentIndex(Math.max(listings.length - 1, 0));
-    }
-  }, [listings, pendingBoundaryDirection, currentIndex]);
+    return Math.min(Math.max(currentIndex, 0), listings.length - 1);
+  }, [currentIndex, listings.length]);
 
   const currentListing = useMemo(() => {
     if (listings.length === 0) return null;
-    return listings[currentIndex] ?? null;
-  }, [listings, currentIndex]);
+    return listings[resolvedCurrentIndex] ?? null;
+  }, [listings, resolvedCurrentIndex]);
 
-  const isAtAbsoluteStart = currentPage === 0 && currentIndex === 0;
+  const isAtAbsoluteStart = currentPage === 0 && resolvedCurrentIndex === 0;
   const isAtAbsoluteEnd =
     totalPages === 0 ||
     (currentPage === totalPages - 1 &&
-      currentIndex === Math.max(listings.length - 1, 0));
+      resolvedCurrentIndex === Math.max(listings.length - 1, 0));
 
   const canGoPrevious = !loading && !isAtAbsoluteStart;
   const canGoNext = !loading && !isAtAbsoluteEnd;
@@ -73,13 +54,13 @@ export function usePagedListingNavigation({
   function goNext() {
     if (loading) return;
 
-    if (currentIndex < listings.length - 1) {
-      setCurrentIndex((prev) => prev + 1);
+    if (resolvedCurrentIndex < listings.length - 1) {
+      setCurrentIndex(resolvedCurrentIndex + 1);
       return;
     }
 
     if (currentPage < totalPages - 1) {
-      setPendingBoundaryDirection("next");
+      setCurrentIndex(0);
       onPageChange(currentPage + 1);
     }
   }
@@ -87,19 +68,19 @@ export function usePagedListingNavigation({
   function goPrevious() {
     if (loading) return;
 
-    if (currentIndex > 0) {
-      setCurrentIndex((prev) => prev - 1);
+    if (resolvedCurrentIndex > 0) {
+      setCurrentIndex(resolvedCurrentIndex - 1);
       return;
     }
 
     if (currentPage > 0) {
-      setPendingBoundaryDirection("previous");
+      setCurrentIndex(Number.MAX_SAFE_INTEGER);
       onPageChange(currentPage - 1);
     }
   }
 
   return {
-    currentIndex,
+    currentIndex: resolvedCurrentIndex,
     currentListing,
     isAtAbsoluteStart,
     isAtAbsoluteEnd,
@@ -107,6 +88,6 @@ export function usePagedListingNavigation({
     canGoNext,
     goNext,
     goPrevious,
-    setCurrentIndex,
+    setCurrentIndex: (index: number) => setCurrentIndex(Math.max(index, 0)),
   };
 }
