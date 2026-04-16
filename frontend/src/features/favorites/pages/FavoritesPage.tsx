@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import Toast from "@/components/Toast";
 import { useFavoritesContext } from "@/features/favorites/context/favorites-context";
@@ -17,8 +18,11 @@ export default function FavoritesPage() {
   const [sortOption, setSortOption] = useState<SortOption>("date_desc");
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [unavailableIds, setUnavailableIds] = useState<Set<number>>(new Set());
-  const { userId, addFavorite: addFavoriteRequest, removeFavorite: removeFavoriteRequest } =
-    useFavoritesContext();
+  const {
+    userId,
+    addFavorite: addFavoriteRequest,
+    removeFavorite: removeFavoriteRequest,
+  } = useFavoritesContext();
 
   const { favorites, loading, error, refetchFavorites } = useFavoriteListings({
     userId,
@@ -39,7 +43,7 @@ export default function FavoritesPage() {
 
       return result;
     },
-    [removeFavoriteRequest, refetchFavorites]
+    [removeFavoriteRequest, refetchFavorites],
   );
 
   const restoreFavoriteToPage = useCallback(
@@ -52,7 +56,7 @@ export default function FavoritesPage() {
 
       return result;
     },
-    [addFavoriteRequest, refetchFavorites]
+    [addFavoriteRequest, refetchFavorites],
   );
 
   const {
@@ -65,8 +69,6 @@ export default function FavoritesPage() {
     undoTimeLeft,
     showBanner,
   } = useFavoriteUndo({
-    // Inverted intentionally so the page can support:
-    // remove -> undo restore -> redo remove
     addFavorite: removeFavoriteFromPage,
     removeFavorite: restoreFavoriteToPage,
   });
@@ -87,14 +89,18 @@ export default function FavoritesPage() {
         favs.map(async (fav) => {
           const res = await fetch(`${API_BASE}/api/listings/${fav.listing.id}`);
           return { id: fav.listing.id, available: res.ok };
-        })
+        }),
       );
 
       setUnavailableIds(
-        new Set(results.filter((r) => !r.available).map((r) => r.id))
+        new Set(
+          results
+            .filter((result) => !result.available)
+            .map((result) => result.id),
+        ),
       );
-    } catch (err) {
-      console.error("Failed to check listing availability:", err);
+    } catch (availabilityError) {
+      console.error("Failed to check listing availability:", availabilityError);
     }
   }, []);
 
@@ -116,7 +122,7 @@ export default function FavoritesPage() {
       setConfirmDeleteId(null);
       setToast("Removed from favorites");
     },
-    [removeFavoriteFromPage, recordAddedFavorite]
+    [removeFavoriteFromPage, recordAddedFavorite],
   );
 
   const sortedFavorites = useMemo(() => {
@@ -144,38 +150,49 @@ export default function FavoritesPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-zinc-50 p-8 text-black">
-        <h1 className="mb-4 text-3xl font-bold">My Favorites</h1>
-        <p>Loading favorites...</p>
+      <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(186,230,253,0.7),_transparent_34%),linear-gradient(180deg,_#f8fafc_0%,_#eef2ff_100%)] px-6 py-10 text-slate-950 md:px-8">
+        <div className="mx-auto max-w-7xl rounded-[36px] border border-white/75 bg-white/75 p-8 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur">
+          <p className="text-sm font-medium uppercase tracking-[0.24em] text-sky-600">
+            Favorites
+          </p>
+          <h1 className="mt-4 text-4xl font-semibold tracking-[-0.05em] text-slate-950">
+            Loading favorites...
+          </h1>
+        </div>
       </main>
     );
   }
 
   if (error) {
     return (
-      <main className="min-h-screen bg-zinc-50 p-8 text-black">
-        <h1 className="mb-4 text-3xl font-bold">My Favorites</h1>
-        <p className="text-red-600">Error: {error}</p>
+      <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(186,230,253,0.7),_transparent_34%),linear-gradient(180deg,_#f8fafc_0%,_#eef2ff_100%)] px-6 py-10 text-slate-950 md:px-8">
+        <div className="mx-auto max-w-4xl rounded-[36px] border border-white/75 bg-white/80 p-8 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur">
+          <p className="text-sm font-medium uppercase tracking-[0.24em] text-rose-500">
+            Favorites
+          </p>
+          <h1 className="mt-4 text-4xl font-semibold tracking-[-0.05em] text-slate-950">
+            We couldn&apos;t load your saved homes
+          </h1>
+          <p className="mt-3 text-sm leading-6 text-slate-600">
+            Error: {error}
+          </p>
+        </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-zinc-50 p-8 text-black">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(186,230,253,0.7),_transparent_34%),linear-gradient(180deg,_#f8fafc_0%,_#eef2ff_100%)] px-6 py-10 text-slate-950 md:px-8">
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
 
-      {showBanner && (
-        <div className="mb-6 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
+      <div className="mx-auto max-w-7xl">
+        {showBanner && (
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-[28px] border border-slate-900/10 bg-slate-900 px-5 py-4 text-white shadow-[0_18px_50px_rgba(15,23,42,0.18)]">
+            <div className="text-sm font-medium text-white/90">
               {undoVisible ? (
-                <p className="text-sm text-zinc-700">
-                  Favorite removed. Undo available for {undoTimeLeft}s.
-                </p>
+                <p>Favorite removed. Undo available for {undoTimeLeft}s.</p>
               ) : canRedo ? (
-                <p className="text-sm text-zinc-700">
-                  Removal undone. Redo is available.
-                </p>
+                <p>Removal undone. Redo is available.</p>
               ) : null}
             </div>
 
@@ -183,142 +200,226 @@ export default function FavoritesPage() {
               <button
                 onClick={() => void handleUndo()}
                 disabled={!canUndo}
-                className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-full bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Undo
               </button>
               <button
                 onClick={() => void handleRedo()}
                 disabled={!canRedo}
-                className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-full border border-white/20 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Redo
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Link href="/" className="text-zinc-500 hover:text-zinc-800">
-            ← Browse
-          </Link>
-          <h1 className="text-3xl font-bold">
-            My Favorites ({favorites.length})
-          </h1>
-        </div>
-
-        <select
-          value={sortOption}
-          onChange={(e) => setSortOption(e.target.value as SortOption)}
-          className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm"
-          aria-label="Sort favorites"
-        >
-          <option value="date_desc">Newest First</option>
-          <option value="date_asc">Oldest First</option>
-          <option value="price_asc">Price: Low to High</option>
-          <option value="price_desc">Price: High to Low</option>
-        </select>
-      </div>
-
-      {favorites.length === 0 ? (
-        <div className="rounded-xl border border-zinc-200 bg-white p-12 text-center">
-          <p className="mb-4 text-zinc-500">No favorites yet.</p>
-          <Link href="/" className="text-rose-500 hover:underline">
-            Start browsing →
-          </Link>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {sortedFavorites.map((fav) => (
-            <div
-              key={fav.id}
-              className="relative rounded-xl border border-zinc-200 bg-white p-4 shadow-sm"
-              data-testid={`favorite-card-${fav.listing.id}`}
-            >
-              {unavailableIds.has(fav.listing.id) && (
-                <div
-                  className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800"
-                  data-testid={`unavailable-notice-${fav.listing.id}`}
-                >
-                  ⚠ This property is no longer available in the database.
-                </div>
-              )}
-
-              {syncingIds.has(fav.listing.id) && (
-                <div className="mb-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-medium text-blue-800">
-                  Syncing favorite...
-                </div>
-              )}
-
-              {fav.listing.photoUrls?.[0] ? (
-                <img
-                  src={fav.listing.photoUrls[0]}
-                  alt={fav.listing.address || "Property image"}
-                  className="mb-4 h-40 w-full rounded-lg object-cover"
-                />
-              ) : (
-                <div className="mb-4 flex h-40 w-full items-center justify-center rounded-lg bg-zinc-100 text-sm text-zinc-400">
-                  No Image
-                </div>
-              )}
-
-              <h2 className="mb-1 pr-8 text-base font-semibold">
-                {fav.listing.address || "No address"}
-              </h2>
-              <p className="text-sm text-zinc-600">
-                {fav.listing.price
-                  ? `$${fav.listing.price.toLocaleString()}`
-                  : "Price N/A"}
-              </p>
-              <p className="text-sm text-zinc-500">
-                {fav.listing.beds ?? "?"} bd · {fav.listing.baths ?? "?"} ba ·{" "}
-                {fav.listing.sqft
-                  ? `${fav.listing.sqft.toLocaleString()} sqft`
-                  : "? sqft"}
-              </p>
-              <p className="mt-1 text-xs text-zinc-400">
-                Saved {new Date(fav.createdAt).toLocaleDateString()}
-              </p>
-
+        <section className="rounded-[36px] border border-white/80 bg-white/75 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur md:p-8">
+          <div className="flex flex-col gap-6 border-b border-slate-200/70 pb-8 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-3xl">
               <Link
-                href={`/listings/${fav.listing.id}`}
-                className="mt-2 inline-block text-sm font-medium text-rose-500 hover:underline"
-                data-testid={`details-link-${fav.listing.id}`}
+                href="/listings"
+                className="inline-flex items-center rounded-full border border-slate-200 bg-white/80 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-white"
               >
-                View Details →
+                Back to browse
               </Link>
 
-              {confirmDeleteId === fav.listing.id ? (
-                <div className="mt-3 flex gap-2">
-                  <button
-                    onClick={() => void handleRemove(fav)}
-                    className="flex-1 rounded-md bg-red-500 px-3 py-1.5 text-sm text-white hover:bg-red-600"
-                  >
-                    Confirm Remove
-                  </button>
-                  <button
-                    onClick={() => setConfirmDeleteId(null)}
-                    className="flex-1 rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setConfirmDeleteId(fav.listing.id)}
-                  aria-label="Remove from favorites"
-                  className="absolute right-4 top-4 text-zinc-400 transition-colors hover:text-red-500"
-                  data-testid={`remove-button-${fav.listing.id}`}
-                >
-                  ✕
-                </button>
-              )}
+              <p className="mt-6 text-sm font-medium uppercase tracking-[0.24em] text-sky-600">
+                Saved homes
+              </p>
+              <h1 className="mt-3 text-4xl font-semibold tracking-[-0.05em] text-slate-950">
+                My Favorites
+              </h1>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
+                Keep track of the homes you love, revisit them quickly, and
+                clear out properties that are no longer a fit.
+              </p>
             </div>
-          ))}
-        </div>
-      )}
+
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="rounded-full bg-rose-50 px-4 py-2 text-sm font-medium text-rose-600">
+                {favorites.length} saved{" "}
+                {favorites.length === 1 ? "home" : "homes"}
+              </div>
+
+              <label className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 shadow-sm">
+                <span className="font-medium text-slate-500">Sort</span>
+                <select
+                  value={sortOption}
+                  onChange={(e) => setSortOption(e.target.value as SortOption)}
+                  className="bg-transparent font-medium text-slate-900 outline-none"
+                  aria-label="Sort favorites"
+                >
+                  <option value="date_desc">Newest First</option>
+                  <option value="date_asc">Oldest First</option>
+                  <option value="price_asc">Price: Low to High</option>
+                  <option value="price_desc">Price: High to Low</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+          {favorites.length === 0 ? (
+            <div className="mt-8 rounded-[32px] border border-dashed border-slate-300 bg-slate-50/90 px-6 py-16 text-center">
+              <p className="text-sm font-medium uppercase tracking-[0.24em] text-slate-400">
+                Nothing saved yet
+              </p>
+              <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-slate-950">
+                Start building your shortlist
+              </h2>
+              <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-slate-600">
+                Favorite a few homes while browsing and they&apos;ll show up
+                here for easy comparison.
+              </p>
+              <Link
+                href="/"
+                className="mt-6 inline-flex items-center rounded-full bg-rose-500 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-rose-600"
+              >
+                Start browsing
+              </Link>
+            </div>
+          ) : (
+            <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {sortedFavorites.map((fav) => (
+                <article
+                  key={fav.id}
+                  className="group relative overflow-hidden rounded-[30px] border border-slate-200/80 bg-white p-4 shadow-[0_18px_45px_rgba(15,23,42,0.06)] transition hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(15,23,42,0.1)]"
+                  data-testid={`favorite-card-${fav.listing.id}`}
+                >
+                  {unavailableIds.has(fav.listing.id) && (
+                    <div
+                      className="mb-3 rounded-full border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800"
+                      data-testid={`unavailable-notice-${fav.listing.id}`}
+                    >
+                      This property is no longer available in the database.
+                    </div>
+                  )}
+
+                  {syncingIds.has(fav.listing.id) && (
+                    <div className="mb-3 rounded-full border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-medium text-sky-700">
+                      Syncing favorite...
+                    </div>
+                  )}
+
+                  <div className="relative overflow-hidden rounded-[24px] bg-slate-100">
+                    {fav.listing.photoUrls?.[0] ? (
+                      <Image
+                        src={fav.listing.photoUrls[0]}
+                        alt={fav.listing.address || "Property image"}
+                        width={1200}
+                        height={900}
+                        className="h-56 w-full object-cover transition duration-300 group-hover:scale-[1.03]"
+                      />
+                    ) : (
+                      <div className="flex h-56 w-full items-center justify-center text-sm font-medium text-slate-400">
+                        No image available
+                      </div>
+                    )}
+
+                    <button
+                      onClick={() =>
+                        setConfirmDeleteId((currentId) =>
+                          currentId === fav.listing.id ? null : fav.listing.id,
+                        )
+                      }
+                      aria-label="Remove from favorites"
+                      className="absolute top-4 right-4 rounded-full bg-white/90 px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-white hover:text-rose-500"
+                      data-testid={`remove-button-${fav.listing.id}`}
+                    >
+                      Remove
+                    </button>
+
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-slate-950/55 via-transparent to-transparent" />
+                  </div>
+
+                  <div className="mt-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
+                          Saved {new Date(fav.createdAt).toLocaleDateString()}
+                        </p>
+                        <h2 className="mt-2 text-xl font-semibold tracking-[-0.04em] text-slate-950">
+                          {fav.listing.address || "No address"}
+                        </h2>
+                      </div>
+                    </div>
+
+                    <p className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-slate-950">
+                      {fav.listing.price
+                        ? `$${fav.listing.price.toLocaleString()}`
+                        : "Price unavailable"}
+                    </p>
+
+                    <div className="mt-4 grid grid-cols-3 gap-3 rounded-[24px] bg-slate-50 p-3 text-sm text-slate-600">
+                      <FavoriteStat
+                        label="Beds"
+                        value={fav.listing.beds ?? "N/A"}
+                      />
+                      <FavoriteStat
+                        label="Baths"
+                        value={fav.listing.baths ?? "N/A"}
+                      />
+                      <FavoriteStat
+                        label="Sq Ft"
+                        value={
+                          fav.listing.sqft
+                            ? fav.listing.sqft.toLocaleString()
+                            : "N/A"
+                        }
+                      />
+                    </div>
+
+                    <div className="mt-5 flex flex-wrap items-center gap-3">
+                      <Link
+                        href={`/listings/${fav.listing.id}`}
+                        className="inline-flex items-center rounded-full bg-rose-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-600"
+                        data-testid={`details-link-${fav.listing.id}`}
+                      >
+                        View details
+                      </Link>
+
+                      {confirmDeleteId === fav.listing.id && (
+                        <>
+                          <button
+                            onClick={() => void handleRemove(fav)}
+                            className="inline-flex items-center rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+                          >
+                            Confirm remove
+                          </button>
+                          <button
+                            onClick={() => setConfirmDeleteId(null)}
+                            className="inline-flex items-center rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
     </main>
+  );
+}
+
+function FavoriteStat({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | number;
+}) {
+  return (
+    <div className="rounded-[18px] bg-white p-3 text-center shadow-sm shadow-slate-200/70">
+      <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">
+        {label}
+      </p>
+      <p className="mt-1 text-base font-semibold text-slate-950">{value}</p>
+    </div>
   );
 }
