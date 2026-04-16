@@ -111,7 +111,9 @@ describe("FavoritesPage", () => {
 
   it("displays the count of saved homes in the header", async () => {
     renderFavoritesPage();
-    expect(await screen.findByText(/My Favorites \(2\)/)).toBeInTheDocument();
+    await screen.findByText("30 Pitt St");
+    expect(screen.getByText("My Favorites")).toBeInTheDocument();
+    expect(screen.getByText(/2\s+saved\s+homes/)).toBeInTheDocument();
   });
 
   it("renders all saved listings", async () => {
@@ -141,8 +143,11 @@ describe("FavoritesPage", () => {
     });
 
     renderFavoritesPage();
-    expect(await screen.findByText("No favorites yet.")).toBeInTheDocument();
-    expect(screen.getByText("Start browsing →")).toBeInTheDocument();
+    expect(await screen.findByText("Start building your shortlist")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Start browsing" })).toHaveAttribute(
+      "href",
+      "/",
+    );
   });
 
   it("shows unavailable notice when a listing no longer exists", async () => {
@@ -171,7 +176,7 @@ describe("FavoritesPage", () => {
 
     await user.click(await screen.findByTestId("remove-button-1"));
 
-    expect(screen.getByText("Confirm Remove")).toBeInTheDocument();
+    expect(screen.getByText("Confirm remove")).toBeInTheDocument();
     expect(screen.getByText("Cancel")).toBeInTheDocument();
   });
 
@@ -180,7 +185,7 @@ describe("FavoritesPage", () => {
     renderFavoritesPage();
 
     await user.click(await screen.findByTestId("remove-button-1"));
-    await user.click(screen.getByText("Confirm Remove"));
+    await user.click(screen.getByText("Confirm remove"));
 
     await waitFor(() => {
       expect(screen.queryByText("30 Pitt St")).not.toBeInTheDocument();
