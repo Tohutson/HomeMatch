@@ -1,3 +1,4 @@
+import type { KeyboardEvent } from "react";
 import { DraftListingFilters } from "../types";
 
 type ValidationErrors = Partial<Record<keyof DraftListingFilters, string>>;
@@ -12,6 +13,19 @@ type Props = {
   validationErrors: ValidationErrors;
   matchCount: number;
 };
+
+const INVALID_NUMBER_KEYS = new Set(["-", "+", ".", "e", "E"]);
+
+function handleNumberKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+  if (
+    INVALID_NUMBER_KEYS.has(event.key) &&
+    !event.ctrlKey &&
+    !event.metaKey &&
+    !event.altKey
+  ) {
+    event.preventDefault();
+  }
+}
 
 export default function ListingFilters({
   filters,
@@ -41,54 +55,72 @@ export default function ListingFilters({
         <input
           type="number"
           min={0}
+          step={1}
+          inputMode="numeric"
           placeholder="Min price"
           value={filters.minPrice}
           onChange={(e) => onFilterChange("minPrice", e.target.value)}
+          onKeyDown={handleNumberKeyDown}
           className="rounded-lg border border-zinc-300 p-2"
         />
 
         <input
           type="number"
           min={0}
+          step={1}
+          inputMode="numeric"
           placeholder="Max price"
           value={filters.maxPrice}
           onChange={(e) => onFilterChange("maxPrice", e.target.value)}
+          onKeyDown={handleNumberKeyDown}
           className="rounded-lg border border-zinc-300 p-2"
         />
 
         <input
           type="number"
           min={0}
+          step={1}
+          inputMode="numeric"
           placeholder="Min beds"
           value={filters.minBeds}
           onChange={(e) => onFilterChange("minBeds", e.target.value)}
+          onKeyDown={handleNumberKeyDown}
           className="rounded-lg border border-zinc-300 p-2"
         />
 
         <input
           type="number"
           min={0}
+          step={1}
+          inputMode="numeric"
           placeholder="Min baths"
           value={filters.minBaths}
           onChange={(e) => onFilterChange("minBaths", e.target.value)}
+          onKeyDown={handleNumberKeyDown}
           className="rounded-lg border border-zinc-300 p-2"
         />
 
         <input
           type="number"
           min={0}
+          step={1}
+          inputMode="numeric"
           placeholder="Min sqft"
           value={filters.minSqft}
           onChange={(e) => onFilterChange("minSqft", e.target.value)}
+          onKeyDown={handleNumberKeyDown}
           className="rounded-lg border border-zinc-300 p-2"
         />
 
         <input
           type="number"
           min={0}
+          step={1}
+          inputMode="numeric"
           placeholder="Max sqft"
           value={filters.maxSqft}
           onChange={(e) => onFilterChange("maxSqft", e.target.value)}
+          onKeyDown={handleNumberKeyDown}
           className="rounded-lg border border-zinc-300 p-2"
         />
 
@@ -96,9 +128,12 @@ export default function ListingFilters({
           type="number"
           min={0}
           max={100}
+          step={1}
+          inputMode="numeric"
           placeholder="Min Energy Star Score"
           value={filters.minEnergyStarScore}
           onChange={(e) => onFilterChange("minEnergyStarScore", e.target.value)}
+          onKeyDown={handleNumberKeyDown}
           className="rounded-lg border border-zinc-300 p-2"
         />
       </div>

@@ -24,6 +24,16 @@ const DEFAULT_APPLIED_FILTERS: ListingFilters = {
   minEnergyStarScore: undefined,
 };
 
+const NUMERIC_FILTER_KEYS = new Set<keyof DraftListingFilters>([
+  "minPrice",
+  "maxPrice",
+  "minBeds",
+  "minBaths",
+  "minSqft",
+  "maxSqft",
+  "minEnergyStarScore",
+]);
+
 function toNumberOrUndefined(value: string): number | undefined {
   if (value.trim() === "") {
     return undefined;
@@ -38,6 +48,27 @@ function toLocationOrUndefined(value: string): string | undefined {
   return trimmed === "" ? undefined : trimmed;
 }
 
+function normalizeDraftFilterValue(
+  key: keyof DraftListingFilters,
+  value: string
+): string {
+  if (!NUMERIC_FILTER_KEYS.has(key)) {
+    return value;
+  }
+
+  const digitsOnly = value.replace(/\D+/g, "");
+
+  if (digitsOnly === "") {
+    return "";
+  }
+
+  if (key === "minEnergyStarScore") {
+    return String(Math.min(Number(digitsOnly), 100));
+  }
+
+  return digitsOnly;
+}
+
 export function useListingFilters() {
   const [draftFilters, setDraftFilters] = useState<DraftListingFilters>(
     DEFAULT_DRAFT_FILTERS
@@ -50,7 +81,7 @@ export function useListingFilters() {
     (key: keyof DraftListingFilters, value: string) => {
       setDraftFilters((prev) => ({
         ...prev,
-        [key]: value,
+        [key]: normalizeDraftFilterValue(key, value),
       }));
     },
     []
@@ -159,6 +190,14 @@ export function useListingFilters() {
       parsedDraftFilters.minEnergyStarScore < 0
     ) {
       errors.minEnergyStarScore = "Min energy star score cannot be negative.";
+    }
+
+    if (
+      parsedDraftFilters.minEnergyStarScore !== undefined &&
+      parsedDraftFilters.minEnergyStarScore > 100
+    ) {
+      errors.minEnergyStarScore =
+        "Min energy star score cannot be greater than 100.";
     }
 
     return errors;

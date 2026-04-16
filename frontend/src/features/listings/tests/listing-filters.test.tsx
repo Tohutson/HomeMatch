@@ -5,12 +5,14 @@ import ListingFilters from "../components/listing-filters";
 describe("ListingFilters", () => {
   const defaultProps = {
     filters: {
+      location: "",
       minPrice: "",
       maxPrice: "",
       minBeds: "",
       minBaths: "",
       minSqft: "",
       maxSqft: "",
+      minEnergyStarScore: "",
     },
     onFilterChange: jest.fn(),
     onApply: jest.fn(),
@@ -34,9 +36,12 @@ describe("ListingFilters", () => {
     expect(screen.getByPlaceholderText("Min baths")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Min sqft")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Max sqft")).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText("Min Energy Star Score")
+    ).toBeInTheDocument();
   });
 
-  it("sets min=0 on all numeric inputs", () => {
+  it("sets min=0 on all numeric inputs and max=100 on energy star", () => {
     render(<ListingFilters {...defaultProps} />);
 
     expect(screen.getByPlaceholderText("Min price")).toHaveAttribute(
@@ -54,6 +59,25 @@ describe("ListingFilters", () => {
     );
     expect(screen.getByPlaceholderText("Min sqft")).toHaveAttribute("min", "0");
     expect(screen.getByPlaceholderText("Max sqft")).toHaveAttribute("min", "0");
+    expect(screen.getByPlaceholderText("Min Energy Star Score")).toHaveAttribute(
+      "min",
+      "0"
+    );
+    expect(screen.getByPlaceholderText("Min Energy Star Score")).toHaveAttribute(
+      "max",
+      "100"
+    );
+  });
+
+  it("prevents typing invalid number characters", () => {
+    render(<ListingFilters {...defaultProps} />);
+
+    const input = screen.getByPlaceholderText("Min price");
+    const invalidKeyEvent = createKeyboardEvent(input, "-");
+
+    fireEvent(input, invalidKeyEvent);
+
+    expect(invalidKeyEvent.defaultPrevented).toBe(true);
   });
 
   it("renders the singular match count correctly", () => {
@@ -202,3 +226,18 @@ describe("ListingFilters", () => {
     expect(screen.queryByText(/cannot be negative/i)).not.toBeInTheDocument();
   });
 });
+
+function createKeyboardEvent(target: HTMLElement, key: string) {
+  const event = new KeyboardEvent("keydown", {
+    bubbles: true,
+    cancelable: true,
+    key,
+  });
+
+  Object.defineProperty(event, "target", {
+    configurable: true,
+    value: target,
+  });
+
+  return event;
+}

@@ -60,6 +60,18 @@ describe("useListingFilters", () => {
     });
   });
 
+  it("sanitizes numeric draft filters and clamps energy star to 100", () => {
+    const { result } = renderHook(() => useListingFilters());
+
+    act(() => {
+      result.current.updateDraftFilter("minPrice", "-$250,000");
+      result.current.updateDraftFilter("minEnergyStarScore", "175");
+    });
+
+    expect(result.current.draftFilters.minPrice).toBe("250000");
+    expect(result.current.draftFilters.minEnergyStarScore).toBe("100");
+  });
+
   it("does not apply draft values until applyFilters is called", () => {
     const { result } = renderHook(() => useListingFilters());
 
