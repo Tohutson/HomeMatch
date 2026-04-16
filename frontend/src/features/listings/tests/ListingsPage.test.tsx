@@ -105,6 +105,34 @@ describe("ListingsPage", () => {
     expect(screen.getByText(/1 match/i)).toBeInTheDocument();
   });
 
+  it("keeps filters and the current listing visible while loading the next page", async () => {
+    mockUseListings.mockReturnValue({
+      listings: [listing],
+      totalPages: 2,
+      totalElements: 2,
+      loading: true,
+      error: null,
+    });
+
+    mockUsePagedListingNavigation.mockReturnValue({
+      currentIndex: 0,
+      currentListing: listing,
+      isAtAbsoluteStart: true,
+      isAtAbsoluteEnd: false,
+      canGoPrevious: false,
+      canGoNext: false,
+      goNext: jest.fn(),
+      goPrevious: jest.fn(),
+      setCurrentIndex: jest.fn(),
+    });
+
+    renderListingsPage();
+
+    expect(await screen.findByPlaceholderText("Min price")).toBeInTheDocument();
+    expect(screen.getByText("123 Main St")).toBeInTheDocument();
+    expect(screen.getByText("Loading more homes...")).toBeInTheDocument();
+  });
+
   it("does not apply draft filters until Apply Filters is clicked", async () => {
     const user = userEvent.setup();
 

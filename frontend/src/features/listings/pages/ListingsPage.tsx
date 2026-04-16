@@ -87,6 +87,7 @@ export default function ListingsPage() {
 
   const nextListing =
     currentIndex < listings.length - 1 ? listings[currentIndex + 1] : null;
+  const isInitialLoading = loading && listings.length === 0;
 
   const handleClearFilters = useCallback(() => {
     setCurrentPage(0);
@@ -125,7 +126,7 @@ export default function ListingsPage() {
     return true;
   }, [goNext]);
 
-  if (loading)
+  if (isInitialLoading)
     return (
       <main className="min-h-screen p-8 bg-zinc-50 text-black">
         <p>Loading listings...</p>
@@ -211,6 +212,14 @@ export default function ListingsPage() {
                   onSwipeLeft={handleSwipeLeft}
                 />
               </div>
+
+              {loading && (
+                <div className="pointer-events-none absolute inset-0 z-20 rounded-[28px] bg-white/60 backdrop-blur-[2px]">
+                  <div className="absolute top-4 right-4 rounded-full bg-white px-3 py-1 text-xs font-medium text-zinc-500 shadow-sm">
+                    Loading more homes...
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
