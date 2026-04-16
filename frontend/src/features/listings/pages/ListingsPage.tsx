@@ -188,7 +188,7 @@ function ListingsPageContent({ locationParam }: { locationParam: string }) {
                 Try changing or clearing your filters
               </p>
             </div>
-          ) : hasExhaustedListings ? (
+          ) : hasExhaustedListings || !currentListing ? (
             <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
               <h2 className="mb-2 text-xl font-semibold">
                 You&apos;ve reached the end of these matches
