@@ -204,6 +204,7 @@ function SearchBarInner() {
             <path d="m20 20-3.5-3.5" />
           </svg>
           <input
+            role="combobox"
             aria-label="Search listings"
             aria-autocomplete="list"
             aria-expanded={isOpen}

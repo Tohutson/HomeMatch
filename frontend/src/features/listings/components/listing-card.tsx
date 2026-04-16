@@ -29,12 +29,10 @@ export default function ListingCard({
   onSwipeRight,
   onSwipeLeft,
 }: ListingCardProps) {
-  const [bouncing, setBouncing] = useState(false);
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [exitDirection, setExitDirection] = useState<"left" | "right" | null>(null);
-  const prevFavoritedRef = useRef(isFavorited);
   const swipeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const photoUrls = listing.photoUrls ?? [];
   const hasPhotos = photoUrls.length > 0;
@@ -104,22 +102,6 @@ export default function ListingCard({
       currentIndex === photoUrls.length - 1 ? 0 : currentIndex + 1
     );
   };
-
-  useEffect(() => {
-    if (isFavorited && !prevFavoritedRef.current) {
-      setBouncing(true);
-      const timeoutId = setTimeout(() => setBouncing(false), 500);
-      prevFavoritedRef.current = isFavorited;
-      return () => clearTimeout(timeoutId);
-    }
-
-    prevFavoritedRef.current = isFavorited;
-  }, [isFavorited]);
-
-  useEffect(() => {
-    setActivePhotoIndex(0);
-    resetSwipeState();
-  }, [listing.id]);
 
   useEffect(() => {
     return () => {
@@ -227,7 +209,7 @@ export default function ListingCard({
             strokeWidth={2}
             className={`h-6 w-6 transition-colors ${
               isFavorited ? "text-rose-500" : "text-zinc-400"
-            } ${bouncing ? "animate-heart-bounce" : ""}`}
+            } ${isFavorited ? "animate-heart-bounce" : ""}`}
             data-testid="heart-icon"
           >
             <path
