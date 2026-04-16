@@ -1,12 +1,11 @@
 import { useCallback } from "react";
 import type { Listing } from "@/features/listings/types";
-import { useFavorites } from "@/features/favorites/hooks/use-favorites";
+import { useFavoritesContext } from "@/features/favorites/context/favorites-context";
 import { useFavoriteUndo } from "@/features/favorites/hooks/use-favorite-undo";
 import { useFavoritesSync } from "@/features/favorites/hooks/use-favorites-sync";
 import { enqueueOfflineFavorite } from "@/lib/offline-queue";
 
 type UseListingsFavoriteWorkflowParams = {
-  userId: number | null;
   onToast?: (message: string) => void;
   onRequireLogin?: () => void;
 };
@@ -29,11 +28,11 @@ type UseListingsFavoriteWorkflowResult = {
 };
 
 export function useListingsFavoriteWorkflow({
-  userId,
   onToast,
   onRequireLogin,
 }: UseListingsFavoriteWorkflowParams): UseListingsFavoriteWorkflowResult {
   const {
+    userId,
     favoriteIds,
     loading,
     error,
@@ -41,7 +40,7 @@ export function useListingsFavoriteWorkflow({
     addFavorite,
     removeFavorite,
     refetchFavorites,
-  } = useFavorites({ userId });
+  } = useFavoritesContext();
 
   const {
     recordAddedFavorite,

@@ -1,12 +1,4 @@
-type DraftListingFilters = {
-  minPrice: string;
-  maxPrice: string;
-  minBeds: string;
-  minBaths: string;
-  minSqft: string;
-  maxSqft: string;
-  minEnergyStarScore: string;
-};
+import { DraftListingFilters } from "../types";
 
 type ValidationErrors = Partial<Record<keyof DraftListingFilters, string>>;
 

@@ -7,27 +7,25 @@ import ListingFilters from "../components/listing-filters";
 import { useCallback, useEffect, useState } from "react";
 
 import { ListingsBanner } from "@/features/listings/components/listings-banner";
-import { ListingsHeader } from "@/features/listings/components/listings-header";
 import { ListingsPagination } from "@/features/listings/components/listings-pagination";
 
+import { useFavoritesContext } from "@/features/favorites/context/favorites-context";
 import { useListingsFavoriteWorkflow } from "@/features/favorites/hooks/use-listings-favorite-workflow";
 import { useListingFilters } from "../hooks/use-listing-filters";
 import { useListings } from "@/features/listings/hooks/use-listings";
 import { usePagedListingNavigation } from "@/features/listings/hooks/use-paged-listing-navigation";
-import type { ListingFilters as ListingFiltersType } from "@/features/listings/types";
-import { getOrCreateUserId } from "@/lib/userId";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 const PAGE_SIZE = 12;
 
 export default function ListingsPage() {
   const [currentPage, setCurrentPage] = useState(0);
-  const [userId, setUserId] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [showNotLoggedIn, setShowNotLoggedIn] = useState(false);
-
-  useEffect(() => {
-    getOrCreateUserId().then(setUserId).catch(console.error);
-  }, []);
+  const { ensureUserId } = useFavoritesContext();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const {
     favoriteIds,
@@ -41,7 +39,6 @@ export default function ListingsPage() {
     undoTimeLeft,
     showBanner,
   } = useListingsFavoriteWorkflow({
-    userId,
     onToast: setToast,
     onRequireLogin: () => setShowNotLoggedIn(true),
   });
@@ -55,25 +52,16 @@ export default function ListingsPage() {
     validationErrors,
     isApplyDisabled,
     isClearDisabled,
+    resetFiltersForLocation,
   } = useListingFilters();
 
-  const handleFilterChange = useCallback(
-    (key: keyof ListingFiltersType, value: string) => {
-      updateDraftFilter(key, value);
-    },
-    [updateDraftFilter]
-  );
+  const locationParam = searchParams?.get("location") ?? "";
 
   const handleApplyFilters = useCallback(() => {
     setCurrentPage(0);
     setCurrentIndex(0);
     applyFilters();
   }, [applyFilters]);
-
-  const handleClearFilters = useCallback(() => {
-    setCurrentPage(0);
-    clearFilters();
-  }, [clearFilters]);
 
   const { listings, totalPages, totalElements, loading, error } = useListings({
     page: currentPage,
@@ -82,10 +70,7 @@ export default function ListingsPage() {
   });
 
   const {
-    currentIndex,
     currentListing,
-    isAtAbsoluteStart,
-    isAtAbsoluteEnd,
     canGoPrevious,
     canGoNext,
     goNext,
@@ -98,6 +83,20 @@ export default function ListingsPage() {
     onPageChange: setCurrentPage,
     loading,
   });
+
+  const handleClearFilters = useCallback(() => {
+    setCurrentPage(0);
+    setCurrentIndex(0);
+    clearFilters();
+    router.replace(pathname ?? "/listings");
+  }, [clearFilters, pathname, router, setCurrentIndex]);
+
+  useEffect(() => {
+    resetFiltersForLocation(locationParam);
+
+    setCurrentPage(0);
+    setCurrentIndex(0);
+  }, [locationParam, resetFiltersForLocation, setCurrentIndex]);
 
   const handleSwipeRight = useCallback(() => {
     if (!currentListing) return;
@@ -114,7 +113,6 @@ export default function ListingsPage() {
   if (loading)
     return (
       <main className="min-h-screen p-8 bg-zinc-50 text-black">
-        <h1 className="text-3xl font-bold mb-4">HomeMatch Listings</h1>
         <p>Loading listings...</p>
       </main>
     );
@@ -122,7 +120,6 @@ export default function ListingsPage() {
   if (error)
     return (
       <main className="min-h-screen p-8 bg-zinc-50 text-black">
-        <h1 className="text-3xl font-bold mb-4">HomeMatch Listings</h1>
         <p>Error: {error}</p>
       </main>
     );
@@ -136,12 +133,10 @@ export default function ListingsPage() {
           onDismiss={() => setShowNotLoggedIn(false)}
           onLogIn={() => {
             setShowNotLoggedIn(false);
-            getOrCreateUserId().then(setUserId).catch(console.error);
+            void ensureUserId();
           }}
         />
       )}
-
-      <ListingsHeader favoriteCount={favoriteIds.size} />
 
       <ListingsBanner
         show={showBanner}

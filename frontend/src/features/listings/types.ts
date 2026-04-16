@@ -19,6 +19,7 @@ export type ListingsResponse = {
 };
 
 export type ListingFilters = {
+  location?: string;
   minPrice?: number;
   maxPrice?: number;
   minBeds?: number;
@@ -26,4 +27,15 @@ export type ListingFilters = {
   minSqft?: number;
   maxSqft?: number;
   minEnergyStarScore?: number;
+};
+
+export type DraftListingFilters = {
+  location: string;
+  minPrice: string;
+  maxPrice: string;
+  minBeds: string;
+  minBaths: string;
+  minSqft: string;
+  maxSqft: string;
+  minEnergyStarScore: string;
 };

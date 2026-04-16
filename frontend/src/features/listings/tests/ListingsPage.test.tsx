@@ -1,10 +1,13 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ListingsPage from "../pages/ListingsPage";
+import { FavoritesProvider } from "@/features/favorites/context/favorites-context";
 
 const mockUseListings = jest.fn();
 const mockUsePagedListingNavigation = jest.fn();
 const mockUseListingsFavoriteWorkflow = jest.fn();
+const mockReplace = jest.fn();
+const mockSearchParamsGet = jest.fn();
 
 jest.mock("@/features/listings/hooks/use-listings", () => ({
   useListings: (...args: unknown[]) => mockUseListings(...args),
@@ -24,7 +27,25 @@ jest.mock("@/lib/userId", () => ({
   getOrCreateUserId: jest.fn().mockResolvedValue(123),
 }));
 
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({
+    replace: mockReplace,
+  }),
+  usePathname: () => "/listings",
+  useSearchParams: () => ({
+    get: mockSearchParamsGet,
+  }),
+}));
+
 describe("ListingsPage", () => {
+  function renderListingsPage() {
+    return render(
+      <FavoritesProvider>
+        <ListingsPage />
+      </FavoritesProvider>
+    );
+  }
+
   const listing = {
     id: 1,
     address: "123 Main St",
@@ -38,6 +59,11 @@ describe("ListingsPage", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockSearchParamsGet.mockReturnValue(null);
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [],
+    } as Response);
 
     mockUseListingsFavoriteWorkflow.mockReturnValue({
       favoriteIds: new Set<number>(),
@@ -71,7 +97,7 @@ describe("ListingsPage", () => {
   });
 
   it("renders listing filters and listing card", async () => {
-    render(<ListingsPage />);
+    renderListingsPage();
 
     expect(await screen.findByPlaceholderText("Min price")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Max sqft")).toBeInTheDocument();
@@ -81,16 +107,18 @@ describe("ListingsPage", () => {
   it("does not apply draft filters until Apply Filters is clicked", async () => {
     const user = userEvent.setup();
 
-    render(<ListingsPage />);
+    renderListingsPage();
 
     const initialCall = mockUseListings.mock.calls.at(-1)?.[0];
     expect(initialCall.filters).toEqual({
+      location: undefined,
       minPrice: undefined,
       maxPrice: undefined,
       minBeds: undefined,
       minBaths: undefined,
       minSqft: undefined,
       maxSqft: undefined,
+      minEnergyStarScore: undefined,
     });
 
     await user.type(screen.getByPlaceholderText("Min price"), "300000");
@@ -98,12 +126,14 @@ describe("ListingsPage", () => {
 
     const afterTypingCall = mockUseListings.mock.calls.at(-1)?.[0];
     expect(afterTypingCall.filters).toEqual({
+      location: undefined,
       minPrice: undefined,
       maxPrice: undefined,
       minBeds: undefined,
       minBaths: undefined,
       minSqft: undefined,
       maxSqft: undefined,
+      minEnergyStarScore: undefined,
     });
 
     await user.click(screen.getByRole("button", { name: /apply filters/i }));
@@ -111,12 +141,14 @@ describe("ListingsPage", () => {
     await waitFor(() => {
       const appliedCall = mockUseListings.mock.calls.at(-1)?.[0];
       expect(appliedCall.filters).toEqual({
+        location: undefined,
         minPrice: 300000,
         maxPrice: undefined,
         minBeds: undefined,
         minBaths: undefined,
         minSqft: undefined,
         maxSqft: 1800,
+        minEnergyStarScore: undefined,
       });
     });
   });
@@ -124,7 +156,7 @@ describe("ListingsPage", () => {
   it("passes maxSqft to useListings after Apply Filters is clicked", async () => {
     const user = userEvent.setup();
 
-    render(<ListingsPage />);
+    renderListingsPage();
 
     await user.type(screen.getByPlaceholderText("Max sqft"), "1750");
     await user.click(screen.getByRole("button", { name: /apply filters/i }));
@@ -138,7 +170,7 @@ describe("ListingsPage", () => {
   it("clears applied filters when Clear is clicked", async () => {
     const user = userEvent.setup();
 
-    render(<ListingsPage />);
+    renderListingsPage();
 
     await user.type(screen.getByPlaceholderText("Min price"), "300000");
     await user.type(screen.getByPlaceholderText("Max sqft"), "1800");
@@ -155,14 +187,18 @@ describe("ListingsPage", () => {
     await waitFor(() => {
       const clearedCall = mockUseListings.mock.calls.at(-1)?.[0];
       expect(clearedCall.filters).toEqual({
+        location: undefined,
         minPrice: undefined,
         maxPrice: undefined,
         minBeds: undefined,
         minBaths: undefined,
         minSqft: undefined,
         maxSqft: undefined,
+        minEnergyStarScore: undefined,
       });
     });
+
+    expect(mockReplace).toHaveBeenCalledWith("/listings");
   });
 
   it("shows the no homes found empty state when filtered results are empty", async () => {
@@ -208,7 +244,7 @@ describe("ListingsPage", () => {
         setCurrentIndex: jest.fn(),
       });
 
-    render(<ListingsPage />);
+    renderListingsPage();
 
     await user.type(screen.getByPlaceholderText("Max sqft"), "900");
     await user.click(screen.getByRole("button", { name: /apply filters/i }));
@@ -220,5 +256,54 @@ describe("ListingsPage", () => {
     expect(
       screen.getByText(/try changing or clearing your filters/i)
     ).toBeInTheDocument();
+  });
+
+  it("applies the location from the URL search params", async () => {
+    mockSearchParamsGet.mockImplementation((key: string) =>
+      key === "location" ? "Pittsburgh" : null
+    );
+
+    renderListingsPage();
+
+    await waitFor(() => {
+      const latestCall = mockUseListings.mock.calls.at(-1)?.[0];
+      expect(latestCall.filters.location).toBe("Pittsburgh");
+    });
+  });
+
+  it("clears other filters when a new location search is loaded from the URL", async () => {
+    const user = userEvent.setup();
+
+    renderListingsPage();
+
+    await user.type(screen.getByPlaceholderText("Min price"), "300000");
+    await user.type(screen.getByPlaceholderText("Max sqft"), "1800");
+    await user.click(screen.getByRole("button", { name: /apply filters/i }));
+
+    await waitFor(() => {
+      const appliedCall = mockUseListings.mock.calls.at(-1)?.[0];
+      expect(appliedCall.filters.minPrice).toBe(300000);
+      expect(appliedCall.filters.maxSqft).toBe(1800);
+    });
+
+    mockSearchParamsGet.mockImplementation((key: string) =>
+      key === "location" ? "Pittsburgh" : null
+    );
+
+    renderListingsPage();
+
+    await waitFor(() => {
+      const latestCall = mockUseListings.mock.calls.at(-1)?.[0];
+      expect(latestCall.filters).toEqual({
+        location: "Pittsburgh",
+        minPrice: undefined,
+        maxPrice: undefined,
+        minBeds: undefined,
+        minBaths: undefined,
+        minSqft: undefined,
+        maxSqft: undefined,
+        minEnergyStarScore: undefined,
+      });
+    });
   });
 });

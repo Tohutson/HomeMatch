@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Toast from "@/components/Toast";
-import { getOrCreateUserId } from "@/lib/userId";
-import { useFavorites } from "@/features/favorites/hooks/use-favorites";
+import { useFavoritesContext } from "@/features/favorites/context/favorites-context";
 import { useFavoriteUndo } from "@/features/favorites/hooks/use-favorite-undo";
 import { useFavoritesSync } from "@/features/favorites/hooks/use-favorites-sync";
 import { useFavoriteListings } from "../hooks/use-favorite-listings";
@@ -14,24 +13,16 @@ import { API_BASE } from "@/lib/env";
 type SortOption = "date_desc" | "date_asc" | "price_asc" | "price_desc";
 
 export default function FavoritesPage() {
-  const [userId, setUserId] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [sortOption, setSortOption] = useState<SortOption>("date_desc");
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [unavailableIds, setUnavailableIds] = useState<Set<number>>(new Set());
-
-  useEffect(() => {
-    getOrCreateUserId().then(setUserId).catch(console.error);
-  }, []);
+  const { userId, addFavorite: addFavoriteRequest, removeFavorite: removeFavoriteRequest } =
+    useFavoritesContext();
 
   const { favorites, loading, error, refetchFavorites } = useFavoriteListings({
     userId,
   });
-
-  const {
-    addFavorite: addFavoriteRequest,
-    removeFavorite: removeFavoriteRequest,
-  } = useFavorites({ userId });
 
   const removeFavoriteFromPage = useCallback(
     async (listingId: number) => {

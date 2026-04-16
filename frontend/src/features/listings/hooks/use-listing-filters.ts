@@ -1,18 +1,9 @@
 import type { ListingFilters } from "@/features/listings/types";
-import { error } from "console";
-import { useMemo, useState } from "react";
-
-type DraftListingFilters = {
-  minPrice: string;
-  maxPrice: string;
-  minBeds: string;
-  minBaths: string;
-  minSqft: string;
-  maxSqft: string;
-  minEnergyStarScore: string;
-};
+import { useCallback, useMemo, useState } from "react";
+import { DraftListingFilters } from "@/features/listings/types";
 
 const DEFAULT_DRAFT_FILTERS: DraftListingFilters = {
+  location: "",
   minPrice: "",
   maxPrice: "",
   minBeds: "",
@@ -23,6 +14,7 @@ const DEFAULT_DRAFT_FILTERS: DraftListingFilters = {
 };
 
 const DEFAULT_APPLIED_FILTERS: ListingFilters = {
+  location: undefined,
   minPrice: undefined,
   maxPrice: undefined,
   minBeds: undefined,
@@ -41,6 +33,11 @@ function toNumberOrUndefined(value: string): number | undefined {
   return Number.isNaN(parsed) ? undefined : parsed;
 }
 
+function toLocationOrUndefined(value: string): string | undefined {
+  const trimmed = value.trim();
+  return trimmed === "" ? undefined : trimmed;
+}
+
 export function useListingFilters() {
   const [draftFilters, setDraftFilters] = useState<DraftListingFilters>(
     DEFAULT_DRAFT_FILTERS
@@ -49,20 +46,24 @@ export function useListingFilters() {
     DEFAULT_APPLIED_FILTERS
   );
 
-  const updateDraftFilter = (key: keyof DraftListingFilters, value: string) => {
-    setDraftFilters((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-  };
+  const updateDraftFilter = useCallback(
+    (key: keyof DraftListingFilters, value: string) => {
+      setDraftFilters((prev) => ({
+        ...prev,
+        [key]: value,
+      }));
+    },
+    []
+  );
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setDraftFilters(DEFAULT_DRAFT_FILTERS);
     setAppliedFilters(DEFAULT_APPLIED_FILTERS);
-  };
+  }, []);
 
   const parsedDraftFilters = useMemo(
     () => ({
+      location: toLocationOrUndefined(draftFilters.location),
       minPrice: toNumberOrUndefined(draftFilters.minPrice),
       maxPrice: toNumberOrUndefined(draftFilters.maxPrice),
       minBeds: toNumberOrUndefined(draftFilters.minBeds),
@@ -80,6 +81,7 @@ export function useListingFilters() {
 
   const hasDraftChanges = useMemo(() => {
     return (
+      draftFilters.location !== (appliedFilters.location ?? "") ||
       draftFilters.minPrice !== (appliedFilters.minPrice?.toString() ?? "") ||
       draftFilters.maxPrice !== (appliedFilters.maxPrice?.toString() ?? "") ||
       draftFilters.minBeds !== (appliedFilters.minBeds?.toString() ?? "") ||
@@ -169,13 +171,32 @@ export function useListingFilters() {
   const isApplyDisabled = !hasDraftChanges || hasValidationErrors;
   const isClearDisabled = !hasActiveFilters && !hasDraftChanges;
 
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     if (isApplyDisabled) {
       return;
     }
 
+    setDraftFilters((prev) => ({
+      ...prev,
+      location: prev.location.trim(),
+    }));
     setAppliedFilters(parsedDraftFilters);
-  };
+  }, [isApplyDisabled, parsedDraftFilters]);
+
+  const resetFiltersForLocation = useCallback((location: string) => {
+    const normalizedLocation = location.trim();
+    const nextDraftFilters = {
+      ...DEFAULT_DRAFT_FILTERS,
+      location: normalizedLocation,
+    };
+    const nextAppliedFilters = {
+      ...DEFAULT_APPLIED_FILTERS,
+      location: toLocationOrUndefined(normalizedLocation),
+    };
+
+    setDraftFilters(nextDraftFilters);
+    setAppliedFilters(nextAppliedFilters);
+  }, []);
 
   return {
     draftFilters,
@@ -190,5 +211,6 @@ export function useListingFilters() {
     hasActiveFilters,
     isApplyDisabled,
     isClearDisabled,
+    resetFiltersForLocation,
   };
 }

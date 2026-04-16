@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useParams } from "next/navigation";
 import Toast from "../../../components/Toast";
-import { getOrCreateUserId } from "../../../lib/userId";
-import { useFavorites } from "@/features/favorites/hooks/use-favorites";
+import { useFavoritesContext } from "@/features/favorites/context/favorites-context";
 import { useFavoriteUndo } from "@/features/favorites/hooks/use-favorite-undo";
 import { useListingDetails } from "@/features/listings/hooks/use-listing-details";
 
@@ -14,16 +13,12 @@ export default function ListingDetailsPage() {
   const params = useParams();
   const id = params.id as string;
 
-  const [userId, setUserId] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-
-  useEffect(() => {
-    getOrCreateUserId().then(setUserId).catch(console.error);
-  }, []);
 
   const { listing, loading, error, notFound } = useListingDetails({ id });
 
-  const { isFavorited, addFavorite, removeFavorite } = useFavorites({ userId });
+  const { userId, isFavorited, addFavorite, removeFavorite } =
+    useFavoritesContext();
 
   const {
     recordAddedFavorite,

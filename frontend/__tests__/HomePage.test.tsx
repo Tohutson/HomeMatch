@@ -1,6 +1,8 @@
 import { render, screen, waitFor, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import HomePage from "../src/app/page";
+import Navbar from "../src/components/Navbar";
+import { FavoritesProvider } from "../src/features/favorites/context/favorites-context";
 
 jest.mock("../src/lib/userId", () => ({
   getOrCreateUserId: jest.fn().mockResolvedValue(1),
@@ -12,6 +14,11 @@ jest.mock("../src/lib/offline-queue", () => ({
   getOfflineQueue: jest.fn().mockReturnValue([]),
   removeFromOfflineQueue: jest.fn(),
   clearOfflineQueue: jest.fn(),
+}));
+
+jest.mock("../src/features/search/components/SearchBar", () => ({
+  __esModule: true,
+  default: () => <div data-testid="search-bar" />,
 }));
 
 const mockListings = [
@@ -100,7 +107,12 @@ function buildFetchMock(
 }
 
 async function renderHomePage() {
-  render(<HomePage />);
+  render(
+    <FavoritesProvider>
+      <Navbar />
+      <HomePage />
+    </FavoritesProvider>
+  );
   await screen.findByText("30 Pitt St");
 }
 

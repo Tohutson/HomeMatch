@@ -39,7 +39,6 @@ export function useListings({
         size,
         filters,
       });
-
       setListings(data.content ?? []);
       setTotalPages(data.totalPages ?? 0);
       setTotalElements(data.totalElements ?? 0);
