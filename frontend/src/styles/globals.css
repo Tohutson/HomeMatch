@@ -47,3 +47,44 @@ body {
 .animate-fade-in-up {
   animation: fade-in-up 0.25s ease-out;
 }
+
+@keyframes banner-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-banner-fade-in {
+  animation: banner-fade-in 0.22s ease-out;
+}
+
+@keyframes card-swipe-right {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes card-swipe-left {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.animate-card-swipe-right {
+  animation: card-swipe-right 0.26s ease-out forwards;
+}
+
+.animate-card-swipe-left {
+  animation: card-swipe-left 0.26s ease-out forwards;
+}

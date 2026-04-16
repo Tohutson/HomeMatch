@@ -30,9 +30,11 @@ export default function ListingsPage() {
   const {
     favoriteIds,
     syncingIds,
+    handleSwipeFavorite,
     handleFavorite,
     handleUndo,
     handleRedo,
+    pendingFavorite,
     canUndo,
     canRedo,
     undoVisible,
@@ -70,6 +72,7 @@ export default function ListingsPage() {
   });
 
   const {
+    currentIndex,
     currentListing,
     canGoPrevious,
     canGoNext,
@@ -83,6 +86,10 @@ export default function ListingsPage() {
     onPageChange: setCurrentPage,
     loading,
   });
+
+  const nextListing =
+    currentIndex < listings.length - 1 ? listings[currentIndex + 1] : null;
+  const isInitialLoading = loading && listings.length === 0;
 
   const handleClearFilters = useCallback(() => {
     setCurrentPage(0);
@@ -98,19 +105,30 @@ export default function ListingsPage() {
     setCurrentIndex(0);
   }, [locationParam, resetFiltersForLocation, setCurrentIndex]);
 
-  const handleSwipeRight = useCallback(() => {
-    if (!currentListing) return;
+  const handleSwipeRight = useCallback(async () => {
+    if (!currentListing) return false;
 
-    if (!favoriteIds.has(currentListing.id)) {
-      void handleFavorite(currentListing);
-    } else {
+    if (favoriteIds.has(currentListing.id)) {
       goNext();
+      return true;
     }
-  }, [currentListing, favoriteIds, handleFavorite, goNext]);
 
-  const handleSwipeLeft = useCallback(() => goNext(), [goNext]);
+    const accepted = handleSwipeFavorite(currentListing);
 
-  if (loading)
+    if (!accepted) {
+      return false;
+    }
+
+    goNext();
+    return true;
+  }, [currentListing, favoriteIds, handleSwipeFavorite, goNext]);
+
+  const handleSwipeLeft = useCallback(() => {
+    goNext();
+    return true;
+  }, [goNext]);
+
+  if (isInitialLoading)
     return (
       <main className="min-h-screen p-8 bg-zinc-50 text-black">
         <p>Loading listings...</p>
@@ -140,6 +158,7 @@ export default function ListingsPage() {
 
       <ListingsBanner
         show={showBanner}
+        pendingFavorite={pendingFavorite}
         canUndo={canUndo}
         canRedo={canRedo}
         undoVisible={undoVisible}
@@ -171,14 +190,40 @@ export default function ListingsPage() {
               </p>
             </div>
           ) : (
-            <ListingCard
-              listing={currentListing}
-              isFavorited={favoriteIds.has(currentListing.id)}
-              isSyncing={syncingIds.has(currentListing.id)}
-              onFavorite={handleFavorite}
-              onSwipeRight={handleSwipeRight}
-              onSwipeLeft={handleSwipeLeft}
-            />
+            <div className="relative">
+              {nextListing && (
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 z-0"
+                >
+                  <ListingCard
+                    key={`preview-${nextListing.id}`}
+                    listing={nextListing}
+                    interactive={false}
+                  />
+                </div>
+              )}
+
+              <div className="relative z-10">
+                <ListingCard
+                  key={currentListing.id}
+                  listing={currentListing}
+                  isFavorited={favoriteIds.has(currentListing.id)}
+                  isSyncing={syncingIds.has(currentListing.id)}
+                  onFavorite={handleFavorite}
+                  onSwipeRight={handleSwipeRight}
+                  onSwipeLeft={handleSwipeLeft}
+                />
+              </div>
+
+              {loading && (
+                <div className="pointer-events-none absolute inset-0 z-20 rounded-[28px] bg-white/60 backdrop-blur-[2px]">
+                  <div className="absolute top-4 right-4 rounded-full bg-white px-3 py-1 text-xs font-medium text-zinc-500 shadow-sm">
+                    Loading more homes...
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
           <ListingsPagination

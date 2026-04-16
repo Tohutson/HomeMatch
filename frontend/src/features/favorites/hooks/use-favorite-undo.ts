@@ -16,9 +16,13 @@ type UseFavoriteUndoParams = {
 };
 
 type UseFavoriteUndoResult = {
+  recordPendingFavorite: (listing: Listing) => void;
+  confirmPendingFavorite: (listingId: number) => void;
+  discardPendingFavorite: (listingId: number) => void;
   recordAddedFavorite: (listing: Listing) => void;
   handleUndo: () => Promise<void>;
   handleRedo: () => Promise<void>;
+  pendingFavorite: boolean;
   canUndo: boolean;
   canRedo: boolean;
   undoVisible: boolean;
@@ -38,9 +42,11 @@ export function useFavoriteUndo({
 }: UseFavoriteUndoParams): UseFavoriteUndoResult {
   const [undoStack, setUndoStack] = useState<FavoriteUndoEntry[]>([]);
   const [redoStack, setRedoStack] = useState<FavoriteUndoEntry[]>([]);
+  const [pendingEntry, setPendingEntry] = useState<FavoriteUndoEntry | null>(null);
   const [undoTimeLeft, setUndoTimeLeft] = useState(0);
   const [redoVisible, setRedoVisible] = useState(false);
 
+  const pendingEntryRef = useRef<FavoriteUndoEntry | null>(null);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const undoIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const redoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -98,6 +104,8 @@ export function useFavoriteUndo({
 
   const recordAddedFavorite = useCallback(
     (listing: Listing) => {
+      pendingEntryRef.current = null;
+      setPendingEntry(null);
       setUndoStack([{ listing }]);
       setRedoStack([]);
       setRedoVisible(false);
@@ -105,6 +113,52 @@ export function useFavoriteUndo({
       startUndoTimer();
     },
     [clearRedoTimer, startUndoTimer]
+  );
+
+  const recordPendingFavorite = useCallback(
+    (listing: Listing) => {
+      pendingEntryRef.current = { listing };
+      setPendingEntry(pendingEntryRef.current);
+      setUndoStack([]);
+      setRedoStack([]);
+      setRedoVisible(false);
+      setUndoTimeLeft(0);
+      clearRedoTimer();
+      clearUndoTimer();
+    },
+    [clearRedoTimer, clearUndoTimer]
+  );
+
+  const confirmPendingFavorite = useCallback(
+    (listingId: number) => {
+      const confirmedEntry = pendingEntryRef.current;
+
+      if (!confirmedEntry || confirmedEntry.listing.id !== listingId) return;
+
+      pendingEntryRef.current = null;
+      setPendingEntry(null);
+      setUndoStack([confirmedEntry]);
+      startUndoTimer();
+    },
+    [startUndoTimer]
+  );
+
+  const discardPendingFavorite = useCallback(
+    (listingId: number) => {
+      const discardedEntry = pendingEntryRef.current;
+
+      if (!discardedEntry || discardedEntry.listing.id !== listingId) return;
+
+      pendingEntryRef.current = null;
+      setPendingEntry(null);
+      setUndoStack([]);
+      setRedoStack([]);
+      setRedoVisible(false);
+      setUndoTimeLeft(0);
+      clearRedoTimer();
+      clearUndoTimer();
+    },
+    [clearRedoTimer, clearUndoTimer]
   );
 
   const handleUndo = useCallback(async () => {
@@ -162,13 +216,18 @@ export function useFavoriteUndo({
 
   const canUndo = undoStack.length > 0 && undoTimeLeft > 0;
   const canRedo = redoStack.length > 0 && redoVisible;
+  const pendingFavorite = pendingEntry != null;
   const undoVisible = undoStack.length > 0 && undoTimeLeft > 0;
-  const showBanner = undoVisible || redoVisible;
+  const showBanner = pendingFavorite || undoVisible || redoVisible;
 
   return {
+    recordPendingFavorite,
+    confirmPendingFavorite,
+    discardPendingFavorite,
     recordAddedFavorite,
     handleUndo,
     handleRedo,
+    pendingFavorite,
     canUndo,
     canRedo,
     undoVisible,

@@ -21,6 +21,7 @@ export type UseFavoritesResult = {
   loading: boolean;
   error: string | null;
   isFavorited: (listingId: number) => boolean;
+  setFavoriteOptimistic: (listingId: number, favorited: boolean) => void;
   addFavorite: (listingId: number) => Promise<ActionResult>;
   removeFavorite: (listingId: number) => Promise<ActionResult>;
   refetchFavorites: () => Promise<void>;
@@ -65,6 +66,23 @@ export function useFavorites({
   const isFavorited = useCallback(
     (listingId: number) => favoriteIds.has(listingId),
     [favoriteIds]
+  );
+
+  const setFavoriteOptimistic = useCallback(
+    (listingId: number, favorited: boolean) => {
+      setFavoriteIds((prev) => {
+        const next = new Set(prev);
+
+        if (favorited) {
+          next.add(listingId);
+        } else {
+          next.delete(listingId);
+        }
+
+        return next;
+      });
+    },
+    []
   );
 
   const addFavorite = useCallback(
@@ -126,6 +144,7 @@ export function useFavorites({
     loading,
     error,
     isFavorited,
+    setFavoriteOptimistic,
     addFavorite,
     removeFavorite,
     refetchFavorites,

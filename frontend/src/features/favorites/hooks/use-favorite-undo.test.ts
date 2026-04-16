@@ -17,7 +17,9 @@ describe("useFavoriteUndo", () => {
   });
 
   afterEach(() => {
-    jest.runOnlyPendingTimers();
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
     jest.useRealTimers();
   });
 
@@ -50,5 +52,34 @@ describe("useFavoriteUndo", () => {
 
     expect(result.current.canRedo).toBe(false);
     expect(result.current.showBanner).toBe(false);
+  });
+
+  it("shows a pending banner immediately and converts it to undo once confirmed", () => {
+    const addFavorite = jest.fn().mockResolvedValue({ ok: true });
+    const removeFavorite = jest.fn().mockResolvedValue({ ok: true });
+
+    const { result } = renderHook(() =>
+      useFavoriteUndo({
+        addFavorite,
+        removeFavorite,
+        undoWindowSeconds: 2,
+      })
+    );
+
+    act(() => {
+      result.current.recordPendingFavorite(listing);
+    });
+
+    expect(result.current.pendingFavorite).toBe(true);
+    expect(result.current.showBanner).toBe(true);
+    expect(result.current.canUndo).toBe(false);
+
+    act(() => {
+      result.current.confirmPendingFavorite(listing.id);
+    });
+
+    expect(result.current.pendingFavorite).toBe(false);
+    expect(result.current.undoVisible).toBe(true);
+    expect(result.current.canUndo).toBe(true);
   });
 });

@@ -1,4 +1,5 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ListingsPage from "../pages/ListingsPage";
 import { FavoritesProvider } from "@/features/favorites/context/favorites-context";
@@ -68,11 +69,16 @@ describe("ListingsPage", () => {
     mockUseListingsFavoriteWorkflow.mockReturnValue({
       favoriteIds: new Set<number>(),
       syncingIds: new Set<number>(),
+      handleSwipeFavorite: jest.fn().mockReturnValue(true),
       handleFavorite: jest.fn(),
-      handleSwipeRight: jest.fn(),
-      handleSwipeLeft: jest.fn(),
       handleUndo: jest.fn(),
       handleRedo: jest.fn(),
+      pendingFavorite: false,
+      canUndo: false,
+      canRedo: false,
+      undoVisible: false,
+      undoTimeLeft: 0,
+      showBanner: false,
     });
 
     mockUsePagedListingNavigation.mockReturnValue({
@@ -102,6 +108,34 @@ describe("ListingsPage", () => {
     expect(await screen.findByPlaceholderText("Min price")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Max sqft")).toBeInTheDocument();
     expect(screen.getByText(/1 match/i)).toBeInTheDocument();
+  });
+
+  it("keeps filters and the current listing visible while loading the next page", async () => {
+    mockUseListings.mockReturnValue({
+      listings: [listing],
+      totalPages: 2,
+      totalElements: 2,
+      loading: true,
+      error: null,
+    });
+
+    mockUsePagedListingNavigation.mockReturnValue({
+      currentIndex: 0,
+      currentListing: listing,
+      isAtAbsoluteStart: true,
+      isAtAbsoluteEnd: false,
+      canGoPrevious: false,
+      canGoNext: false,
+      goNext: jest.fn(),
+      goPrevious: jest.fn(),
+      setCurrentIndex: jest.fn(),
+    });
+
+    renderListingsPage();
+
+    expect(await screen.findByPlaceholderText("Min price")).toBeInTheDocument();
+    expect(screen.getByText("123 Main St")).toBeInTheDocument();
+    expect(screen.getByText("Loading more homes...")).toBeInTheDocument();
   });
 
   it("does not apply draft filters until Apply Filters is clicked", async () => {
@@ -304,6 +338,66 @@ describe("ListingsPage", () => {
         maxSqft: undefined,
         minEnergyStarScore: undefined,
       });
+    });
+  });
+
+  it("advances to the next listing after a successful right swipe", async () => {
+    jest.useFakeTimers();
+
+    const handleSwipeFavorite = jest.fn().mockReturnValue(true);
+    const goNext = jest.fn();
+
+    mockUseListingsFavoriteWorkflow.mockReturnValue({
+      favoriteIds: new Set<number>(),
+      syncingIds: new Set<number>(),
+      handleSwipeFavorite,
+      handleFavorite: jest.fn(),
+      handleUndo: jest.fn(),
+      handleRedo: jest.fn(),
+      pendingFavorite: false,
+      canUndo: false,
+      canRedo: false,
+      undoVisible: false,
+      undoTimeLeft: 0,
+      showBanner: false,
+    });
+
+    mockUsePagedListingNavigation.mockReturnValue({
+      currentIndex: 0,
+      currentListing: listing,
+      isAtAbsoluteStart: true,
+      isAtAbsoluteEnd: false,
+      canGoPrevious: false,
+      canGoNext: true,
+      goNext,
+      goPrevious: jest.fn(),
+      setCurrentIndex: jest.fn(),
+    });
+
+    mockUseListings.mockReturnValue({
+      listings: [listing, { ...listing, id: 2, address: "40 Oak Ave" }],
+      totalPages: 1,
+      totalElements: 2,
+      loading: false,
+      error: null,
+    });
+
+    renderListingsPage();
+
+    const card = await screen.findByTestId("listing-card");
+
+    act(() => {
+      fireEvent.touchStart(card, { touches: [{ clientX: 0 }] });
+      fireEvent.touchEnd(card, { changedTouches: [{ clientX: 160 }] });
+    });
+
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
+
+    await waitFor(() => {
+      expect(handleSwipeFavorite).toHaveBeenCalledWith(listing);
+      expect(goNext).toHaveBeenCalledTimes(1);
     });
   });
 });

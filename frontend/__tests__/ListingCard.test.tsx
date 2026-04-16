@@ -126,6 +126,7 @@ describe("ListingCard", () => {
   });
 
   it("fires onSwipeRight after a rightward touch swipe past the threshold", () => {
+    jest.useFakeTimers();
     const onSwipeRight = jest.fn();
 
     render(<ListingCard listing={listing} onSwipeRight={onSwipeRight} />);
@@ -133,11 +134,15 @@ describe("ListingCard", () => {
 
     fireEvent.touchStart(card, { touches: [{ clientX: 0 }] });
     fireEvent.touchEnd(card, { changedTouches: [{ clientX: 120 }] });
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
 
     expect(onSwipeRight).toHaveBeenCalledTimes(1);
   });
 
   it("fires onSwipeLeft after a leftward touch swipe past the threshold", () => {
+    jest.useFakeTimers();
     const onSwipeLeft = jest.fn();
 
     render(<ListingCard listing={listing} onSwipeLeft={onSwipeLeft} />);
@@ -145,6 +150,9 @@ describe("ListingCard", () => {
 
     fireEvent.touchStart(card, { touches: [{ clientX: 200 }] });
     fireEvent.touchEnd(card, { changedTouches: [{ clientX: 60 }] });
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
 
     expect(onSwipeLeft).toHaveBeenCalledTimes(1);
   });
@@ -171,6 +179,7 @@ describe("ListingCard", () => {
   });
 
   it("fires onSwipeRight on a mouse drag past the threshold", () => {
+    jest.useFakeTimers();
     const onSwipeRight = jest.fn();
 
     render(<ListingCard listing={listing} onSwipeRight={onSwipeRight} />);
@@ -178,7 +187,64 @@ describe("ListingCard", () => {
 
     fireEvent.mouseDown(card, { clientX: 0 });
     fireEvent.mouseUp(card, { clientX: 120 });
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
 
     expect(onSwipeRight).toHaveBeenCalledTimes(1);
+  });
+
+  it("restores the card when a swipe action reports failure", async () => {
+    jest.useFakeTimers();
+
+    render(
+      <ListingCard
+        listing={listing}
+        onSwipeRight={jest.fn().mockResolvedValue(false)}
+      />
+    );
+
+    const card = screen.getByTestId("listing-card");
+
+    fireEvent.touchStart(card, { touches: [{ clientX: 0 }] });
+    fireEvent.touchEnd(card, { changedTouches: [{ clientX: 140 }] });
+
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
+
+    await act(async () => {});
+
+    expect(card).toHaveStyle("transform: translateX(0px) rotate(0deg) scale(1)");
+  });
+
+  it("renders a non-interactive preview card without action controls", () => {
+    render(<ListingCard listing={listing} interactive={false} />);
+
+    expect(screen.getByTestId("listing-card-preview")).toBeInTheDocument();
+    expect(screen.queryByTestId("favorite-button")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("view-details-link")).not.toBeInTheDocument();
+  });
+
+  it("moves the card and shows the heart indicator while swiping right", () => {
+    render(<ListingCard listing={listing} onSwipeRight={jest.fn()} />);
+    const card = screen.getByTestId("listing-card");
+
+    fireEvent.touchStart(card, { touches: [{ clientX: 0 }] });
+    fireEvent.touchMove(card, { touches: [{ clientX: 70 }] });
+
+    expect(card).toHaveStyle("transform: translateX(70px) rotate(3.888888888888889deg) scale(1.02)");
+    expect(screen.getByTestId("swipe-right-indicator")).toHaveClass("opacity-100");
+  });
+
+  it("moves the card and shows the trash indicator while swiping left", () => {
+    render(<ListingCard listing={listing} onSwipeLeft={jest.fn()} />);
+    const card = screen.getByTestId("listing-card");
+
+    fireEvent.touchStart(card, { touches: [{ clientX: 160 }] });
+    fireEvent.touchMove(card, { touches: [{ clientX: 80 }] });
+
+    expect(card).toHaveStyle("transform: translateX(-80px) rotate(-4.444444444444445deg) scale(1.02)");
+    expect(screen.getByTestId("swipe-left-indicator")).toHaveClass("opacity-100");
   });
 });
