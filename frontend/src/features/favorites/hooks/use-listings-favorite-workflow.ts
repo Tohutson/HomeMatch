@@ -4,6 +4,7 @@ import { useFavoritesContext } from "@/features/favorites/context/favorites-cont
 import { useFavoriteUndo } from "@/features/favorites/hooks/use-favorite-undo";
 import { useFavoritesSync } from "@/features/favorites/hooks/use-favorites-sync";
 import { enqueueOfflineFavorite } from "@/lib/offline-queue";
+import type { ActionResult } from "@/features/favorites/hooks/use-favorites";
 
 type UseListingsFavoriteWorkflowParams = {
   onToast?: (message: string) => void;
@@ -16,7 +17,7 @@ type UseListingsFavoriteWorkflowResult = {
   loading: boolean;
   error: string | null;
   isFavorited: (listingId: number) => boolean;
-  handleFavorite: (listing: Listing) => Promise<void>;
+  handleFavorite: (listing: Listing) => Promise<ActionResult>;
   handleUndo: () => Promise<void>;
   handleRedo: () => Promise<void>;
   canUndo: boolean;
@@ -63,10 +64,10 @@ export function useListingsFavoriteWorkflow({
   });
 
   const handleFavorite = useCallback(
-    async (listing: Listing) => {
+    async (listing: Listing): Promise<ActionResult> => {
       if (!userId || userId <= 0) {
         onRequireLogin?.();
-        return;
+        return { ok: false, reason: "missing_user" };
       }
 
       if (isFavorited(listing.id)) {
@@ -78,11 +79,11 @@ export function useListingsFavoriteWorkflow({
           } else {
             onToast?.("Failed to remove favorite");
           }
-          return;
+          return result;
         }
 
         onToast?.("Removed from favorites");
-        return;
+        return result;
       }
 
       if (typeof navigator !== "undefined" && !navigator.onLine) {
@@ -94,7 +95,7 @@ export function useListingsFavoriteWorkflow({
         markQueued(listing.id);
         recordAddedFavorite(listing);
         onToast?.("Saved offline. Will sync when back online.");
-        return;
+        return { ok: true };
       }
 
       const result = await addFavorite(listing.id);
@@ -107,11 +108,12 @@ export function useListingsFavoriteWorkflow({
         } else {
           onToast?.("Failed to add favorite");
         }
-        return;
+        return result;
       }
 
       recordAddedFavorite(listing);
       onToast?.("Added to favorites");
+      return result;
     },
     [
       userId,

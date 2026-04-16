@@ -70,6 +70,7 @@ export default function ListingsPage() {
   });
 
   const {
+    currentIndex,
     currentListing,
     canGoPrevious,
     canGoNext,
@@ -83,6 +84,9 @@ export default function ListingsPage() {
     onPageChange: setCurrentPage,
     loading,
   });
+
+  const nextListing =
+    currentIndex < listings.length - 1 ? listings[currentIndex + 1] : null;
 
   const handleClearFilters = useCallback(() => {
     setCurrentPage(0);
@@ -98,17 +102,28 @@ export default function ListingsPage() {
     setCurrentIndex(0);
   }, [locationParam, resetFiltersForLocation, setCurrentIndex]);
 
-  const handleSwipeRight = useCallback(() => {
-    if (!currentListing) return;
+  const handleSwipeRight = useCallback(async () => {
+    if (!currentListing) return false;
 
-    if (!favoriteIds.has(currentListing.id)) {
-      void handleFavorite(currentListing);
-    } else {
+    if (favoriteIds.has(currentListing.id)) {
       goNext();
+      return true;
     }
+
+    const result = await handleFavorite(currentListing);
+
+    if (!result.ok) {
+      return false;
+    }
+
+    goNext();
+    return true;
   }, [currentListing, favoriteIds, handleFavorite, goNext]);
 
-  const handleSwipeLeft = useCallback(() => goNext(), [goNext]);
+  const handleSwipeLeft = useCallback(() => {
+    goNext();
+    return true;
+  }, [goNext]);
 
   if (loading)
     return (
@@ -171,14 +186,32 @@ export default function ListingsPage() {
               </p>
             </div>
           ) : (
-            <ListingCard
-              listing={currentListing}
-              isFavorited={favoriteIds.has(currentListing.id)}
-              isSyncing={syncingIds.has(currentListing.id)}
-              onFavorite={handleFavorite}
-              onSwipeRight={handleSwipeRight}
-              onSwipeLeft={handleSwipeLeft}
-            />
+            <div className="relative">
+              {nextListing && (
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 z-0"
+                >
+                  <ListingCard
+                    key={`preview-${nextListing.id}`}
+                    listing={nextListing}
+                    interactive={false}
+                  />
+                </div>
+              )}
+
+              <div className="relative z-10">
+                <ListingCard
+                  key={currentListing.id}
+                  listing={currentListing}
+                  isFavorited={favoriteIds.has(currentListing.id)}
+                  isSyncing={syncingIds.has(currentListing.id)}
+                  onFavorite={handleFavorite}
+                  onSwipeRight={handleSwipeRight}
+                  onSwipeLeft={handleSwipeLeft}
+                />
+              </div>
+            </div>
           )}
 
           <ListingsPagination

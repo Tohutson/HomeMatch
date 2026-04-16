@@ -1,4 +1,5 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ListingsPage from "../pages/ListingsPage";
 import { FavoritesProvider } from "@/features/favorites/context/favorites-context";
@@ -304,6 +305,64 @@ describe("ListingsPage", () => {
         maxSqft: undefined,
         minEnergyStarScore: undefined,
       });
+    });
+  });
+
+  it("advances to the next listing after a successful right swipe", async () => {
+    jest.useFakeTimers();
+
+    const handleFavorite = jest.fn().mockResolvedValue({ ok: true });
+    const goNext = jest.fn();
+
+    mockUseListingsFavoriteWorkflow.mockReturnValue({
+      favoriteIds: new Set<number>(),
+      syncingIds: new Set<number>(),
+      handleFavorite,
+      handleUndo: jest.fn(),
+      handleRedo: jest.fn(),
+      canUndo: false,
+      canRedo: false,
+      undoVisible: false,
+      undoTimeLeft: 0,
+      showBanner: false,
+    });
+
+    mockUsePagedListingNavigation.mockReturnValue({
+      currentIndex: 0,
+      currentListing: listing,
+      isAtAbsoluteStart: true,
+      isAtAbsoluteEnd: false,
+      canGoPrevious: false,
+      canGoNext: true,
+      goNext,
+      goPrevious: jest.fn(),
+      setCurrentIndex: jest.fn(),
+    });
+
+    mockUseListings.mockReturnValue({
+      listings: [listing, { ...listing, id: 2, address: "40 Oak Ave" }],
+      totalPages: 1,
+      totalElements: 2,
+      loading: false,
+      error: null,
+    });
+
+    renderListingsPage();
+
+    const card = await screen.findByTestId("listing-card");
+
+    act(() => {
+      fireEvent.touchStart(card, { touches: [{ clientX: 0 }] });
+      fireEvent.touchEnd(card, { changedTouches: [{ clientX: 160 }] });
+    });
+
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
+
+    await waitFor(() => {
+      expect(handleFavorite).toHaveBeenCalledWith(listing);
+      expect(goNext).toHaveBeenCalledTimes(1);
     });
   });
 });
