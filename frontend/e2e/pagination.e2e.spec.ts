@@ -9,7 +9,7 @@ test.describe("Pagination end-to-end", () => {
   test("advances through listings and eventually reaches the next backend page", async ({
     page,
   }) => {
-    await page.goto("/");
+    await page.goto("/listings");
 
     const nextButton = page.getByTestId("pagination-next");
 
@@ -29,6 +29,7 @@ test.describe("Pagination end-to-end", () => {
     ];
 
     await expect(page.getByText(pageOneListings[0])).toBeVisible();
+    await expect(page.getByText("Page 1 of 2")).toBeVisible();
 
     for (let i = 1; i < pageOneListings.length; i++) {
       await nextButton.click();
@@ -40,5 +41,7 @@ test.describe("Pagination end-to-end", () => {
     await expect(page.getByText("Page 2 Listing A")).toBeVisible({
       timeout: 15000,
     });
+    await expect(page.getByText("Page 2 of 2")).toBeVisible();
+    await expect(nextButton).toBeDisabled();
   });
 });
