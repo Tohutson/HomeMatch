@@ -226,6 +226,21 @@ class ListingControllerTest {
     }
 
     @Test
+    void shouldReturnAvailableListingIds() throws Exception {
+        when(listingService.getAvailableListingIds(List.of(1L, 2L, 99L)))
+                .thenReturn(List.of(1L, 2L));
+
+        mockMvc.perform(get("/api/listings/availability")
+                        .param("ids", "1", "2", "99"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0]").value(1))
+                .andExpect(jsonPath("$[1]").value(2));
+
+        verify(listingService).getAvailableListingIds(List.of(1L, 2L, 99L));
+        verifyNoMoreInteractions(listingService);
+    }
+
+    @Test
     void shouldReturnNotFoundWhenListingDoesNotExist() throws Exception {
         when(listingService.getListingById(999L))
                 .thenThrow(new ListingNotFoundException(999L));

@@ -38,6 +38,11 @@ public class ListingController {
         return ResponseEntity.ok(listingService.getListingById(id));
     }
 
+    @GetMapping("/availability")
+    public List<Long> getAvailableListingIds(@RequestParam List<Long> ids) {
+        return listingService.getAvailableListingIds(ids);
+    }
+
     @GetMapping("/suggestions")
     public List<SearchSuggestionDTO> getSuggestions(@RequestParam String q, @RequestParam(defaultValue = "5") int limit) {
         return suggestionService.getSuggestions(q, limit);

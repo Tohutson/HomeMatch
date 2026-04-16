@@ -9,6 +9,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.Collection;
+import java.util.List;
+
 @Service
 public class ListingService {
 
@@ -30,5 +33,13 @@ public class ListingService {
         return listingRepository.findById(id)
                 .map(listingMapper::toDTO)
                 .orElseThrow(() -> new ListingNotFoundException(id));
+    }
+
+    public List<Long> getAvailableListingIds(Collection<Long> ids) {
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+
+        return listingRepository.findExistingIdsByIdIn(ids);
     }
 }
