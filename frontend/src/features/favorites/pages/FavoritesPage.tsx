@@ -120,7 +120,6 @@ export default function FavoritesPage() {
 
       recordAddedFavorite(favorite.listing);
       setConfirmDeleteId(null);
-      setToast("Removed from favorites");
     },
     [removeFavoriteFromPage, recordAddedFavorite],
   );
@@ -202,7 +201,7 @@ export default function FavoritesPage() {
                 disabled={!canUndo}
                 className="rounded-full bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
               >
-                Undo
+                {canUndo ? `Undo (${undoTimeLeft}s)` : "Undo"}
               </button>
               <button
                 onClick={() => void handleRedo()}

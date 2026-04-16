@@ -1,5 +1,6 @@
 type ListingsBannerProps = {
   show: boolean;
+  pendingFavorite: boolean;
   canUndo: boolean;
   canRedo: boolean;
   undoVisible: boolean;
@@ -10,6 +11,7 @@ type ListingsBannerProps = {
 
 export function ListingsBanner({
   show,
+  pendingFavorite,
   canUndo,
   canRedo,
   undoVisible,
@@ -25,7 +27,9 @@ export function ListingsBanner({
       data-testid="undo-redo-banner"
     >
       <div className="text-sm font-medium text-white/90">
-        {undoVisible ? (
+        {pendingFavorite ? (
+          <p>Saving favorite...</p>
+        ) : undoVisible ? (
           <p>Added to favorites. Undo available for {undoTimeLeft}s.</p>
         ) : canRedo ? (
           <p>Favorite removed. Redo is available.</p>

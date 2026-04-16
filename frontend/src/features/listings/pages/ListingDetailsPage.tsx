@@ -5,9 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { useParams } from "next/navigation";
 import Toast from "../../../components/Toast";
-import { useFavoritesContext } from "@/features/favorites/context/favorites-context";
-import { useFavoriteUndo } from "@/features/favorites/hooks/use-favorite-undo";
 import { useListingDetails } from "@/features/listings/hooks/use-listing-details";
+import { useListingsFavoriteWorkflow } from "@/features/favorites/hooks/use-listings-favorite-workflow";
 
 export default function ListingDetailsPage() {
   const params = useParams();
@@ -18,22 +17,20 @@ export default function ListingDetailsPage() {
 
   const { listing, loading, error, notFound } = useListingDetails({ id });
 
-  const { userId, isFavorited, addFavorite, removeFavorite } =
-    useFavoritesContext();
-
   const {
-    recordAddedFavorite,
+    isFavorited,
+    handleFavorite,
     handleUndo,
     handleRedo,
+    pendingFavorite,
     canUndo,
     canRedo,
     undoVisible,
     undoTimeLeft,
     showBanner,
-  } = useFavoriteUndo({
-    addFavorite,
-    removeFavorite,
+  } = useListingsFavoriteWorkflow({
     onToast: setToast,
+    onRequireLogin: () => setToast("Please log in to save favorites"),
   });
 
   const favorited = listing ? isFavorited(listing.id) : false;
@@ -80,35 +77,8 @@ export default function ListingDetailsPage() {
   }, [lightboxIndex, photoUrls]);
 
   const handleFavoriteToggle = async () => {
-    if (!listing || !userId) return;
-
-    if (favorited) {
-      const result = await removeFavorite(listing.id);
-
-      if (!result.ok) {
-        setToast("Unable to remove favorite. Please try again.");
-        return;
-      }
-
-      setToast("Removed from Favorites");
-      return;
-    }
-
-    const result = await addFavorite(listing.id);
-
-    if (!result.ok) {
-      if (result.reason === "already_exists") {
-        setToast("This home is already in your favorites");
-      } else if (result.reason === "missing_user") {
-        setToast("Please log in to save favorites");
-      } else {
-        setToast("Unable to save favorite. Please try again.");
-      }
-      return;
-    }
-
-    recordAddedFavorite(listing);
-    setToast("Added to Favorites");
+    if (!listing) return;
+    await handleFavorite(listing);
   };
 
   if (loading) {
@@ -186,31 +156,37 @@ export default function ListingDetailsPage() {
               data-testid="detail-undo-banner"
             >
               <span className="flex-1 text-sm font-medium text-white/90">
-                {undoVisible
-                  ? "Added to favorites."
+                {pendingFavorite
+                  ? "Saving favorite..."
+                  : undoVisible
+                    ? `Added to favorites. Undo available for ${undoTimeLeft}s.`
                   : canRedo
                     ? "Favorite removed."
                     : ""}
               </span>
 
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => void handleUndo()}
-                  disabled={!canUndo}
-                  className="rounded-full bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
-                  data-testid="detail-undo-button"
-                >
-                  {canUndo ? `Undo (${undoTimeLeft}s)` : "Undo"}
-                </button>
+                {undoVisible && (
+                  <button
+                    onClick={() => void handleUndo()}
+                    disabled={!canUndo}
+                    className="rounded-full bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+                    data-testid="detail-undo-button"
+                  >
+                    {canUndo ? `Undo (${undoTimeLeft}s)` : "Undo"}
+                  </button>
+                )}
 
-                <button
-                  onClick={() => void handleRedo()}
-                  disabled={!canRedo}
-                  className="rounded-full border border-white/20 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
-                  data-testid="detail-redo-button"
-                >
-                  Redo
-                </button>
+                {canRedo && (
+                  <button
+                    onClick={() => void handleRedo()}
+                    disabled={!canRedo}
+                    className="rounded-full border border-white/20 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                    data-testid="detail-redo-button"
+                  >
+                    Redo
+                  </button>
+                )}
               </div>
             </div>
           )}

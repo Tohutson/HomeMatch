@@ -69,11 +69,16 @@ describe("ListingsPage", () => {
     mockUseListingsFavoriteWorkflow.mockReturnValue({
       favoriteIds: new Set<number>(),
       syncingIds: new Set<number>(),
+      handleSwipeFavorite: jest.fn().mockReturnValue(true),
       handleFavorite: jest.fn(),
-      handleSwipeRight: jest.fn(),
-      handleSwipeLeft: jest.fn(),
       handleUndo: jest.fn(),
       handleRedo: jest.fn(),
+      pendingFavorite: false,
+      canUndo: false,
+      canRedo: false,
+      undoVisible: false,
+      undoTimeLeft: 0,
+      showBanner: false,
     });
 
     mockUsePagedListingNavigation.mockReturnValue({
@@ -339,15 +344,17 @@ describe("ListingsPage", () => {
   it("advances to the next listing after a successful right swipe", async () => {
     jest.useFakeTimers();
 
-    const handleFavorite = jest.fn().mockResolvedValue({ ok: true });
+    const handleSwipeFavorite = jest.fn().mockReturnValue(true);
     const goNext = jest.fn();
 
     mockUseListingsFavoriteWorkflow.mockReturnValue({
       favoriteIds: new Set<number>(),
       syncingIds: new Set<number>(),
-      handleFavorite,
+      handleSwipeFavorite,
+      handleFavorite: jest.fn(),
       handleUndo: jest.fn(),
       handleRedo: jest.fn(),
+      pendingFavorite: false,
       canUndo: false,
       canRedo: false,
       undoVisible: false,
@@ -389,7 +396,7 @@ describe("ListingsPage", () => {
     });
 
     await waitFor(() => {
-      expect(handleFavorite).toHaveBeenCalledWith(listing);
+      expect(handleSwipeFavorite).toHaveBeenCalledWith(listing);
       expect(goNext).toHaveBeenCalledTimes(1);
     });
   });

@@ -30,9 +30,11 @@ export default function ListingsPage() {
   const {
     favoriteIds,
     syncingIds,
+    handleSwipeFavorite,
     handleFavorite,
     handleUndo,
     handleRedo,
+    pendingFavorite,
     canUndo,
     canRedo,
     undoVisible,
@@ -111,15 +113,15 @@ export default function ListingsPage() {
       return true;
     }
 
-    const result = await handleFavorite(currentListing);
+    const accepted = handleSwipeFavorite(currentListing);
 
-    if (!result.ok) {
+    if (!accepted) {
       return false;
     }
 
     goNext();
     return true;
-  }, [currentListing, favoriteIds, handleFavorite, goNext]);
+  }, [currentListing, favoriteIds, handleSwipeFavorite, goNext]);
 
   const handleSwipeLeft = useCallback(() => {
     goNext();
@@ -156,6 +158,7 @@ export default function ListingsPage() {
 
       <ListingsBanner
         show={showBanner}
+        pendingFavorite={pendingFavorite}
         canUndo={canUndo}
         canRedo={canRedo}
         undoVisible={undoVisible}
