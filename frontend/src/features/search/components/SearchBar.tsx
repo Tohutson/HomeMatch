@@ -3,12 +3,21 @@
 import { getSearchSuggestions } from "@/features/search/api";
 import type { SearchSuggestion } from "@/features/search/types";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 
 const MIN_QUERY_LENGTH = 2;
 const DEBOUNCE_MS = 180;
 
-export default function SearchBar() {
+function SearchBarFallback() {
+  return (
+    <div
+      className="h-[50px] w-full rounded-full bg-white/70"
+      aria-hidden="true"
+    />
+  );
+}
+
+function SearchBarInner() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -290,5 +299,13 @@ export default function SearchBar() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function SearchBar() {
+  return (
+    <Suspense fallback={<SearchBarFallback />}>
+      <SearchBarInner />
+    </Suspense>
   );
 }

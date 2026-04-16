@@ -35,9 +35,12 @@ function normalizeSuggestion(
   }
 
   if (
-    explicitType === "zip" ||
-    explicitType === "zipcode" ||
-    (!listingId && zipCode)
+    zipCode &&
+    (
+      explicitType === "zip" ||
+      explicitType === "zipcode" ||
+      listingId === undefined
+    )
   ) {
     return {
       type: "zip",
