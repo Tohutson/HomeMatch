@@ -94,6 +94,8 @@ function ListingsPageContent({ locationParam }: { locationParam: string }) {
   const nextListing =
     currentIndex < listings.length - 1 ? listings[currentIndex + 1] : null;
   const isInitialLoading = loading && listings.length === 0;
+  const hasNoListings = listings.length === 0;
+  const hasExhaustedListings = listings.length > 0 && !currentListing;
 
   const handleClearFilters = useCallback(() => {
     setCurrentPage(0);
@@ -177,13 +179,22 @@ function ListingsPageContent({ locationParam }: { locationParam: string }) {
         />
 
         <div className="mx-auto w-full max-w-3xl">
-          {listings.length === 0 || !currentListing ? (
+          {hasNoListings ? (
             <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
               <h2 className="mb-2 text-xl font-semibold">
                 No homes found matching your criteria
               </h2>
               <p className="text-zinc-500">
                 Try changing or clearing your filters
+              </p>
+            </div>
+          ) : hasExhaustedListings ? (
+            <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
+              <h2 className="mb-2 text-xl font-semibold">
+                You&apos;ve reached the end of these matches
+              </h2>
+              <p className="text-zinc-500">
+                Try different filters or go back to revisit the last home.
               </p>
             </div>
           ) : (
@@ -233,7 +244,9 @@ function ListingsPageContent({ locationParam }: { locationParam: string }) {
           />
 
           <p className="mt-4 text-center text-sm text-zinc-400">
-            Swipe right to favorite · Swipe left to skip
+            {hasExhaustedListings
+              ? "Adjust your filters to discover more homes"
+              : "Swipe right to favorite · Swipe left to skip"}
           </p>
         </div>
       </div>

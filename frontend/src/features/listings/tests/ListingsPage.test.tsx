@@ -293,6 +293,40 @@ describe("ListingsPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows an end-of-results message after the last available listing is swiped away", async () => {
+    mockUsePagedListingNavigation.mockReturnValue({
+      currentIndex: 1,
+      currentListing: null,
+      isAtAbsoluteStart: false,
+      isAtAbsoluteEnd: true,
+      canGoPrevious: true,
+      canGoNext: false,
+      goNext: jest.fn(),
+      goPrevious: jest.fn(),
+      setCurrentIndex: jest.fn(),
+    });
+
+    mockUseListings.mockReturnValue({
+      listings: [listing],
+      totalPages: 1,
+      totalElements: 1,
+      loading: false,
+      error: null,
+    });
+
+    renderListingsPage();
+
+    expect(
+      await screen.findByText(/you've reached the end of these matches/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/try different filters or go back to revisit the last home/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/adjust your filters to discover more homes/i)
+    ).toBeInTheDocument();
+  });
+
   it("applies the location from the URL search params", async () => {
     mockSearchParamsGet.mockImplementation((key: string) =>
       key === "location" ? "Pittsburgh" : null

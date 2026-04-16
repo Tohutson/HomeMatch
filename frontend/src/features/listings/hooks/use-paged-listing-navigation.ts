@@ -29,16 +29,21 @@ export function usePagedListingNavigation({
   loading = false,
 }: UsePagedListingNavigationParams): UsePagedListingNavigationResult {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const isExhausted = listings.length > 0 && currentIndex === listings.length;
   const resolvedCurrentIndex = useMemo(() => {
     if (listings.length === 0) {
       return 0;
     }
 
+    if (isExhausted) {
+      return listings.length;
+    }
+
     return Math.min(Math.max(currentIndex, 0), listings.length - 1);
-  }, [currentIndex, listings.length]);
+  }, [currentIndex, isExhausted, listings.length]);
 
   const currentListing = useMemo(() => {
-    if (listings.length === 0) return null;
+    if (listings.length === 0 || resolvedCurrentIndex >= listings.length) return null;
     return listings[resolvedCurrentIndex] ?? null;
   }, [listings, resolvedCurrentIndex]);
 
@@ -46,7 +51,7 @@ export function usePagedListingNavigation({
   const isAtAbsoluteEnd =
     totalPages === 0 ||
     (currentPage === totalPages - 1 &&
-      resolvedCurrentIndex === Math.max(listings.length - 1, 0));
+      (isExhausted || resolvedCurrentIndex === Math.max(listings.length - 1, 0)));
 
   const canGoPrevious = !loading && !isAtAbsoluteStart;
   const canGoNext = !loading && !isAtAbsoluteEnd;
@@ -62,11 +67,21 @@ export function usePagedListingNavigation({
     if (currentPage < totalPages - 1) {
       setCurrentIndex(0);
       onPageChange(currentPage + 1);
+      return;
+    }
+
+    if (listings.length > 0) {
+      setCurrentIndex(listings.length);
     }
   }
 
   function goPrevious() {
     if (loading) return;
+
+    if (isExhausted && listings.length > 0) {
+      setCurrentIndex(listings.length - 1);
+      return;
+    }
 
     if (resolvedCurrentIndex > 0) {
       setCurrentIndex(resolvedCurrentIndex - 1);
