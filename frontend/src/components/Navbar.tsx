@@ -8,7 +8,7 @@ export default function Navbar() {
   const { favoriteCount } = useFavoritesContext();
 
   return (
-    <nav className="w-full border-b border-sky-200/70 bg-linear-to-r from-sky-100 via-cyan-50 to-white shadow-[0_10px_35px_rgba(14,116,144,0.08)] backdrop-blur">
+    <nav className="relative z-40 w-full border-b border-sky-200/70 bg-linear-to-r from-sky-100 via-cyan-50 to-white shadow-[0_10px_35px_rgba(14,116,144,0.08)] backdrop-blur">
       <div className="flex min-h-18 w-full items-center justify-between gap-4 px-6 py-3 md:px-8">
         {/* Left: Logo */}
         <Link
