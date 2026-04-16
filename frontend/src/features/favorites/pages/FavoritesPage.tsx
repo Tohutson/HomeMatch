@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Toast from "@/components/Toast";
@@ -18,6 +18,8 @@ export default function FavoritesPage() {
   const [sortOption, setSortOption] = useState<SortOption>("date_desc");
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [unavailableIds, setUnavailableIds] = useState<Set<number>>(new Set());
+  const [displayFavorites, setDisplayFavorites] = useState<FavoriteRecord[]>([]);
+  const removedFavoritesRef = useRef<Map<number, FavoriteRecord>>(new Map());
   const {
     userId,
     addFavorite: addFavoriteRequest,
@@ -28,12 +30,19 @@ export default function FavoritesPage() {
     userId,
   });
 
+  useEffect(() => {
+    setDisplayFavorites(favorites);
+  }, [favorites]);
+
   const removeFavoriteFromPage = useCallback(
     async (listingId: number) => {
       const result = await removeFavoriteRequest(listingId);
 
       if (result.ok) {
-        await refetchFavorites();
+        setDisplayFavorites((current) =>
+          current.filter((favorite) => favorite.listing.id !== listingId),
+        );
+        void refetchFavorites({ background: true });
         setUnavailableIds((prev) => {
           const next = new Set(prev);
           next.delete(listingId);
@@ -51,7 +60,20 @@ export default function FavoritesPage() {
       const result = await addFavoriteRequest(listingId);
 
       if (result.ok) {
-        await refetchFavorites();
+        const removedFavorite = removedFavoritesRef.current.get(listingId);
+
+        if (removedFavorite) {
+          setDisplayFavorites((current) => {
+            if (current.some((favorite) => favorite.listing.id === listingId)) {
+              return current;
+            }
+
+            return [removedFavorite, ...current];
+          });
+          removedFavoritesRef.current.delete(listingId);
+        }
+
+        void refetchFavorites({ background: true });
       }
 
       return result;
@@ -105,8 +127,8 @@ export default function FavoritesPage() {
   }, []);
 
   useEffect(() => {
-    void checkAvailability(favorites);
-  }, [favorites, checkAvailability]);
+    void checkAvailability(displayFavorites);
+  }, [displayFavorites, checkAvailability]);
 
   const handleRemove = useCallback(
     async (favorite: FavoriteRecord) => {
@@ -118,6 +140,7 @@ export default function FavoritesPage() {
         return;
       }
 
+      removedFavoritesRef.current.set(favorite.listing.id, favorite);
       recordAddedFavorite(favorite.listing);
       setConfirmDeleteId(null);
     },
@@ -125,7 +148,7 @@ export default function FavoritesPage() {
   );
 
   const sortedFavorites = useMemo(() => {
-    const next = [...favorites];
+    const next = [...displayFavorites];
 
     next.sort((a, b) => {
       switch (sortOption) {
@@ -145,9 +168,9 @@ export default function FavoritesPage() {
     });
 
     return next;
-  }, [favorites, sortOption]);
+  }, [displayFavorites, sortOption]);
 
-  if (loading) {
+  if (loading && displayFavorites.length === 0) {
     return (
       <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(186,230,253,0.7),_transparent_34%),linear-gradient(180deg,_#f8fafc_0%,_#eef2ff_100%)] px-6 py-10 text-slate-950 md:px-8">
         <div className="mx-auto max-w-7xl rounded-[36px] border border-white/75 bg-white/75 p-8 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur">
@@ -162,7 +185,7 @@ export default function FavoritesPage() {
     );
   }
 
-  if (error) {
+  if (error && displayFavorites.length === 0) {
     return (
       <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(186,230,253,0.7),_transparent_34%),linear-gradient(180deg,_#f8fafc_0%,_#eef2ff_100%)] px-6 py-10 text-slate-950 md:px-8">
         <div className="mx-auto max-w-4xl rounded-[36px] border border-white/75 bg-white/80 p-8 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur">
@@ -238,8 +261,8 @@ export default function FavoritesPage() {
 
             <div className="flex flex-wrap items-center gap-3">
               <div className="rounded-full bg-rose-50 px-4 py-2 text-sm font-medium text-rose-600">
-                {favorites.length} saved{" "}
-                {favorites.length === 1 ? "home" : "homes"}
+                {displayFavorites.length} saved{" "}
+                {displayFavorites.length === 1 ? "home" : "homes"}
               </div>
 
               <label className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 shadow-sm">
@@ -259,7 +282,7 @@ export default function FavoritesPage() {
             </div>
           </div>
 
-          {favorites.length === 0 ? (
+          {displayFavorites.length === 0 ? (
             <div className="mt-8 rounded-[32px] border border-dashed border-slate-300 bg-slate-50/90 px-6 py-16 text-center">
               <p className="text-sm font-medium uppercase tracking-[0.24em] text-slate-400">
                 Nothing saved yet

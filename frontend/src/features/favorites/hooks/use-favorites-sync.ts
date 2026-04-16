@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { flushOfflineQueue, getOfflineQueue } from "@/lib/offline-queue";
+import type { RefetchFavoritesOptions } from "./use-favorite-listings";
 
 type UseFavoritesSyncParams = {
-  refetchFavorites: () => Promise<void>;
+  refetchFavorites: (options?: RefetchFavoritesOptions) => Promise<void>;
   onToast?: (message: string) => void;
 };
 
@@ -33,7 +34,7 @@ export function useFavoritesSync({
       setSyncingIds(new Set(queue.map((item) => item.listingId)));
 
       const syncedCount = await flushOfflineQueue();
-      await refetchFavorites();
+      await refetchFavorites({ background: true });
 
       setSyncingIds(new Set());
 

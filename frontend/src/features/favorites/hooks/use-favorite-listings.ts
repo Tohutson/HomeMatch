@@ -6,11 +6,15 @@ type UseFavoriteListingsParams = {
   userId: number | null;
 };
 
+export type RefetchFavoritesOptions = {
+  background?: boolean;
+};
+
 type UseFavoriteListingsResult = {
   favorites: FavoriteRecord[];
   loading: boolean;
   error: string | null;
-  refetchFavorites: () => Promise<void>;
+  refetchFavorites: (options?: RefetchFavoritesOptions) => Promise<void>;
 };
 
 export function useFavoriteListings({
@@ -20,28 +24,38 @@ export function useFavoriteListings({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const refetchFavorites = useCallback(async () => {
-    if (!userId || userId <= 0) {
-      setFavorites([]);
-      setError(null);
-      setLoading(false);
-      return;
-    }
+  const refetchFavorites = useCallback(
+    async ({ background = false }: RefetchFavoritesOptions = {}) => {
+      if (!userId || userId <= 0) {
+        setFavorites([]);
+        setError(null);
+        setLoading(false);
+        return;
+      }
 
-    try {
-      setLoading(true);
-      setError(null);
+      try {
+        if (!background) {
+          setLoading(true);
+          setError(null);
+        }
 
-      const data = await getFavorites(userId);
-      setFavorites(data);
-    } catch (err) {
-      console.error("Failed to fetch favorites:", err);
-      setFavorites([]);
-      setError("Failed to load favorites");
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
+        const data = await getFavorites(userId);
+        setFavorites(data);
+        setError(null);
+      } catch (err) {
+        console.error("Failed to fetch favorites:", err);
+        if (!background) {
+          setFavorites([]);
+          setError("Failed to load favorites");
+        }
+      } finally {
+        if (!background) {
+          setLoading(false);
+        }
+      }
+    },
+    [userId],
+  );
 
   useEffect(() => {
     void refetchFavorites();
