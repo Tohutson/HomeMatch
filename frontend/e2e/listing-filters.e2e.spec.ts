@@ -25,6 +25,7 @@ test.describe("Listing filters end-to-end", () => {
     await page.getByRole("button", { name: /apply filters/i }).click();
 
     await expect(page.getByText("Small House")).toBeVisible();
+    await expect(page.getByText("Large House")).toHaveCount(0);
     await expect(page.getByText("Page 1 of 1")).toBeVisible();
     await expect(nextButton).toBeDisabled();
   });
@@ -42,6 +43,7 @@ test.describe("Listing filters end-to-end", () => {
     await page.getByRole("button", { name: /apply filters/i }).click();
 
     await expect(page.getByText("Small House")).toBeVisible();
+    await expect(page.getByText("Large House")).toHaveCount(0);
     await expect(nextButton).toBeDisabled();
 
     await page.getByRole("button", { name: /clear/i }).click();
