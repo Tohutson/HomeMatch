@@ -148,7 +148,7 @@ export default function ListingsPage() {
         onRedo={handleRedo}
       />
 
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start">
         <ListingFilters
           filters={draftFilters}
           onFilterChange={updateDraftFilter}
@@ -159,41 +159,41 @@ export default function ListingsPage() {
           isClearDisabled={isClearDisabled}
           matchCount={totalElements}
         />
-      </div>
 
-      <div className="mx-auto max-w-2xl">
-        {listings.length === 0 || !currentListing ? (
-          <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
-            <h2 className="mb-2 text-xl font-semibold">
-              No homes found matching your criteria
-            </h2>
-            <p className="text-zinc-500">
-              Try changing or clearing your filters
-            </p>
-          </div>
-        ) : (
-          <ListingCard
-            listing={currentListing}
-            isFavorited={favoriteIds.has(currentListing.id)}
-            isSyncing={syncingIds.has(currentListing.id)}
-            onFavorite={handleFavorite}
-            onSwipeRight={handleSwipeRight}
-            onSwipeLeft={handleSwipeLeft}
+        <div className="mx-auto w-full max-w-3xl">
+          {listings.length === 0 || !currentListing ? (
+            <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
+              <h2 className="mb-2 text-xl font-semibold">
+                No homes found matching your criteria
+              </h2>
+              <p className="text-zinc-500">
+                Try changing or clearing your filters
+              </p>
+            </div>
+          ) : (
+            <ListingCard
+              listing={currentListing}
+              isFavorited={favoriteIds.has(currentListing.id)}
+              isSyncing={syncingIds.has(currentListing.id)}
+              onFavorite={handleFavorite}
+              onSwipeRight={handleSwipeRight}
+              onSwipeLeft={handleSwipeLeft}
+            />
+          )}
+
+          <ListingsPagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            canGoPrevious={canGoPrevious}
+            canGoNext={canGoNext}
+            onPrevious={goPrevious}
+            onNext={goNext}
           />
-        )}
 
-        <ListingsPagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          canGoPrevious={canGoPrevious}
-          canGoNext={canGoNext}
-          onPrevious={goPrevious}
-          onNext={goNext}
-        />
-
-        <p className="mt-4 text-center text-sm text-zinc-400">
-          Swipe right to favorite · Swipe left to skip
-        </p>
+          <p className="mt-4 text-center text-sm text-zinc-400">
+            Swipe right to favorite · Swipe left to skip
+          </p>
+        </div>
       </div>
     </main>
   );
