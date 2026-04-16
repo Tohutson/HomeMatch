@@ -11,7 +11,7 @@ type ListingCardProps = {
   isFavorited?: boolean;
   isSyncing?: boolean;
   interactive?: boolean;
-  onFavorite?: (listing: Listing) => void | Promise<void>;
+  onFavorite?: (listing: Listing) => unknown;
   onSwipeRight?: () => boolean | Promise<boolean>;
   onSwipeLeft?: () => boolean | Promise<boolean>;
 };
