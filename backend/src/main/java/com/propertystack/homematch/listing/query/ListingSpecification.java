@@ -16,6 +16,7 @@ public class ListingSpecification {
                 .and(minBeds(filter.minBeds()))
                 .and(minBaths(filter.minBaths()))
                 .and(minSqft(filter.minSqft()))
+                .and(maxSqft(filter.maxSqft()))
                 .and(minEnergyStarScore(filter.minEnergyStarScore()));
     }
 
@@ -65,6 +66,11 @@ public class ListingSpecification {
     private static Specification<Listing> minSqft(Integer minSqft) {
         return (root, query, cb) ->
                 minSqft == null ? null : cb.greaterThanOrEqualTo(root.get("sqft"), minSqft);
+    }
+
+    private static Specification<Listing> maxSqft(Integer maxSqft) {
+        return (root, query, cb) ->
+                maxSqft == null ? null : cb.lessThanOrEqualTo(root.get("sqft"), maxSqft);
     }
 
     private static Specification<Listing> minEnergyStarScore(Integer minEnergyStarScore) {
