@@ -152,10 +152,10 @@ export default function ListingDetailsPage() {
         <div className="mx-auto max-w-6xl">
           {showBanner && (
             <div
-              className="mb-6 flex flex-wrap items-center gap-3 rounded-[28px] border border-slate-900/10 bg-slate-900 px-5 py-4 text-white shadow-[0_18px_50px_rgba(15,23,42,0.18)]"
+              className="fixed top-24 left-1/2 z-50 grid w-[min(88vw,40rem)] -translate-x-1/2 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[24px] border border-white/10 bg-slate-900/72 px-4 py-3 text-white shadow-[0_18px_50px_rgba(15,23,42,0.18)] backdrop-blur-md animate-banner-fade-in"
               data-testid="detail-undo-banner"
             >
-              <span className="flex-1 text-sm font-medium text-white/90">
+              <span className="min-w-0 text-sm font-medium text-white/90">
                 {pendingFavorite
                   ? "Saving favorite..."
                   : undoVisible
@@ -165,12 +165,12 @@ export default function ListingDetailsPage() {
                     : ""}
               </span>
 
-              <div className="flex items-center gap-2">
+              <div className="flex min-h-10 min-w-[8.5rem] items-center justify-end gap-2">
                 {undoVisible && (
                   <button
                     onClick={() => void handleUndo()}
                     disabled={!canUndo}
-                    className="rounded-full bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="rounded-full bg-white px-3 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
                     data-testid="detail-undo-button"
                   >
                     {canUndo ? `Undo (${undoTimeLeft}s)` : "Undo"}
@@ -181,7 +181,7 @@ export default function ListingDetailsPage() {
                   <button
                     onClick={() => void handleRedo()}
                     disabled={!canRedo}
-                    className="rounded-full border border-white/20 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="rounded-full border border-white/20 px-3 py-2 text-sm font-medium text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
                     data-testid="detail-redo-button"
                   >
                     Redo
