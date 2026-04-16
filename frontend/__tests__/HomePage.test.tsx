@@ -5,6 +5,7 @@ import { FavoritesProvider } from "../src/features/favorites/context/favorites-c
 
 jest.mock("../src/lib/userId", () => ({
   getOrCreateUserId: jest.fn().mockResolvedValue(1),
+  getStoredUserId: jest.fn().mockReturnValue(null),
 }));
 
 jest.mock("../src/features/search/components/SearchBar", () => ({
@@ -13,10 +14,6 @@ jest.mock("../src/features/search/components/SearchBar", () => ({
 }));
 
 async function renderHomePage() {
-  const { getOrCreateUserId } = jest.requireMock("../src/lib/userId") as {
-    getOrCreateUserId: jest.Mock;
-  };
-
   render(
     <FavoritesProvider>
       <Navbar />
@@ -25,7 +22,7 @@ async function renderHomePage() {
   );
 
   await waitFor(() => {
-    expect(getOrCreateUserId).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("HomeMatch, where your dream home is a swipe away.")).toBeInTheDocument();
   });
 }
 

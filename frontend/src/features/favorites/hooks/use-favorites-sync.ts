@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { flushOfflineQueue, getOfflineQueue } from "@/lib/offline-queue";
-import type { RefetchFavoritesOptions } from "./use-favorite-listings";
+import type { RefetchFavoritesOptions } from "./use-favorites";
 
 type UseFavoritesSyncParams = {
   refetchFavorites: (options?: RefetchFavoritesOptions) => Promise<void>;

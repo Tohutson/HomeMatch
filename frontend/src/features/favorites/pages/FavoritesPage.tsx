@@ -1,15 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Toast from "@/components/Toast";
 import { useFavoritesContext } from "@/features/favorites/context/favorites-context";
 import { useFavoriteUndo } from "@/features/favorites/hooks/use-favorite-undo";
 import { useFavoritesSync } from "@/features/favorites/hooks/use-favorites-sync";
-import { useFavoriteListings } from "../hooks/use-favorite-listings";
 import { FavoriteRecord } from "../types";
-import { API_BASE } from "@/lib/env";
+import { useListingAvailability } from "@/features/listings/hooks/use-listing-availability";
 
 type SortOption = "date_desc" | "date_asc" | "price_asc" | "price_desc";
 
@@ -17,68 +16,24 @@ export default function FavoritesPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [sortOption, setSortOption] = useState<SortOption>("date_desc");
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
-  const [unavailableIds, setUnavailableIds] = useState<Set<number>>(new Set());
-  const [displayFavorites, setDisplayFavorites] = useState<FavoriteRecord[]>([]);
-  const removedFavoritesRef = useRef<Map<number, FavoriteRecord>>(new Map());
   const {
-    userId,
+    favorites,
+    loading,
+    error,
+    isUserReady,
     addFavorite: addFavoriteRequest,
     removeFavorite: removeFavoriteRequest,
+    refetchFavorites,
   } = useFavoritesContext();
 
-  const { favorites, loading, error, refetchFavorites } = useFavoriteListings({
-    userId,
-  });
-
-  useEffect(() => {
-    setDisplayFavorites(favorites);
-  }, [favorites]);
-
   const removeFavoriteFromPage = useCallback(
-    async (listingId: number) => {
-      const result = await removeFavoriteRequest(listingId);
-
-      if (result.ok) {
-        setDisplayFavorites((current) =>
-          current.filter((favorite) => favorite.listing.id !== listingId),
-        );
-        void refetchFavorites({ background: true });
-        setUnavailableIds((prev) => {
-          const next = new Set(prev);
-          next.delete(listingId);
-          return next;
-        });
-      }
-
-      return result;
-    },
-    [removeFavoriteRequest, refetchFavorites],
+    (listingId: number) => removeFavoriteRequest(listingId),
+    [removeFavoriteRequest]
   );
 
   const restoreFavoriteToPage = useCallback(
-    async (listingId: number) => {
-      const result = await addFavoriteRequest(listingId);
-
-      if (result.ok) {
-        const removedFavorite = removedFavoritesRef.current.get(listingId);
-
-        if (removedFavorite) {
-          setDisplayFavorites((current) => {
-            if (current.some((favorite) => favorite.listing.id === listingId)) {
-              return current;
-            }
-
-            return [removedFavorite, ...current];
-          });
-          removedFavoritesRef.current.delete(listingId);
-        }
-
-        void refetchFavorites({ background: true });
-      }
-
-      return result;
-    },
-    [addFavoriteRequest, refetchFavorites],
+    (listingId: number) => addFavoriteRequest(listingId),
+    [addFavoriteRequest]
   );
 
   const {
@@ -99,36 +54,9 @@ export default function FavoritesPage() {
     refetchFavorites,
     onToast: setToast,
   });
-
-  const checkAvailability = useCallback(async (favs: FavoriteRecord[]) => {
-    if (favs.length === 0) {
-      setUnavailableIds(new Set());
-      return;
-    }
-
-    try {
-      const results = await Promise.all(
-        favs.map(async (fav) => {
-          const res = await fetch(`${API_BASE}/api/listings/${fav.listing.id}`);
-          return { id: fav.listing.id, available: res.ok };
-        }),
-      );
-
-      setUnavailableIds(
-        new Set(
-          results
-            .filter((result) => !result.available)
-            .map((result) => result.id),
-        ),
-      );
-    } catch (availabilityError) {
-      console.error("Failed to check listing availability:", availabilityError);
-    }
-  }, []);
-
-  useEffect(() => {
-    void checkAvailability(displayFavorites);
-  }, [displayFavorites, checkAvailability]);
+  const { unavailableIds } = useListingAvailability(
+    favorites.map((favorite) => favorite.listing.id)
+  );
 
   const handleRemove = useCallback(
     async (favorite: FavoriteRecord) => {
@@ -140,7 +68,6 @@ export default function FavoritesPage() {
         return;
       }
 
-      removedFavoritesRef.current.set(favorite.listing.id, favorite);
       recordAddedFavorite(favorite.listing);
       setConfirmDeleteId(null);
     },
@@ -148,7 +75,7 @@ export default function FavoritesPage() {
   );
 
   const sortedFavorites = useMemo(() => {
-    const next = [...displayFavorites];
+    const next = [...favorites];
 
     next.sort((a, b) => {
       switch (sortOption) {
@@ -168,9 +95,9 @@ export default function FavoritesPage() {
     });
 
     return next;
-  }, [displayFavorites, sortOption]);
+  }, [favorites, sortOption]);
 
-  if (loading && displayFavorites.length === 0) {
+  if ((!isUserReady || loading) && favorites.length === 0) {
     return (
       <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(186,230,253,0.7),_transparent_34%),linear-gradient(180deg,_#f8fafc_0%,_#eef2ff_100%)] px-6 py-10 text-slate-950 md:px-8">
         <div className="mx-auto max-w-7xl rounded-[36px] border border-white/75 bg-white/75 p-8 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur">
@@ -185,7 +112,7 @@ export default function FavoritesPage() {
     );
   }
 
-  if (error && displayFavorites.length === 0) {
+  if (error && favorites.length === 0) {
     return (
       <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(186,230,253,0.7),_transparent_34%),linear-gradient(180deg,_#f8fafc_0%,_#eef2ff_100%)] px-6 py-10 text-slate-950 md:px-8">
         <div className="mx-auto max-w-4xl rounded-[36px] border border-white/75 bg-white/80 p-8 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur">
@@ -261,8 +188,7 @@ export default function FavoritesPage() {
 
             <div className="flex flex-wrap items-center gap-3">
               <div className="rounded-full bg-rose-50 px-4 py-2 text-sm font-medium text-rose-600">
-                {displayFavorites.length} saved{" "}
-                {displayFavorites.length === 1 ? "home" : "homes"}
+                {favorites.length} saved {favorites.length === 1 ? "home" : "homes"}
               </div>
 
               <label className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 shadow-sm">
@@ -282,7 +208,7 @@ export default function FavoritesPage() {
             </div>
           </div>
 
-          {displayFavorites.length === 0 ? (
+          {favorites.length === 0 ? (
             <div className="mt-8 rounded-[32px] border border-dashed border-slate-300 bg-slate-50/90 px-6 py-16 text-center">
               <p className="text-sm font-medium uppercase tracking-[0.24em] text-slate-400">
                 Nothing saved yet
