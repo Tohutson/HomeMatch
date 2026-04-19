@@ -39,3 +39,23 @@ export type DraftListingFilters = {
   maxSqft: string;
   minEnergyStarScore: string;
 };
+
+export type ListingSortOption =
+  | "PRICE_ASC"
+  | "PRICE_DESC"
+  | "SIZE_ASC"
+  | "SIZE_DESC"
+  | "ENERGY_ASC"
+  | "ENERGY_DESC";
+
+export const LISTING_SORT_OPTIONS: Array<{
+  value: ListingSortOption;
+  label: string;
+}> = [
+  { value: "PRICE_ASC", label: "Price: Low to High" },
+  { value: "PRICE_DESC", label: "Price: High to Low" },
+  { value: "SIZE_ASC", label: "Size: Small to Large" },
+  { value: "SIZE_DESC", label: "Size: Large to Small" },
+  { value: "ENERGY_ASC", label: "Energy Score: Low to High" },
+  { value: "ENERGY_DESC", label: "Energy Score: High to Low" },
+];

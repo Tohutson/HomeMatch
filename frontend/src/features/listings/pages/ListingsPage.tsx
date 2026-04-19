@@ -3,36 +3,110 @@
 import NotLoggedInModal from "@/components/NotLoggedInModal";
 import Toast from "@/components/Toast";
 import ListingCard from "@/features/listings/components/listing-card";
+import { useCallback, useMemo, useState, type ChangeEvent } from "react";
 import ListingFilters from "../components/listing-filters";
-import { useCallback, useState } from "react";
 
 import { ListingsBanner } from "@/features/listings/components/listings-banner";
 import { ListingsPagination } from "@/features/listings/components/listings-pagination";
 
 import { useFavoritesContext } from "@/features/favorites/context/favorites-context";
 import { useListingsFavoriteWorkflow } from "@/features/favorites/hooks/use-listings-favorite-workflow";
-import { useListingFilters } from "../hooks/use-listing-filters";
 import { useListings } from "@/features/listings/hooks/use-listings";
 import { usePagedListingNavigation } from "@/features/listings/hooks/use-paged-listing-navigation";
+import { type Listing, type ListingSortOption } from "@/features/listings/types";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useListingFilters } from "../hooks/use-listing-filters";
 
 const PAGE_SIZE = 12;
 
-export default function ListingsPage() {
-  const locationParam = useSearchParams()?.get("location") ?? "";
+function compareNullableNumbers(
+  a: number | null | undefined,
+  b: number | null | undefined,
+  direction: "asc" | "desc"
+) {
+  const aMissing = a === null || a === undefined;
+  const bMissing = b === null || b === undefined;
 
+  if (aMissing && bMissing) return 0;
+  if (aMissing) return 1;
+  if (bMissing) return -1;
+
+  return direction === "asc" ? a - b : b - a;
+}
+
+function sortListings(
+  listings: Listing[],
+  sort: ListingSortOption | null
+): Listing[] {
+  if (!sort) {
+    return listings;
+  }
+
+  const sorted = [...listings];
+
+  sorted.sort((a, b) => {
+    switch (sort) {
+      case "PRICE_ASC":
+        return compareNullableNumbers(a.price, b.price, "asc");
+      case "PRICE_DESC":
+        return compareNullableNumbers(a.price, b.price, "desc");
+      case "SIZE_ASC":
+        return compareNullableNumbers(a.sqft, b.sqft, "asc");
+      case "SIZE_DESC":
+        return compareNullableNumbers(a.sqft, b.sqft, "desc");
+      case "ENERGY_ASC":
+        return compareNullableNumbers(a.energyStarScore,b.energyStarScore,"asc");
+      case "ENERGY_DESC":
+        return compareNullableNumbers(a.energyStarScore,b.energyStarScore,"desc");
+      default:
+        return 0;
+    }
+  });
+
+  return sorted;
+}
+
+function isListingSortOption(value: string | null): value is ListingSortOption {
   return (
-    <ListingsPageContent key={locationParam} locationParam={locationParam} />
+    value === "PRICE_ASC" ||
+    value === "PRICE_DESC" ||
+    value === "SIZE_ASC" ||
+    value === "SIZE_DESC" ||
+    value === "ENERGY_ASC" ||
+    value === "ENERGY_DESC"
   );
 }
 
-function ListingsPageContent({ locationParam }: { locationParam: string }) {
+export default function ListingsPage() {
+  const searchParams = useSearchParams();
+  const locationParam = searchParams?.get("location") ?? "";
+  const rawSortParam = searchParams?.get("sort") ?? null;
+  const initialSort = isListingSortOption(rawSortParam) ? rawSortParam : null;
+
+  return (
+    <ListingsPageContent
+      key={locationParam}
+      locationParam={locationParam}
+      initialSort={initialSort}
+    />
+  );
+}
+
+function ListingsPageContent({
+  locationParam,
+  initialSort,
+}: {
+  locationParam: string;
+  initialSort: ListingSortOption | null;
+}) {
   const [currentPage, setCurrentPage] = useState(0);
+  const [sort, setSort] = useState<ListingSortOption | null>(initialSort);
   const [toast, setToast] = useState<string | null>(null);
   const [showNotLoggedIn, setShowNotLoggedIn] = useState(false);
   const { ensureUserId } = useFavoritesContext();
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const {
     favoriteIds,
@@ -67,7 +141,23 @@ function ListingsPageContent({ locationParam }: { locationParam: string }) {
     page: currentPage,
     size: PAGE_SIZE,
     filters: appliedFilters,
+    sort,
   });
+
+  const sortedListings = useMemo(() => {
+    const result = sortListings(listings, sort);
+    console.log(
+      "SORT:",
+      sort,
+      result.map((listing) => ({
+        id: listing.id,
+        price: listing.price,
+        sqft: listing.sqft,
+        energy: listing.energyStarScore,
+      }))
+    );
+    return result;
+  }, [listings, sort]);
 
   const {
     currentIndex,
@@ -78,7 +168,7 @@ function ListingsPageContent({ locationParam }: { locationParam: string }) {
     goPrevious,
     setCurrentIndex,
   } = usePagedListingNavigation({
-    listings,
+    listings: sortedListings,
     currentPage,
     totalPages,
     onPageChange: setCurrentPage,
@@ -91,18 +181,48 @@ function ListingsPageContent({ locationParam }: { locationParam: string }) {
     applyFilters();
   }, [applyFilters, setCurrentIndex]);
 
+  const handleSortChange = useCallback(
+    (event: ChangeEvent<HTMLSelectElement>) => {
+      const value = event.target.value as ListingSortOption | "";
+      const nextSort = value === "" ? null : value;
+  
+      setSort(nextSort);
+      setCurrentPage(0);
+      setCurrentIndex(0);
+  
+      const params = new URLSearchParams(searchParams?.toString() ?? "");
+  
+      if (nextSort) {
+        params.set("sort", nextSort);
+      } else {
+        params.delete("sort");
+      }
+  
+      const query = params.toString();
+      router.replace(query ? `${pathname}?${query}` : (pathname ?? "/listings"));
+    },
+    [pathname, router, searchParams, setCurrentIndex]
+  );
+
   const nextListing =
-    currentIndex < listings.length - 1 ? listings[currentIndex + 1] : null;
-  const isInitialLoading = loading && listings.length === 0;
-  const hasNoListings = listings.length === 0;
-  const hasExhaustedListings = listings.length > 0 && !currentListing;
+    currentIndex < sortedListings.length - 1 ? sortedListings[currentIndex + 1] : null;
+  const isInitialLoading = loading && sortedListings.length === 0;
+  const hasNoListings = sortedListings.length === 0;
+  const hasExhaustedListings = sortedListings.length > 0 && !currentListing;
 
   const handleClearFilters = useCallback(() => {
     setCurrentPage(0);
     setCurrentIndex(0);
+    setSort(null);
     clearFilters();
-    router.replace(pathname ?? "/listings");
-  }, [clearFilters, pathname, router, setCurrentIndex]);
+  
+    const params = new URLSearchParams(searchParams?.toString() ?? "");
+    params.delete("sort");
+    params.delete("location");
+  
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : (pathname ?? "/listings"));
+  }, [clearFilters, pathname, router, searchParams, setCurrentIndex]);
 
   const handleSwipeRight = useCallback(async () => {
     if (!currentListing) return false;
@@ -179,6 +299,26 @@ function ListingsPageContent({ locationParam }: { locationParam: string }) {
         />
 
         <div className="mx-auto w-full max-w-3xl">
+        <div className="mb-4 flex items-center justify-end">
+            <label htmlFor="listing-sort" className="mr-3 text-sm font-medium text-zinc-700">
+              Sort by
+            </label>
+            <select
+              id="listing-sort"
+              value={sort ?? ""}
+              onChange={handleSortChange}
+              className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm"
+            >
+              <option value="">Recommended</option>
+              <option value="PRICE_ASC">Price: Low to High</option>
+              <option value="PRICE_DESC">Price: High to Low</option>
+              <option value="SIZE_ASC">Size: Small to Large</option>
+              <option value="SIZE_DESC">Size: Large to Small</option>
+              <option value="ENERGY_ASC">Energy Score: Low to High</option>
+              <option value="ENERGY_DESC">Energy Score: High to Low</option>
+            </select>
+          </div>
+          
           {hasNoListings ? (
             <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
               <h2 className="mb-2 text-xl font-semibold">
