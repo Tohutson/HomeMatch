@@ -3,7 +3,7 @@
 import NotLoggedInModal from "@/components/NotLoggedInModal";
 import Toast from "@/components/Toast";
 import ListingCard from "@/features/listings/components/listing-card";
-import { useCallback, useMemo, useState, type ChangeEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from "react";
 import ListingFilters from "../components/listing-filters";
 
 import { ListingsBanner } from "@/features/listings/components/listings-banner";
@@ -100,7 +100,10 @@ function ListingsPageContent({
   initialSort: ListingSortOption | null;
 }) {
   const [currentPage, setCurrentPage] = useState(0);
-  const [sort, setSort] = useState<ListingSortOption | null>(initialSort);
+  const [sort, setSort] = useState<ListingSortOption | null>(initialSort) 
+  useEffect(() => {
+    setSort(initialSort);
+  }, [initialSort]);
   const [toast, setToast] = useState<string | null>(null);
   const [showNotLoggedIn, setShowNotLoggedIn] = useState(false);
   const { ensureUserId } = useFavoritesContext();
