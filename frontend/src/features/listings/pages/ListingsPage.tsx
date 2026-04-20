@@ -3,7 +3,7 @@
 import NotLoggedInModal from "@/components/NotLoggedInModal";
 import Toast from "@/components/Toast";
 import ListingCard from "@/features/listings/components/listing-card";
-import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { useCallback, useEffect, useState, type ChangeEvent } from "react";
 import ListingFilters from "../components/listing-filters";
 
 import { ListingsBanner } from "@/features/listings/components/listings-banner";
@@ -13,58 +13,12 @@ import { useFavoritesContext } from "@/features/favorites/context/favorites-cont
 import { useListingsFavoriteWorkflow } from "@/features/favorites/hooks/use-listings-favorite-workflow";
 import { useListings } from "@/features/listings/hooks/use-listings";
 import { usePagedListingNavigation } from "@/features/listings/hooks/use-paged-listing-navigation";
-import { type Listing, type ListingSortOption } from "@/features/listings/types";
+import { type ListingSortOption } from "@/features/listings/types";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useListingFilters } from "../hooks/use-listing-filters";
 
 const PAGE_SIZE = 12;
 
-function compareNullableNumbers(
-  a: number | null | undefined,
-  b: number | null | undefined,
-  direction: "asc" | "desc"
-) {
-  const aMissing = a === null || a === undefined;
-  const bMissing = b === null || b === undefined;
-
-  if (aMissing && bMissing) return 0;
-  if (aMissing) return 1;
-  if (bMissing) return -1;
-
-  return direction === "asc" ? a - b : b - a;
-}
-
-function sortListings(
-  listings: Listing[],
-  sort: ListingSortOption | null
-): Listing[] {
-  if (!sort) {
-    return listings;
-  }
-
-  const sorted = [...listings];
-
-  sorted.sort((a, b) => {
-    switch (sort) {
-      case "PRICE_ASC":
-        return compareNullableNumbers(a.price, b.price, "asc");
-      case "PRICE_DESC":
-        return compareNullableNumbers(a.price, b.price, "desc");
-      case "SIZE_ASC":
-        return compareNullableNumbers(a.sqft, b.sqft, "asc");
-      case "SIZE_DESC":
-        return compareNullableNumbers(a.sqft, b.sqft, "desc");
-      case "ENERGY_ASC":
-        return compareNullableNumbers(a.energyStarScore,b.energyStarScore,"asc");
-      case "ENERGY_DESC":
-        return compareNullableNumbers(a.energyStarScore,b.energyStarScore,"desc");
-      default:
-        return 0;
-    }
-  });
-
-  return sorted;
-}
 
 function isListingSortOption(value: string | null): value is ListingSortOption {
   return (
@@ -147,21 +101,6 @@ function ListingsPageContent({
     sort,
   });
 
-  const sortedListings = useMemo(() => {
-    const result = sortListings(listings, sort);
-    console.log(
-      "SORT:",
-      sort,
-      result.map((listing) => ({
-        id: listing.id,
-        price: listing.price,
-        sqft: listing.sqft,
-        energy: listing.energyStarScore,
-      }))
-    );
-    return result;
-  }, [listings, sort]);
-
   const {
     currentIndex,
     currentListing,
@@ -171,7 +110,7 @@ function ListingsPageContent({
     goPrevious,
     setCurrentIndex,
   } = usePagedListingNavigation({
-    listings: sortedListings,
+    listings,
     currentPage,
     totalPages,
     onPageChange: setCurrentPage,
@@ -208,10 +147,10 @@ function ListingsPageContent({
   );
 
   const nextListing =
-    currentIndex < sortedListings.length - 1 ? sortedListings[currentIndex + 1] : null;
-  const isInitialLoading = loading && sortedListings.length === 0;
-  const hasNoListings = sortedListings.length === 0;
-  const hasExhaustedListings = sortedListings.length > 0 && !currentListing;
+    currentIndex < listings.length - 1 ? listings[currentIndex + 1] : null;
+  const isInitialLoading = loading && listings.length === 0;
+  const hasNoListings = listings.length === 0;
+  const hasExhaustedListings = listings.length > 0 && !currentListing;
 
   const handleClearFilters = useCallback(() => {
     setCurrentPage(0);
