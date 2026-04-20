@@ -9,6 +9,7 @@ const mockUsePagedListingNavigation = jest.fn();
 const mockUseListingsFavoriteWorkflow = jest.fn();
 const mockReplace = jest.fn();
 const mockSearchParamsGet = jest.fn();
+const mockSearchParamsToString = jest.fn();
 
 jest.mock("@/features/listings/hooks/use-listings", () => ({
   useListings: (...args: unknown[]) => mockUseListings(...args),
@@ -36,6 +37,7 @@ jest.mock("next/navigation", () => ({
   usePathname: () => "/listings",
   useSearchParams: () => ({
     get: mockSearchParamsGet,
+    toString: mockSearchParamsToString,
   }),
 }));
 
@@ -62,6 +64,7 @@ describe("ListingsPage", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockSearchParamsGet.mockReturnValue(null);
+    mockSearchParamsToString.mockReturnValue("");
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       json: async () => [],
@@ -109,6 +112,26 @@ describe("ListingsPage", () => {
     expect(await screen.findByPlaceholderText("Min price")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Max sqft")).toBeInTheDocument();
     expect(screen.getByText(/1 match/i)).toBeInTheDocument();
+  });
+
+  it("renders only the backend-supported sort options", async () => {
+    renderListingsPage();
+
+    const sortSelect = await screen.findByLabelText(/sort results/i);
+    const optionValues = Array.from(
+      sortSelect.querySelectorAll("option"),
+      (option) => option.getAttribute("value")
+    );
+
+    expect(optionValues).toEqual([
+      "",
+      "PRICE_ASC",
+      "PRICE_DESC",
+      "SQFT_ASC",
+      "SQFT_DESC",
+      "ENERGY_DESC",
+    ]);
+    expect(screen.queryByRole("option", { name: /energy score: low to high/i })).not.toBeInTheDocument();
   });
 
   it("keeps filters and the current listing visible while loading the next page", async () => {
@@ -234,6 +257,60 @@ describe("ListingsPage", () => {
     });
 
     expect(mockReplace).toHaveBeenCalledWith("/listings");
+  });
+
+  it("applies a supported sort option and updates the URL query", async () => {
+    const user = userEvent.setup();
+
+    renderListingsPage();
+
+    await user.selectOptions(
+      await screen.findByLabelText(/sort results/i),
+      "SQFT_DESC"
+    );
+
+    await waitFor(() => {
+      const latestCall = mockUseListings.mock.calls.at(-1)?.[0];
+      expect(latestCall.sort).toBe("SQFT_DESC");
+    });
+
+    expect(mockReplace).toHaveBeenCalledWith("/listings?sort=SQFT_DESC");
+  });
+
+  it("hydrates a supported sort from the URL search params", async () => {
+    mockSearchParamsGet.mockImplementation((key: string) =>
+      key === "sort" ? "ENERGY_DESC" : null
+    );
+    mockSearchParamsToString.mockReturnValue("sort=ENERGY_DESC");
+
+    renderListingsPage();
+
+    const sortSelect = await screen.findByLabelText(/sort results/i);
+
+    expect(sortSelect).toHaveValue("ENERGY_DESC");
+
+    await waitFor(() => {
+      const latestCall = mockUseListings.mock.calls.at(-1)?.[0];
+      expect(latestCall.sort).toBe("ENERGY_DESC");
+    });
+  });
+
+  it("ignores unsupported legacy sort values from the URL", async () => {
+    mockSearchParamsGet.mockImplementation((key: string) =>
+      key === "sort" ? "SIZE_ASC" : null
+    );
+    mockSearchParamsToString.mockReturnValue("sort=SIZE_ASC");
+
+    renderListingsPage();
+
+    const sortSelect = await screen.findByLabelText(/sort results/i);
+
+    expect(sortSelect).toHaveValue("");
+
+    await waitFor(() => {
+      const latestCall = mockUseListings.mock.calls.at(-1)?.[0];
+      expect(latestCall.sort).toBeNull();
+    });
   });
 
   it("shows the no homes found empty state when filtered results are empty", async () => {

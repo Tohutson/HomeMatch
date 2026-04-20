@@ -1,10 +1,11 @@
 import { API_BASE } from "@/lib/env";
-import type { Listing, ListingFilters, ListingsResponse } from "./types";
+import type { Listing, ListingFilters, ListingSortOption, ListingsResponse } from "./types";
 
 type GetListingsParams = {
   page?: number;
   size?: number;
   filters?: ListingFilters;
+  sort?: ListingSortOption | null;
   signal?: AbortSignal;
 };
 
@@ -13,6 +14,10 @@ export function buildListingsQuery(params: GetListingsParams): string {
 
   searchParams.set("page", String(params.page ?? 0));
   searchParams.set("size", String(params.size ?? 12));
+
+  if (params.sort) {
+    searchParams.set("sortOption", params.sort);
+  }
 
   const filters = params.filters;
 

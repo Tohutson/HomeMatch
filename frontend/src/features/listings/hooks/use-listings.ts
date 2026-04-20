@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from "react";
 import { getListings } from "@/features/listings/api";
-import type { Listing, ListingFilters } from "@/features/listings/types";
+import type { Listing, ListingFilters, ListingSortOption } from "@/features/listings/types";
 import { isAbortError } from "@/lib/is-abort-error";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type UseListingsParams = {
   page: number;
   size: number;
   filters?: ListingFilters;
+  sort?: ListingSortOption | null;
 };
 
 type UseListingsResult = {
@@ -23,6 +24,7 @@ export function useListings({
   page,
   size,
   filters,
+  sort,
 }: UseListingsParams): UseListingsResult {
   const [listings, setListings] = useState<Listing[]>([]);
   const [totalPages, setTotalPages] = useState(0);
@@ -48,6 +50,7 @@ export function useListings({
         page,
         size,
         filters,
+        sort,
         signal: controller.signal,
       });
 
@@ -82,7 +85,7 @@ export function useListings({
         activeRequestRef.current = null;
       }
     }
-  }, [page, size, filters]);
+  }, [page, size, filters, sort]);
 
   useEffect(() => {
     void fetchListings();
