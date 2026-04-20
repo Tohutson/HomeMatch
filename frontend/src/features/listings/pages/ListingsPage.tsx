@@ -13,7 +13,10 @@ import { useFavoritesContext } from "@/features/favorites/context/favorites-cont
 import { useListingsFavoriteWorkflow } from "@/features/favorites/hooks/use-listings-favorite-workflow";
 import { useListings } from "@/features/listings/hooks/use-listings";
 import { usePagedListingNavigation } from "@/features/listings/hooks/use-paged-listing-navigation";
-import { type ListingSortOption } from "@/features/listings/types";
+import {
+  LISTING_SORT_OPTIONS,
+  type ListingSortOption,
+} from "@/features/listings/types";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useListingFilters } from "../hooks/use-listing-filters";
 
@@ -21,14 +24,7 @@ const PAGE_SIZE = 12;
 
 
 function isListingSortOption(value: string | null): value is ListingSortOption {
-  return (
-    value === "PRICE_ASC" ||
-    value === "PRICE_DESC" ||
-    value === "SIZE_ASC" ||
-    value === "SIZE_DESC" ||
-    value === "ENERGY_ASC" ||
-    value === "ENERGY_DESC"
-  );
+  return value !== null && LISTING_SORT_OPTIONS.some((option) => option.value === value);
 }
 
 export default function ListingsPage() {
@@ -54,7 +50,7 @@ function ListingsPageContent({
   initialSort: ListingSortOption | null;
 }) {
   const [currentPage, setCurrentPage] = useState(0);
-  const [sort, setSort] = useState<ListingSortOption | null>(initialSort) 
+  const [sort, setSort] = useState<ListingSortOption | null>(initialSort);
   useEffect(() => {
     setSort(initialSort);
   }, [initialSort]);
@@ -252,12 +248,11 @@ function ListingsPageContent({
               className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm"
             >
               <option value="">Recommended</option>
-              <option value="PRICE_ASC">Price: Low to High</option>
-              <option value="PRICE_DESC">Price: High to Low</option>
-              <option value="SIZE_ASC">Size: Small to Large</option>
-              <option value="SIZE_DESC">Size: Large to Small</option>
-              <option value="ENERGY_ASC">Energy Score: Low to High</option>
-              <option value="ENERGY_DESC">Energy Score: High to Low</option>
+              {LISTING_SORT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
           </div>
           

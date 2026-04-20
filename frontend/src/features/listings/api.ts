@@ -16,7 +16,7 @@ export function buildListingsQuery(params: GetListingsParams): string {
   searchParams.set("size", String(params.size ?? 12));
 
   if (params.sort) {
-    searchParams.set("sort", params.sort);
+    searchParams.set("sortOption", params.sort);
   }
 
   const filters = params.filters;
