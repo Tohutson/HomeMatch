@@ -283,6 +283,45 @@ Returns `204 No Content`.
 
 ---
 
+## Simple User Login API
+
+Very simple email-based login endpoint used by the frontend.
+If the email exists and password matches, it returns that user id.
+If the email does not exist, it creates a new user row and returns the new id.
+
+### Endpoint
+
+| Method | Path               | Description                    |
+| ------ | ------------------ | ------------------------------ |
+| POST   | `/api/users/login` | Log in or create user by email |
+
+### Request Body
+
+```json
+{
+  "email": "user@example.com",
+  "password": "secret123"
+}
+```
+
+### Example
+
+```bash
+curl -X POST http://localhost:8081/api/users/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@example.com","password":"secret123"}'
+```
+
+### Response
+
+```json
+{
+  "id": 7
+}
+```
+
+---
+
 ## Data Model
 
 ### Listings Table

@@ -6,6 +6,8 @@ import { FavoritesProvider } from "../src/features/favorites/context/favorites-c
 jest.mock("../src/lib/userId", () => ({
   getOrCreateUserId: jest.fn().mockResolvedValue(1),
   getStoredUserId: jest.fn().mockReturnValue(null),
+  getStoredUserEmail: jest.fn().mockReturnValue(null),
+  clearStoredUserSession: jest.fn(),
 }));
 
 jest.mock("../src/features/search/components/SearchBar", () => ({
