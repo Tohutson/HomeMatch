@@ -139,7 +139,7 @@ export default function NotLoggedInModal({
             onClick={onDismiss}
             className="flex-1 rounded-lg border border-zinc-300 px-4 py-2
                        font-medium text-zinc-700 hover:bg-zinc-50"
-            data-testid="modal-signup-button"
+            data-testid="modal-cancel-button"
             disabled={isSubmitting}
           >
             Cancel
