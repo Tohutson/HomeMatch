@@ -224,40 +224,64 @@ function ListingsPageContent({
         onRedo={handleRedo}
       />
 
-      <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start">
-        <ListingFilters
-          filters={draftFilters}
-          onFilterChange={updateDraftFilter}
-          onApply={handleApplyFilters}
-          onClear={handleClearFilters}
-          validationErrors={validationErrors}
-          isApplyDisabled={isApplyDisabled}
-          isClearDisabled={isClearDisabled}
-          matchCount={totalElements}
-        />
+      <div className="mx-auto flex max-w-7xl flex-col gap-8 lg:grid lg:grid-cols-[320px_minmax(0,1fr)_280px] lg:items-start">
+        <div className="order-1">
+          <ListingFilters
+            filters={draftFilters}
+            onFilterChange={updateDraftFilter}
+            onApply={handleApplyFilters}
+            onClear={handleClearFilters}
+            validationErrors={validationErrors}
+            isApplyDisabled={isApplyDisabled}
+            isClearDisabled={isClearDisabled}
+            matchCount={totalElements}
+          />
+        </div>
 
-        <div className="mx-auto w-full max-w-3xl">
-        <div className="mb-4 flex items-center justify-end">
-            <label htmlFor="listing-sort" className="mr-3 text-sm font-medium text-zinc-700">
-              Sort by
-            </label>
-            <select
-              id="listing-sort"
-              value={sort ?? ""}
-              onChange={handleSortChange}
-              className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm"
+        <aside className="order-2 lg:order-3 lg:sticky lg:top-24">
+          <div className="rounded-[28px] border border-zinc-200 bg-white p-4 shadow-sm">
+            <label
+              htmlFor="listing-sort"
+              className="mb-2 block text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400"
             >
-              <option value="">Recommended</option>
-              {LISTING_SORT_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+              Sort Results
+            </label>
+            <div className="relative">
+              <select
+                id="listing-sort"
+                value={sort ?? ""}
+                onChange={handleSortChange}
+                className="w-full appearance-none rounded-full border border-zinc-300 bg-zinc-50 px-4 py-3 pr-11 text-sm font-medium text-zinc-800 outline-none transition focus:border-zinc-400 focus:bg-white"
+              >
+                <option value="">Recommended</option>
+                {LISTING_SORT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-zinc-400">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  className="h-5 w-5"
+                  aria-hidden="true"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 1 1 1.08 1.04l-4.25 4.511a.75.75 0 0 1-1.08 0L5.21 8.27a.75.75 0 0 1 .02-1.06Z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </span>
+            </div>
           </div>
-          
+        </aside>
+
+        <div className="order-3 mx-auto w-full max-w-2xl lg:order-2">
           {hasNoListings ? (
-            <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
+            <div className="w-full rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
               <h2 className="mb-2 text-xl font-semibold">
                 No homes found matching your criteria
               </h2>
@@ -266,7 +290,7 @@ function ListingsPageContent({
               </p>
             </div>
           ) : hasExhaustedListings || !currentListing ? (
-            <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
+            <div className="w-full rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
               <h2 className="mb-2 text-xl font-semibold">
                 You&apos;ve reached the end of these matches
               </h2>
@@ -275,7 +299,7 @@ function ListingsPageContent({
               </p>
             </div>
           ) : (
-            <div className="relative">
+            <div className="relative w-full">
               {nextListing && (
                 <div
                   aria-hidden="true"
