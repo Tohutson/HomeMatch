@@ -56,6 +56,8 @@ function ListingsPageContent({
   }, [initialSort]);
   const [toast, setToast] = useState<string | null>(null);
   const [showNotLoggedIn, setShowNotLoggedIn] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const { ensureUserId } = useFavoritesContext();
   const router = useRouter();
   const pathname = usePathname();
@@ -76,7 +78,10 @@ function ListingsPageContent({
     showBanner,
   } = useListingsFavoriteWorkflow({
     onToast: setToast,
-    onRequireLogin: () => setShowNotLoggedIn(true),
+    onRequireLogin: () => {
+      setLoginError(null);
+      setShowNotLoggedIn(true);
+    },
   });
 
   const {
@@ -205,11 +210,30 @@ function ListingsPageContent({
 
       {showNotLoggedIn && (
         <NotLoggedInModal
-          onDismiss={() => setShowNotLoggedIn(false)}
-          onLogIn={() => {
+          onDismiss={() => {
             setShowNotLoggedIn(false);
-            void ensureUserId();
+            setLoginError(null);
           }}
+          onLogIn={async (email, password) => {
+            setIsLoggingIn(true);
+            setLoginError(null);
+
+            const id = await ensureUserId(email, password);
+
+            setIsLoggingIn(false);
+
+            if (!id) {
+              setLoginError("Unable to log in right now. Please try again.");
+              return;
+            }
+
+            setShowNotLoggedIn(false);
+            setToast("Logged in. You can now save favorites.");
+          }}
+          isSubmitting={isLoggingIn}
+          error={loginError}
+          description="Log in with email and password to save favorites. If you are new, we will create your account."
+          submitLabel="Continue"
         />
       )}
 
