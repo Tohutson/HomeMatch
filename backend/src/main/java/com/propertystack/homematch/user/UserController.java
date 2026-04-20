@@ -42,12 +42,8 @@ public class UserController {
                     String storedHash = existingUser.getPasswordHash();
 
                     if (storedHash == null || storedHash.isBlank()) {
-                        existingUser.setPasswordHash(passwordEncoder.encode(rawPassword));
-                        existingUser.setProvider(AuthProvider.LOCAL);
-                        existingUser.setVerified(true);
-
-                        User updatedUser = userRepository.save(existingUser);
-                        return ResponseEntity.ok(new UserIdResponse(updatedUser.getId()));
+                        return ResponseEntity.status(HttpStatus.CONFLICT)
+                                .body(new ErrorResponse("Account already exists for this email and requires the configured sign-in or password setup flow"));
                     }
 
                     if (!passwordEncoder.matches(rawPassword, storedHash)) {
