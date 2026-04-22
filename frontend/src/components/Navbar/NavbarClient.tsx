@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useFavoritesContext } from "@/features/favorites/context/favorites-context";
 import SearchBar from "@/features/search/components/SearchBar";
 import NotLoggedInModal from "@/components/NotLoggedInModal";
+import { signOut } from "@/lib/actions/auth";
 
 type NavbarUser = {
   id: string;
@@ -65,7 +66,7 @@ export default function NavbarClient({ user }: { user: NavbarUser }) {
                   {user.email}
                 </span>
 
-                <form action="/auth/signout" method="post">
+                <form action={signOut}>
                   <button
                     type="submit"
                     className="rounded-full border border-slate-300 bg-white/80 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-white"
