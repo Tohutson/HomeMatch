@@ -74,6 +74,66 @@ export default function FavoritesPage() {
     [removeFavoriteFromPage, recordAddedFavorite],
   );
 
+  const handleShare = useCallback(
+    async (favorite: FavoriteRecord) => {
+      const shareUrl = favorite.listing.listingUrl?.trim();
+
+      if (!shareUrl) {
+        setToast("No listing link is available to share.");
+        return;
+      }
+
+      const shareTitle = favorite.listing.address || "Home listing";
+
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: shareTitle,
+            text: "Check out this home",
+            url: shareUrl,
+          });
+          setToast("Listing shared.");
+          return;
+        } catch (err) {
+          if (err instanceof DOMException && err.name === "AbortError") {
+            return;
+          }
+        }
+      }
+
+      if (navigator.clipboard?.writeText) {
+        try {
+          await navigator.clipboard.writeText(shareUrl);
+          setToast("Listing link copied to clipboard.");
+          return;
+        } catch {
+          // Fall back to execCommand when clipboard permissions are unavailable.
+        }
+      }
+
+      const textArea = document.createElement("textarea");
+      textArea.value = shareUrl;
+      textArea.style.position = "fixed";
+      textArea.style.opacity = "0";
+
+      let copied = false;
+      document.body.appendChild(textArea);
+      try {
+        textArea.focus();
+        textArea.select();
+        copied = document.execCommand("copy");
+      } finally {
+        document.body.removeChild(textArea);
+      }
+      setToast(
+        copied
+          ? "Listing link copied to clipboard."
+          : "Unable to share this listing right now."
+      );
+    },
+    [],
+  );
+
   const sortedFavorites = useMemo(() => {
     const next = [...favorites];
 
@@ -326,6 +386,16 @@ export default function FavoritesPage() {
                       >
                         View details
                       </Link>
+
+                      <button
+                        type="button"
+                        onClick={() => void handleShare(fav)}
+                        disabled={!fav.listing.listingUrl?.trim()}
+                        className="inline-flex items-center rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                        data-testid={`share-button-${fav.listing.id}`}
+                      >
+                        Share
+                      </button>
 
                       {confirmDeleteId === fav.listing.id && (
                         <>
