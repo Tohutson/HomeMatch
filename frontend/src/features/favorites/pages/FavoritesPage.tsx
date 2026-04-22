@@ -115,13 +115,16 @@ export default function FavoritesPage() {
       textArea.value = shareUrl;
       textArea.style.position = "fixed";
       textArea.style.opacity = "0";
+
+      let copied = false;
       document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
-
-      const copied = document.execCommand("copy");
-      document.body.removeChild(textArea);
-
+      try {
+        textArea.focus();
+        textArea.select();
+        copied = document.execCommand("copy");
+      } finally {
+        document.body.removeChild(textArea);
+      }
       setToast(
         copied
           ? "Listing link copied to clipboard."
