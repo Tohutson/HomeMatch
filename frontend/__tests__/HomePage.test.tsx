@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import HomePage from "../src/app/page";
-import Navbar from "../src/components/Navbar";
+import Navbar from "../src/components/Navbar/Navbar";
 import { FavoritesProvider } from "../src/features/favorites/context/favorites-context";
 
 jest.mock("../src/lib/userId", () => ({
@@ -24,7 +24,9 @@ async function renderHomePage() {
   );
 
   await waitFor(() => {
-    expect(screen.getByText("HomeMatch, where your dream home is a swipe away.")).toBeInTheDocument();
+    expect(
+      screen.getByText("HomeMatch, where your dream home is a swipe away."),
+    ).toBeInTheDocument();
   });
 }
 
@@ -46,22 +48,24 @@ describe("HomePage", () => {
     expect(
       screen.getByText("HomeMatch, where your dream home is a swipe away."),
     ).toBeInTheDocument();
-    expect(screen.getByText("Find your next place with less friction")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Start browsing" })).toHaveAttribute(
-      "href",
-      "/listings",
-    );
+    expect(
+      screen.getByText("Find your next place with less friction"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Start browsing" }),
+    ).toHaveAttribute("href", "/listings");
   });
 
   it("renders the search experience in the navbar and hero card", async () => {
     await renderHomePage();
 
     expect(screen.getAllByTestId("search-bar")).toHaveLength(3);
-    expect(screen.getByText("Discover homes in a few keystrokes")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Browse all listings" })).toHaveAttribute(
-      "href",
-      "/listings",
-    );
+    expect(
+      screen.getByText("Discover homes in a few keystrokes"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Browse all listings" }),
+    ).toHaveAttribute("href", "/listings");
   });
 
   it("shows the favorites nav link in the header", async () => {

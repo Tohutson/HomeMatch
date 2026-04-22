@@ -6,34 +6,35 @@ import { useFavoritesContext } from "@/features/favorites/context/favorites-cont
 import SearchBar from "@/features/search/components/SearchBar";
 import NotLoggedInModal from "@/components/NotLoggedInModal";
 
-export default function Navbar() {
-  const { favoriteCount, userEmail, isLoggedIn, ensureUserId, logout } =
-    useFavoritesContext();
+type NavbarUser = {
+  id: string;
+  email: string | null;
+} | null;
+
+export default function NavbarClient({ user }: { user: NavbarUser }) {
+  const { favoriteCount } = useFavoritesContext();
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
   const handleLogin = async (email: string, password: string) => {
-    setIsSubmitting(true);
-    setAuthError(null);
+    try {
+      setIsSubmitting(true);
+      setAuthError(null);
 
-    const id = await ensureUserId(email, password);
-
-    setIsSubmitting(false);
-
-    if (!id) {
+      // call Supabase browser client sign-in here
+      // after success: close modal and refresh route if needed
+    } catch {
       setAuthError("Unable to log in right now. Please try again.");
-      return;
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setShowLoginModal(false);
   };
 
   return (
     <>
       <nav className="relative z-40 w-full border-b border-sky-200/70 bg-linear-to-r from-sky-100 via-cyan-50 to-white shadow-[0_10px_35px_rgba(14,116,144,0.08)] backdrop-blur">
         <div className="flex min-h-18 w-full items-center justify-between gap-4 px-6 py-3 md:px-8">
-          {/* Left: Logo */}
           <Link
             href="/"
             className="text-xl font-semibold tracking-[-0.03em] text-slate-900 transition hover:opacity-80"
@@ -41,12 +42,10 @@ export default function Navbar() {
             HomeMatch
           </Link>
 
-          {/* Center: Search */}
           <div className="mx-4 hidden flex-1 max-w-2xl md:block">
             <SearchBar />
           </div>
 
-          {/* Right: Favorites + Auth */}
           <div className="flex items-center gap-3">
             <Link
               href="/favorites"
@@ -56,23 +55,25 @@ export default function Navbar() {
               ♥ Favorites ({favoriteCount})
             </Link>
 
-            {isLoggedIn ? (
+            {user ? (
               <>
                 <span
                   className="hidden max-w-48 truncate rounded-full bg-white/80 px-3 py-2 text-xs font-medium text-slate-700 md:inline-block"
-                  title={userEmail ?? ""}
+                  title={user.email ?? ""}
                   data-testid="logged-in-email"
                 >
-                  {userEmail}
+                  {user.email}
                 </span>
-                <button
-                  type="button"
-                  onClick={logout}
-                  className="rounded-full border border-slate-300 bg-white/80 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-white"
-                  data-testid="logout-button"
-                >
-                  Log Out
-                </button>
+
+                <form action="/auth/signout" method="post">
+                  <button
+                    type="submit"
+                    className="rounded-full border border-slate-300 bg-white/80 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-white"
+                    data-testid="logout-button"
+                  >
+                    Log Out
+                  </button>
+                </form>
               </>
             ) : (
               <button
@@ -89,6 +90,7 @@ export default function Navbar() {
             )}
           </div>
         </div>
+
         <div className="px-6 pb-3 md:hidden">
           <SearchBar />
         </div>
@@ -101,7 +103,7 @@ export default function Navbar() {
           isSubmitting={isSubmitting}
           error={authError}
           title="Log in to HomeMatch"
-          description="Enter your email and password to continue. If you are new, we will create your account automatically."
+          description="Enter your email and password to continue."
           submitLabel="Continue"
         />
       )}

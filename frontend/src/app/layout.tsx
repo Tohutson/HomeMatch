@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "@/styles/globals.css";
-import Navbar from "@/components/Navbar";
+import Navbar from "@/components/Navbar/Navbar";
 import { FavoritesProvider } from "@/features/favorites/context/favorites-context";
 
 export const metadata: Metadata = {
