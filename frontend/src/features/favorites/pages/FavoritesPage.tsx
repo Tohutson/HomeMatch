@@ -390,7 +390,7 @@ export default function FavoritesPage() {
                       <button
                         type="button"
                         onClick={() => void handleShare(fav)}
-                        disabled={!fav.listing.listingUrl}
+                        disabled={!fav.listing.listingUrl?.trim()}
                         className="inline-flex items-center rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                         data-testid={`share-button-${fav.listing.id}`}
                       >
