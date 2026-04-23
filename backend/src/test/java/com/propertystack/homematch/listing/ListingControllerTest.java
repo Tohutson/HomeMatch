@@ -8,6 +8,7 @@ import com.propertystack.homematch.search.SuggestionService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.security.oauth2.server.resource.autoconfigure.servlet.OAuth2ResourceServerAutoConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.data.domain.*;
 import org.springframework.test.context.ActiveProfiles;
@@ -27,7 +28,10 @@ import static org.springframework.data.domain.Sort.Direction.ASC;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(ListingController.class)
+@WebMvcTest(
+        controllers = ListingController.class,
+        excludeAutoConfiguration = OAuth2ResourceServerAutoConfiguration.class
+)
 @ActiveProfiles("test")
 class ListingControllerTest {
 

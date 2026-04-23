@@ -4,6 +4,14 @@ ALTER TABLE users
 ALTER TABLE users
     ADD supabase_user_id VARCHAR(255);
 
+UPDATE users
+SET supabase_user_id = 'legacy-' || id
+WHERE supabase_user_id IS NULL;
+
+UPDATE users
+SET email = 'legacy+' || id || '@homematch.local'
+WHERE email IS NULL;
+
 ALTER TABLE users
     ALTER COLUMN supabase_user_id SET NOT NULL;
 

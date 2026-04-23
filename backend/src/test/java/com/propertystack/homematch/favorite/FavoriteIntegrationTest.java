@@ -171,6 +171,12 @@ class FavoriteIntegrationTest {
     }
 
     @Test
+    void getFavorites_shouldReturn401WhenUnauthenticated() throws Exception {
+        mockMvc.perform(get("/api/users/me/favorites"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void getFavorites_shouldCreateUserForAuthenticatedSupabaseSubject() throws Exception {
         userRepository.delete(user);
 
