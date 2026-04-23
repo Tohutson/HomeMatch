@@ -58,7 +58,7 @@ function ListingsPageContent({
   const [showNotLoggedIn, setShowNotLoggedIn] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const { signIn } = useFavoritesContext();
+  const { signIn, signInWithGoogle } = useFavoritesContext();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -190,6 +190,10 @@ function ListingsPageContent({
     return true;
   }, [goNext]);
 
+  const nextPath = searchParams?.toString()
+    ? `${pathname}?${searchParams.toString()}`
+    : pathname;
+
   if (isInitialLoading)
     return (
       <main className="min-h-screen p-8 bg-zinc-50 text-black">
@@ -230,9 +234,23 @@ function ListingsPageContent({
             setShowNotLoggedIn(false);
             setToast("Logged in. You can now save favorites.");
           }}
+          onContinueWithGoogle={async () => {
+            setIsLoggingIn(true);
+            setLoginError(null);
+
+            const didStartLogin = await signInWithGoogle(nextPath);
+
+            setIsLoggingIn(false);
+
+            if (!didStartLogin) {
+              setLoginError(
+                "Unable to start Google sign-in right now. Please try again."
+              );
+            }
+          }}
           isSubmitting={isLoggingIn}
           error={loginError}
-          description="Log in with your Supabase-backed HomeMatch account to save favorites."
+          description="Log in with your HomeMatch account or continue with Google to save favorites."
           submitLabel="Log in"
         />
       )}

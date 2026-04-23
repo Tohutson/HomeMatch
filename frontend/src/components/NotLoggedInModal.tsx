@@ -5,6 +5,7 @@ import { type FormEvent, useState } from "react";
 type Props = {
   onDismiss: () => void;
   onLogIn: (email: string, password: string) => Promise<void> | void;
+  onContinueWithGoogle?: () => Promise<void> | void;
   isSubmitting?: boolean;
   error?: string | null;
   title?: string;
@@ -15,11 +16,12 @@ type Props = {
 export default function NotLoggedInModal({
   onDismiss,
   onLogIn,
+  onContinueWithGoogle,
   isSubmitting = false,
   error = null,
   title = "Please log in to save favorites",
   description =
-    "Enter your email and password to continue, or create an account from the sign-up page.",
+    "Enter your email and password to continue, or use Google to sign in faster.",
   submitLabel = "Continue",
 }: Props) {
   const [email, setEmail] = useState("");
@@ -123,6 +125,26 @@ export default function NotLoggedInModal({
             {localError ?? error}
           </p>
         )}
+
+        {onContinueWithGoogle ? (
+          <>
+            <button
+              type="button"
+              onClick={() => void onContinueWithGoogle()}
+              className="mb-4 w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 font-medium text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-70"
+              data-testid="modal-google-login-button"
+              disabled={isSubmitting}
+            >
+              Continue with Google
+            </button>
+
+            <div className="mb-4 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">
+              <span className="h-px flex-1 bg-zinc-200" />
+              <span>or</span>
+              <span className="h-px flex-1 bg-zinc-200" />
+            </div>
+          </>
+        ) : null}
 
         <div className="flex gap-3">
           <button

@@ -15,7 +15,7 @@ type NavbarUser = {
 
 export default function NavbarClient({ user }: { user: NavbarUser }) {
   const router = useRouter();
-  const { favoriteCount, signIn } = useFavoritesContext();
+  const { favoriteCount, signIn, signInWithGoogle } = useFavoritesContext();
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -36,6 +36,23 @@ export default function NavbarClient({ user }: { user: NavbarUser }) {
       router.refresh();
     } catch {
       setAuthError("Unable to log in right now. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      setIsSubmitting(true);
+      setAuthError(null);
+
+      const didStartLogin = await signInWithGoogle("/favorites");
+
+      if (!didStartLogin) {
+        setAuthError("Unable to start Google sign-in right now. Please try again.");
+      }
+    } catch {
+      setAuthError("Unable to start Google sign-in right now. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -111,10 +128,11 @@ export default function NavbarClient({ user }: { user: NavbarUser }) {
         <NotLoggedInModal
           onDismiss={() => setShowLoginModal(false)}
           onLogIn={handleLogin}
+          onContinueWithGoogle={handleGoogleLogin}
           isSubmitting={isSubmitting}
           error={authError}
           title="Log in to HomeMatch"
-          description="Enter your email and password to continue."
+          description="Use your email and password or continue with Google."
           submitLabel="Continue"
         />
       )}

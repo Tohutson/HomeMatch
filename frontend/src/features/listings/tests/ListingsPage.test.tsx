@@ -28,6 +28,7 @@ jest.mock("@/features/favorites/hooks/use-listings-favorite-workflow", () => ({
 jest.mock("@/features/favorites/context/favorites-context", () => ({
   useFavoritesContext: () => ({
     signIn: mockSignIn,
+    signInWithGoogle: jest.fn(),
   }),
 }));
 

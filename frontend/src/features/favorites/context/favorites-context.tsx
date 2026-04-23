@@ -22,6 +22,7 @@ type FavoritesContextValue = UseFavoritesResult & {
   isUserReady: boolean;
   favoriteCount: number;
   signIn: (email: string, password: string) => Promise<boolean>;
+  signInWithGoogle: (nextPath?: string) => Promise<boolean>;
   signOut: () => Promise<void>;
 };
 
@@ -99,6 +100,27 @@ export function FavoritesProvider({
     [supabase]
   );
 
+  const signInWithGoogle = useCallback(
+    async (nextPath = "/favorites") => {
+      const redirectTo = new URL("/auth/callback", window.location.origin);
+      redirectTo.searchParams.set("next", nextPath);
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: redirectTo.toString(),
+        },
+      });
+
+      if (error) {
+        return false;
+      }
+
+      return true;
+    },
+    [supabase]
+  );
+
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     setUser(null);
@@ -112,6 +134,7 @@ export function FavoritesProvider({
       isUserReady,
       favoriteCount: favorites.favoriteIds.size,
       signIn,
+      signInWithGoogle,
       signOut,
     }),
     [
@@ -120,6 +143,7 @@ export function FavoritesProvider({
       isLoggedIn,
       isUserReady,
       signIn,
+      signInWithGoogle,
       signOut,
     ]
   );

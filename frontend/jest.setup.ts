@@ -25,6 +25,14 @@ jest.mock("@/lib/supabase/client", () => ({
         data: { user: mockSupabaseSession.user },
         error: null,
       }),
+      signInWithOAuth: jest.fn().mockResolvedValue({
+        data: { url: "http://localhost:3000/auth/callback" },
+        error: null,
+      }),
+      exchangeCodeForSession: jest.fn().mockResolvedValue({
+        data: { session: mockSupabaseSession },
+        error: null,
+      }),
       signOut: jest.fn().mockResolvedValue({ error: null }),
     },
   }),
