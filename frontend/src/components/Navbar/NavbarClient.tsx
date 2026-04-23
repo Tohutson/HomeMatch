@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useFavoritesContext } from "@/features/favorites/context/favorites-context";
 import SearchBar from "@/features/search/components/SearchBar";
@@ -13,7 +14,8 @@ type NavbarUser = {
 } | null;
 
 export default function NavbarClient({ user }: { user: NavbarUser }) {
-  const { favoriteCount } = useFavoritesContext();
+  const router = useRouter();
+  const { favoriteCount, signIn } = useFavoritesContext();
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -23,8 +25,15 @@ export default function NavbarClient({ user }: { user: NavbarUser }) {
       setIsSubmitting(true);
       setAuthError(null);
 
-      // call Supabase browser client sign-in here
-      // after success: close modal and refresh route if needed
+      const didSignIn = await signIn(email, password);
+
+      if (!didSignIn) {
+        setAuthError("Invalid email or password.");
+        return;
+      }
+
+      setShowLoginModal(false);
+      router.refresh();
     } catch {
       setAuthError("Unable to log in right now. Please try again.");
     } finally {
@@ -58,13 +67,14 @@ export default function NavbarClient({ user }: { user: NavbarUser }) {
 
             {user ? (
               <>
-                <span
-                  className="hidden max-w-48 truncate rounded-full bg-white/80 px-3 py-2 text-xs font-medium text-slate-700 md:inline-block"
+                <Link
+                  href="/profile"
+                  className="hidden max-w-48 truncate rounded-full bg-white/80 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-white md:inline-block"
                   title={user.email ?? ""}
                   data-testid="logged-in-email"
                 >
-                  {user.email}
-                </span>
+                  {user.email ?? "Profile"}
+                </Link>
 
                 <form action={signOut}>
                   <button

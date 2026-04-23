@@ -1,19 +1,11 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import FavoritesPage from "../src/app/favorites/page";
+import FavoritesPage from "../src/features/favorites/pages/FavoritesPage";
 import { FavoritesProvider } from "../src/features/favorites/context/favorites-context";
-
-jest.mock("../src/lib/userId", () => ({
-  getOrCreateUserId: jest.fn().mockResolvedValue(1),
-  getStoredUserId: jest.fn().mockReturnValue(1),
-  getStoredUserEmail: jest.fn().mockReturnValue("test@example.com"),
-  clearStoredUserSession: jest.fn(),
-}));
 
 const mockFavorites = [
   {
     id: 1,
-    userId: 1,
     listing: {
       id: 1,
       address: "30 Pitt St",
@@ -27,7 +19,6 @@ const mockFavorites = [
   },
   {
     id: 2,
-    userId: 1,
     listing: {
       id: 2,
       address: "40 Forbes Ave",
@@ -61,7 +52,7 @@ function setupFetch(
     (url: string, opts?: RequestInit) => {
       const method = opts?.method ?? "GET";
 
-      if (url.includes("/api/users/1/favorites") && method === "GET") {
+      if (url.includes("/api/users/me/favorites") && method === "GET") {
         if (deletedListingId !== null) {
           return createResponse(
             overrides.favoritesAfterDelete ??
@@ -72,8 +63,8 @@ function setupFetch(
         return createResponse(mockFavorites);
       }
 
-      if (url.includes("/api/users/1/favorites/") && method === "DELETE") {
-        const match = url.match(/\/api\/users\/1\/favorites\/(\d+)/);
+      if (url.includes("/api/users/me/favorites/") && method === "DELETE") {
+        const match = url.match(/\/api\/users\/me\/favorites\/(\d+)/);
         deletedListingId = match ? Number(match[1]) : null;
         return createResponse({}, { ok: true, status: 204 });
       }
@@ -137,7 +128,7 @@ describe("FavoritesPage", () => {
 
   it("shows empty state with browse link when no favorites exist", async () => {
     (global.fetch as jest.Mock).mockImplementation((url: string) => {
-      if (url.includes("/api/users/1/favorites")) {
+      if (url.includes("/api/users/me/favorites")) {
         return createResponse([]);
       }
       return createResponse({});

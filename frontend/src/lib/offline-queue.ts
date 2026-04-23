@@ -1,9 +1,8 @@
-import { API_BASE } from "@/lib/env";
+import { apiFetch } from "@/lib/api";
 
 const QUEUE_KEY = "homematch_offline_favorite_queue";
 
 export type QueuedFavorite = {
-  userId: number;
   listingId: number;
 };
 
@@ -16,7 +15,7 @@ export function enqueueOfflineFavorite(item: QueuedFavorite): void {
 
   const existing = getOfflineQueue();
   const already = existing.some(
-    (q) => q.userId === item.userId && q.listingId === item.listingId
+    (q) => q.listingId === item.listingId
   );
 
   if (!already) {
@@ -39,7 +38,7 @@ export function removeFromOfflineQueue(item: QueuedFavorite): void {
   if (!isBrowser()) return;
 
   const updated = getOfflineQueue().filter(
-    (q) => !(q.userId === item.userId && q.listingId === item.listingId)
+    (q) => q.listingId !== item.listingId
   );
   localStorage.setItem(QUEUE_KEY, JSON.stringify(updated));
 }
@@ -59,14 +58,11 @@ export async function flushOfflineQueue(): Promise<number> {
 
   for (const item of queue) {
     try {
-      const res = await fetch(
-        `${API_BASE}/api/users/${item.userId}/favorites`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ listingId: item.listingId }),
-        }
-      );
+      const res = await apiFetch("/api/users/me/favorites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ listingId: item.listingId }),
+      });
 
       if (res.ok || res.status === 409) {
         removeFromOfflineQueue(item);

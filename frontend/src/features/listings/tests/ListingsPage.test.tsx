@@ -2,11 +2,11 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ListingsPage from "../pages/ListingsPage";
-import { FavoritesProvider } from "@/features/favorites/context/favorites-context";
 
 const mockUseListings = jest.fn();
 const mockUsePagedListingNavigation = jest.fn();
 const mockUseListingsFavoriteWorkflow = jest.fn();
+const mockSignIn = jest.fn();
 const mockReplace = jest.fn();
 const mockSearchParamsGet = jest.fn();
 const mockSearchParamsToString = jest.fn();
@@ -25,16 +25,16 @@ jest.mock("@/features/favorites/hooks/use-listings-favorite-workflow", () => ({
     mockUseListingsFavoriteWorkflow(...args),
 }));
 
-jest.mock("@/lib/userId", () => ({
-  getOrCreateUserId: jest.fn().mockResolvedValue(123),
-  getStoredUserId: jest.fn().mockReturnValue(null),
-  getStoredUserEmail: jest.fn().mockReturnValue(null),
-  clearStoredUserSession: jest.fn(),
+jest.mock("@/features/favorites/context/favorites-context", () => ({
+  useFavoritesContext: () => ({
+    signIn: mockSignIn,
+  }),
 }));
 
 jest.mock("next/navigation", () => ({
   useRouter: () => ({
     replace: mockReplace,
+    refresh: jest.fn(),
   }),
   usePathname: () => "/listings",
   useSearchParams: () => ({
@@ -45,11 +45,7 @@ jest.mock("next/navigation", () => ({
 
 describe("ListingsPage", () => {
   function renderListingsPage() {
-    return render(
-      <FavoritesProvider>
-        <ListingsPage />
-      </FavoritesProvider>
-    );
+    return render(<ListingsPage />);
   }
 
   const listing = {

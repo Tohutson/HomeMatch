@@ -9,21 +9,20 @@ import {
   useState,
 } from "react";
 import { useFavorites, type UseFavoritesResult } from "@/features/favorites/hooks/use-favorites";
-import {
-  clearStoredUserSession,
-  getOrCreateUserId,
-  getStoredUserEmail,
-  getStoredUserId,
-} from "@/lib/userId";
+import { createClient } from "@/lib/supabase/client";
+
+type SessionUser = {
+  id: string;
+  email: string | null;
+};
 
 type FavoritesContextValue = UseFavoritesResult & {
-  userId: number | null;
-  userEmail: string | null;
+  user: SessionUser | null;
   isLoggedIn: boolean;
   isUserReady: boolean;
   favoriteCount: number;
-  ensureUserId: (email?: string, password?: string) => Promise<number | null>;
-  logout: () => void;
+  signIn: (email: string, password: string) => Promise<boolean>;
+  signOut: () => Promise<void>;
 };
 
 const FavoritesContext = createContext<FavoritesContextValue | null>(null);
@@ -33,78 +32,95 @@ export function FavoritesProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const [userId, setUserId] = useState<number | null>(() => getStoredUserId());
-  const [userEmail, setUserEmail] = useState<string | null>(() =>
-    getStoredUserEmail()
-  );
+  const [supabase] = useState(() => createClient());
+  const [user, setUser] = useState<SessionUser | null>(null);
+  const [isUserReady, setIsUserReady] = useState(false);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
+    let mounted = true;
 
-    const syncFromStorage = () => {
-      setUserId(getStoredUserId());
-      setUserEmail(getStoredUserEmail());
-    };
+    supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) {
+        return;
+      }
 
-    window.addEventListener("storage", syncFromStorage);
+      setUser(
+        data.session?.user
+          ? {
+              id: data.session.user.id,
+              email: data.session.user.email ?? null,
+            }
+          : null
+      );
+      setIsUserReady(true);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(
+        session?.user
+          ? {
+              id: session.user.id,
+              email: session.user.email ?? null,
+            }
+          : null
+      );
+      setIsUserReady(true);
+    });
 
     return () => {
-      window.removeEventListener("storage", syncFromStorage);
+      mounted = false;
+      subscription.unsubscribe();
     };
-  }, []);
+  }, [supabase]);
 
-  const isLoggedIn = Boolean(userId && userId > 0);
-  const isUserReady = true;
-  const favorites = useFavorites({ userId, enabled: isUserReady });
+  const isLoggedIn = Boolean(user);
+  const favorites = useFavorites({ enabled: isUserReady && isLoggedIn });
 
-  const ensureUserId = useCallback(async (email?: string, password?: string) => {
-    if (userId && userId > 0) {
-      return userId;
-    }
+  const signIn = useCallback(
+    async (email: string, password: string) => {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
 
-    if (!email || !password) {
-      return null;
-    }
+      if (error || !data.user) {
+        return false;
+      }
 
-    try {
-      const normalizedEmail = email.trim().toLowerCase();
-      const id = await getOrCreateUserId(normalizedEmail, password);
-      setUserId(id);
-      setUserEmail(normalizedEmail);
-      return id;
-    } catch (err) {
-      console.error("Failed to initialize user:", err);
-      return null;
-    }
-  }, [userId]);
+      setUser({
+        id: data.user.id,
+        email: data.user.email ?? null,
+      });
+      setIsUserReady(true);
+      return true;
+    },
+    [supabase]
+  );
 
-  const logout = useCallback(() => {
-    clearStoredUserSession();
-    setUserId(null);
-    setUserEmail(null);
-  }, []);
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+  }, [supabase]);
 
   const value = useMemo(
     () => ({
       ...favorites,
-      userId,
-      userEmail,
+      user,
       isLoggedIn,
       isUserReady,
       favoriteCount: favorites.favoriteIds.size,
-      ensureUserId,
-      logout,
+      signIn,
+      signOut,
     }),
     [
       favorites,
-      userId,
-      userEmail,
+      user,
       isLoggedIn,
       isUserReady,
-      ensureUserId,
-      logout,
+      signIn,
+      signOut,
     ]
   );
 

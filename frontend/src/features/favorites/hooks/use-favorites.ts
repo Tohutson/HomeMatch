@@ -8,7 +8,6 @@ import { isAbortError } from "@/lib/is-abort-error";
 import type { FavoriteRecord } from "@/features/favorites/types";
 
 type UseFavoritesParams = {
-  userId: number | null;
   enabled?: boolean;
 };
 
@@ -55,7 +54,6 @@ function mergeFavoriteRecord(
 }
 
 export function useFavorites({
-  userId,
   enabled = true,
 }: UseFavoritesParams): UseFavoritesResult {
   const [favorites, setFavorites] = useState<FavoriteRecord[]>([]);
@@ -70,10 +68,6 @@ export function useFavorites({
       activeRequestRef.current?.abort();
 
       if (!enabled) {
-        return;
-      }
-
-      if (!userId || userId <= 0) {
         setFavorites([]);
         setFavoriteIds(new Set());
         setError(null);
@@ -129,11 +123,16 @@ export function useFavorites({
         }
       }
     },
-    [enabled, userId]
+    [enabled]
   );
 
   useEffect(() => {
     if (!enabled) {
+      activeRequestRef.current?.abort();
+      setFavorites([]);
+      setFavoriteIds(new Set());
+      setError(null);
+      setLoading(false);
       return;
     }
 
@@ -174,7 +173,7 @@ export function useFavorites({
 
   const addFavorite = useCallback(
     async (listingId: number): Promise<ActionResult> => {
-      if (!userId || userId <= 0) {
+      if (!enabled) {
         return { ok: false, reason: "missing_user" };
       }
 
@@ -204,12 +203,12 @@ export function useFavorites({
         return { ok: false, reason: "request_failed" };
       }
     },
-    [userId]
+    [enabled]
   );
 
   const removeFavorite = useCallback(
     async (listingId: number): Promise<ActionResult> => {
-      if (!userId || userId <= 0) {
+      if (!enabled) {
         return { ok: false, reason: "missing_user" };
       }
 
@@ -234,7 +233,7 @@ export function useFavorites({
         return { ok: false, reason: "request_failed" };
       }
     },
-    [userId]
+    [enabled]
   );
 
   return {

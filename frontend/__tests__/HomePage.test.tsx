@@ -1,24 +1,23 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import HomePage from "../src/app/page";
-import Navbar from "../src/components/Navbar/Navbar";
+import NavbarClient from "../src/components/Navbar/NavbarClient";
 import { FavoritesProvider } from "../src/features/favorites/context/favorites-context";
-
-jest.mock("../src/lib/userId", () => ({
-  getOrCreateUserId: jest.fn().mockResolvedValue(1),
-  getStoredUserId: jest.fn().mockReturnValue(null),
-  getStoredUserEmail: jest.fn().mockReturnValue(null),
-  clearStoredUserSession: jest.fn(),
-}));
 
 jest.mock("../src/features/search/components/SearchBar", () => ({
   __esModule: true,
   default: () => <div data-testid="search-bar" />,
 }));
 
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({
+    refresh: jest.fn(),
+  }),
+}));
+
 async function renderHomePage() {
   render(
     <FavoritesProvider>
-      <Navbar />
+      <NavbarClient user={null} />
       <HomePage />
     </FavoritesProvider>,
   );

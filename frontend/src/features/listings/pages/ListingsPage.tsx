@@ -58,7 +58,7 @@ function ListingsPageContent({
   const [showNotLoggedIn, setShowNotLoggedIn] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const { ensureUserId } = useFavoritesContext();
+  const { signIn } = useFavoritesContext();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -218,11 +218,11 @@ function ListingsPageContent({
             setIsLoggingIn(true);
             setLoginError(null);
 
-            const id = await ensureUserId(email, password);
+            const didSignIn = await signIn(email, password);
 
             setIsLoggingIn(false);
 
-            if (!id) {
+            if (!didSignIn) {
               setLoginError("Unable to log in right now. Please try again.");
               return;
             }
@@ -232,8 +232,8 @@ function ListingsPageContent({
           }}
           isSubmitting={isLoggingIn}
           error={loginError}
-          description="Log in with email and password to save favorites. If you are new, we will create your account."
-          submitLabel="Continue"
+          description="Log in with your Supabase-backed HomeMatch account to save favorites."
+          submitLabel="Log in"
         />
       )}
 

@@ -9,19 +9,10 @@ import { useFavoriteUndo } from "@/features/favorites/hooks/use-favorite-undo";
 import { useFavoritesSync } from "@/features/favorites/hooks/use-favorites-sync";
 import { FavoriteRecord } from "../types";
 import { useListingAvailability } from "@/features/listings/hooks/use-listing-availability";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 
 type SortOption = "date_desc" | "date_asc" | "price_asc" | "price_desc";
 
-export default async function FavoritesPage() {
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.getClaims();
-
-  if (error || !data?.claims?.sub) {
-    redirect("/login");
-  }
-
+export default function FavoritesPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [sortOption, setSortOption] = useState<SortOption>("date_desc");
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);

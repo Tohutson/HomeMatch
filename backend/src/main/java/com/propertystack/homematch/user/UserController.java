@@ -2,6 +2,7 @@ package com.propertystack.homematch.user;
 
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -26,5 +27,11 @@ public class UserController {
                 "supabaseUserId", user.getSupabaseUserId(),
                 "email", user.getEmail()
         );
+    }
+
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> deleteMe(@AuthenticationPrincipal Jwt jwt) {
+        userService.deleteCurrentUser(jwt);
+        return ResponseEntity.noContent().build();
     }
 }

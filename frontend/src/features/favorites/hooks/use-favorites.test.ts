@@ -52,7 +52,7 @@ describe("useFavorites", () => {
     jest.restoreAllMocks();
   });
 
-  it("ignores stale fetch results after the user id changes", async () => {
+  it("ignores stale fetch results after a newer refetch starts", async () => {
     const firstFetch = createDeferred<Array<typeof favorite>>();
     const secondFetch = createDeferred<Array<typeof favorite>>();
 
@@ -60,14 +60,11 @@ describe("useFavorites", () => {
       .mockImplementationOnce(() => firstFetch.promise)
       .mockImplementationOnce(() => secondFetch.promise);
 
-    const { result, rerender } = renderHook(
-      ({ userId }) => useFavorites({ userId }),
-      {
-        initialProps: { userId: 7 as number | null },
-      }
-    );
+    const { result } = renderHook(() => useFavorites({ enabled: true }));
 
-    rerender({ userId: 8 });
+    act(() => {
+      void result.current.refetchFavorites();
+    });
 
     await act(async () => {
       secondFetch.resolve([
@@ -101,7 +98,7 @@ describe("useFavorites", () => {
       .mockResolvedValueOnce([favorite])
       .mockRejectedValueOnce(new Error("network down"));
 
-    const { result } = renderHook(() => useFavorites({ userId: 7 }));
+    const { result } = renderHook(() => useFavorites({ enabled: true }));
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);

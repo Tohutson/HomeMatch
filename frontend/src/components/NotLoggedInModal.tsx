@@ -19,7 +19,7 @@ export default function NotLoggedInModal({
   error = null,
   title = "Please log in to save favorites",
   description =
-    "Enter your email and password to continue. If this is your first time, we will create your account.",
+    "Enter your email and password to continue, or create an account from the sign-up page.",
   submitLabel = "Continue",
 }: Props) {
   const [email, setEmail] = useState("");

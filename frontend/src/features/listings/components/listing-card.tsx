@@ -19,7 +19,6 @@ type ListingCardProps = {
 const SWIPE_EXIT_DISTANCE = 420;
 const SWIPE_EXIT_DURATION_MS = 260;
 const SWIPE_TRIGGER_THRESHOLD = 110;
-const HEART_BOUNCE_DURATION_MS = 600;
 
 export default function ListingCard({
   listing,
@@ -34,12 +33,7 @@ export default function ListingCard({
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [exitDirection, setExitDirection] = useState<"left" | "right" | null>(null);
-  const [shouldAnimateFavorite, setShouldAnimateFavorite] = useState(false);
   const swipeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const favoriteAnimationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null
-  );
-  const previousIsFavoritedRef = useRef(isFavorited);
   const photoUrls = listing.photoUrls ?? [];
   const hasPhotos = photoUrls.length > 0;
   const activePhotoUrl = hasPhotos ? photoUrls[activePhotoIndex] : null;
@@ -110,43 +104,11 @@ export default function ListingCard({
   };
 
   useEffect(() => {
-    const wasFavorited = previousIsFavoritedRef.current;
-    previousIsFavoritedRef.current = isFavorited;
-
-    if (!isFavorited) {
-      if (favoriteAnimationTimeoutRef.current) {
-        clearTimeout(favoriteAnimationTimeoutRef.current);
-        favoriteAnimationTimeoutRef.current = null;
-      }
-      setShouldAnimateFavorite(false);
-      return;
-    }
-
-    if (wasFavorited) {
-      return;
-    }
-
-    setShouldAnimateFavorite(true);
-
-    if (favoriteAnimationTimeoutRef.current) {
-      clearTimeout(favoriteAnimationTimeoutRef.current);
-    }
-
-    favoriteAnimationTimeoutRef.current = setTimeout(() => {
-      setShouldAnimateFavorite(false);
-      favoriteAnimationTimeoutRef.current = null;
-    }, HEART_BOUNCE_DURATION_MS);
-  }, [isFavorited]);
-
-  useEffect(() => {
     return () => {
       if (swipeTimeoutRef.current) {
         clearTimeout(swipeTimeoutRef.current);
       }
 
-      if (favoriteAnimationTimeoutRef.current) {
-        clearTimeout(favoriteAnimationTimeoutRef.current);
-      }
     };
   }, []);
 
@@ -248,7 +210,7 @@ export default function ListingCard({
             strokeWidth={2}
             className={`h-6 w-6 transition-colors ${
               isFavorited ? "text-rose-500" : "text-zinc-400"
-            } ${shouldAnimateFavorite ? "animate-heart-bounce" : ""}`}
+            }`}
             data-testid="heart-icon"
           >
             <path

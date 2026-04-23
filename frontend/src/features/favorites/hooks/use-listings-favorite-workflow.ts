@@ -35,7 +35,7 @@ export function useListingsFavoriteWorkflow({
   onRequireLogin,
 }: UseListingsFavoriteWorkflowParams): UseListingsFavoriteWorkflowResult {
   const {
-    userId,
+    isLoggedIn,
     favoriteIds,
     loading,
     error,
@@ -71,7 +71,7 @@ export function useListingsFavoriteWorkflow({
 
   const startFavoriteAdd = useCallback(
     (listing: Listing): ActionResult => {
-      if (!userId || userId <= 0) {
+      if (!isLoggedIn) {
         onRequireLogin?.();
         return { ok: false, reason: "missing_user" };
       }
@@ -85,7 +85,6 @@ export function useListingsFavoriteWorkflow({
 
       if (typeof navigator !== "undefined" && !navigator.onLine) {
         enqueueOfflineFavorite({
-          userId,
           listingId: listing.id,
         });
 
@@ -114,7 +113,7 @@ export function useListingsFavoriteWorkflow({
       return { ok: true };
     },
     [
-      userId,
+      isLoggedIn,
       isFavorited,
       setFavoriteOptimistic,
       recordPendingFavorite,
@@ -134,7 +133,7 @@ export function useListingsFavoriteWorkflow({
 
   const handleFavorite = useCallback(
     async (listing: Listing): Promise<ActionResult> => {
-      if (!userId || userId <= 0) {
+      if (!isLoggedIn) {
         onRequireLogin?.();
         return { ok: false, reason: "missing_user" };
       }
@@ -158,7 +157,7 @@ export function useListingsFavoriteWorkflow({
       return startFavoriteAdd(listing);
     },
     [
-      userId,
+      isLoggedIn,
       isFavorited,
       removeFavorite,
       startFavoriteAdd,
