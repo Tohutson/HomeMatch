@@ -92,7 +92,7 @@ export function useFavorites({
           setError(null);
         }
 
-        const nextFavorites = await getFavorites(userId, controller.signal);
+        const nextFavorites = await getFavorites(controller.signal);
 
         if (controller.signal.aborted || requestId !== requestIdRef.current) {
           return;
@@ -179,7 +179,7 @@ export function useFavorites({
       }
 
       try {
-        const res = await addFavoriteRequest(userId, listingId);
+        const res = await addFavoriteRequest(listingId);
 
         if (res.ok) {
           const favorite = (await res.json()) as FavoriteRecord;
@@ -214,7 +214,7 @@ export function useFavorites({
       }
 
       try {
-        const res = await removeFavoriteRequest(userId, listingId);
+        const res = await removeFavoriteRequest(listingId);
 
         if (res.ok) {
           setFavorites((prev) =>

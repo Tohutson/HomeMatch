@@ -1,12 +1,10 @@
-import { API_BASE } from "@/lib/env";
 import type { FavoriteRecord } from "./types";
 import { apiFetch } from "@/lib/api";
 
 export async function getFavorites(
-  userId: number,
   signal?: AbortSignal,
 ): Promise<FavoriteRecord[]> {
-  const res = await apiFetch(`${API_BASE}/api/users/${userId}/favorites`, {
+  const res = await apiFetch("/api/users/me/favorites", {
     method: "GET",
     cache: "no-store",
     signal,
@@ -20,10 +18,9 @@ export async function getFavorites(
 }
 
 export async function addFavorite(
-  userId: number,
   listingId: number,
 ): Promise<Response> {
-  return apiFetch(`${API_BASE}/api/users/${userId}/favorites`, {
+  return apiFetch("/api/users/me/favorites", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ listingId }),
@@ -31,10 +28,9 @@ export async function addFavorite(
 }
 
 export async function removeFavorite(
-  userId: number,
   listingId: number,
 ): Promise<Response> {
-  return apiFetch(`${API_BASE}/api/users/${userId}/favorites/${listingId}`, {
+  return apiFetch(`/api/users/me/favorites/${listingId}`, {
     method: "DELETE",
   });
 }
