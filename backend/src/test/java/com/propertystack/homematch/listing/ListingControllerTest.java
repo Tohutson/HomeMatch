@@ -245,6 +245,13 @@ class ListingControllerTest {
     }
 
     @Test
+    void shouldReturnBadRequestWhenAvailabilityIdsContainInvalidValue() throws Exception {
+        mockMvc.perform(get("/api/listings/availability")
+                        .param("ids", "0"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void shouldReturnNotFoundWhenListingDoesNotExist() throws Exception {
         when(listingService.getListingById(999L))
                 .thenThrow(new ListingNotFoundException(999L));
@@ -353,6 +360,21 @@ class ListingControllerTest {
 
         verify(suggestionService).getSuggestions("for", 3);
         verifyNoMoreInteractions(listingService);
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenSuggestionLimitExceedsMaximum() throws Exception {
+        mockMvc.perform(get("/api/listings/suggestions")
+                        .param("q", "for")
+                        .param("limit", "11"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenSuggestionQueryIsTooLong() throws Exception {
+        mockMvc.perform(get("/api/listings/suggestions")
+                        .param("q", "x".repeat(101)))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

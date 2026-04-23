@@ -21,3 +21,17 @@ spring:
         jwt:
           issuer-uri: ${SUPABASE_JWT_ISSUER_URI:${SUPABASE_URL:https://bwreiezwxlaqnvegpuas.supabase.co}/auth/v1}
           jwk-set-uri: ${SUPABASE_JWT_JWK_SET_URI:${SUPABASE_URL:https://bwreiezwxlaqnvegpuas.supabase.co}/auth/v1/.well-known/jwks.json}
+
+app:
+  security:
+    allowed-origins:
+      - http://localhost:3000
+      - http://127.0.0.1:3000
+      - http://10.0.0.207:3000
+    jwt:
+      audience: ${SUPABASE_JWT_AUDIENCE:}
+    rate-limit:
+      window: 1m
+      public-requests-per-window: 120
+      suggestion-requests-per-window: 30
+      authenticated-write-requests-per-window: 60
