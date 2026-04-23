@@ -163,6 +163,8 @@ class FavoriteServiceTest {
     private User user(Long id) {
         return User.builder()
                 .id(id)
+                .supabaseUserId("supabase-user-" + id)
+                .email("user" + id + "@example.com")
                 .build();
     }
 

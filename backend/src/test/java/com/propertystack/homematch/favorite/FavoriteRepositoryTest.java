@@ -63,8 +63,8 @@ class FavoriteRepositoryTest {
         listingRepository.deleteAll();
         userRepository.deleteAll();
 
-        user = userRepository.save(User.builder().build());
-        otherUser = userRepository.save(User.builder().build());
+        user = userRepository.save(user("supabase-user-1", "test@example.com"));
+        otherUser = userRepository.save(user("supabase-user-2", "other@example.com"));
 
         listing1 = listingRepository.save(listing("30 Pitt St", "250000"));
         listing2 = listingRepository.save(listing("40 Forbes Ave", "525000"));
@@ -186,6 +186,13 @@ class FavoriteRepositoryTest {
         boolean exists = favoriteRepository.existsByUserIdAndListingId(user.getId(), listing1.getId());
 
         assertThat(exists).isFalse();
+    }
+
+    private User user(String supabaseUserId, String email) {
+        return User.builder()
+                .supabaseUserId(supabaseUserId)
+                .email(email)
+                .build();
     }
 
     private Listing listing(String address, String price) {

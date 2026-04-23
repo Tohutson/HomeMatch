@@ -16,6 +16,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -24,6 +25,7 @@ import java.math.BigDecimal;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -77,7 +79,10 @@ class FavoriteIntegrationTest {
         listingRepository.deleteAll();
         userRepository.deleteAll();
 
-        user = userRepository.save(User.builder().build());
+        user = userRepository.save(User.builder()
+                .supabaseUserId("supabase-user-1")
+                .email("test@example.com")
+                .build());
 
         listing = listingRepository.save(Listing.builder()
                 .address("30 Pitt St")
@@ -93,7 +98,8 @@ class FavoriteIntegrationTest {
     void addFavorite_shouldPersistAndReturn201() throws Exception {
         CreateFavoriteRequest request = new CreateFavoriteRequest(listing.getId());
 
-        mockMvc.perform(post("/api/users/{userId}/favorites", user.getId())
+        mockMvc.perform(post("/api/users/me/favorites")
+                        .with(authenticatedJwt())
                         .contentType(APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -114,7 +120,8 @@ class FavoriteIntegrationTest {
 
         CreateFavoriteRequest request = new CreateFavoriteRequest(listing.getId());
 
-        mockMvc.perform(post("/api/users/{userId}/favorites", user.getId())
+        mockMvc.perform(post("/api/users/me/favorites")
+                        .with(authenticatedJwt())
                         .contentType(APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict());
@@ -124,27 +131,19 @@ class FavoriteIntegrationTest {
     void addFavorite_shouldReturn404WhenListingDoesNotExist() throws Exception {
         CreateFavoriteRequest request = new CreateFavoriteRequest(999999L);
 
-        mockMvc.perform(post("/api/users/{userId}/favorites", user.getId())
+        mockMvc.perform(post("/api/users/me/favorites")
+                        .with(authenticatedJwt())
                         .contentType(APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound());
     }
 
     @Test
-    void addFavorite_shouldReturn400WhenUserIdIsInvalid() throws Exception {
-        CreateFavoriteRequest request = new CreateFavoriteRequest(listing.getId());
-
-        mockMvc.perform(post("/api/users/{userId}/favorites", 0)
-                        .contentType(APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
     void addFavorite_shouldReturn400WhenRequestBodyIsInvalid() throws Exception {
         CreateFavoriteRequest request = new CreateFavoriteRequest(0L);
 
-        mockMvc.perform(post("/api/users/{userId}/favorites", user.getId())
+        mockMvc.perform(post("/api/users/me/favorites")
+                        .with(authenticatedJwt())
                         .contentType(APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -157,7 +156,7 @@ class FavoriteIntegrationTest {
                 .listing(listing)
                 .build());
 
-        mockMvc.perform(get("/api/users/{userId}/favorites", user.getId()))
+        mockMvc.perform(get("/api/users/me/favorites").with(authenticatedJwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$[0].listing.id").value(listing.getId()))
@@ -166,15 +165,24 @@ class FavoriteIntegrationTest {
 
     @Test
     void getFavorites_shouldReturnEmptyListWhenUserHasNoFavorites() throws Exception {
-        mockMvc.perform(get("/api/users/{userId}/favorites", user.getId()))
+        mockMvc.perform(get("/api/users/me/favorites").with(authenticatedJwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isEmpty());
     }
 
     @Test
-    void getFavorites_shouldReturn400WhenUserIdIsInvalid() throws Exception {
-        mockMvc.perform(get("/api/users/{userId}/favorites", 0))
-                .andExpect(status().isBadRequest());
+    void getFavorites_shouldCreateUserForAuthenticatedSupabaseSubject() throws Exception {
+        userRepository.delete(user);
+
+        mockMvc.perform(get("/api/users/me/favorites").with(authenticatedJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+
+        assertThat(userRepository.findBySupabaseUserId("supabase-user-1"))
+                .isPresent()
+                .get()
+                .extracting(User::getEmail)
+                .isEqualTo("test@example.com");
     }
 
     @Test
@@ -184,7 +192,8 @@ class FavoriteIntegrationTest {
                 .listing(listing)
                 .build());
 
-        mockMvc.perform(delete("/api/users/{userId}/favorites/{listingId}", user.getId(), listing.getId()))
+        mockMvc.perform(delete("/api/users/me/favorites/{listingId}", listing.getId())
+                        .with(authenticatedJwt()))
                 .andExpect(status().isNoContent());
 
         assertThat(favoriteRepository.existsByUserIdAndListingId(user.getId(), listing.getId()))
@@ -193,19 +202,21 @@ class FavoriteIntegrationTest {
 
     @Test
     void removeFavorite_shouldReturn404WhenFavoriteDoesNotExist() throws Exception {
-        mockMvc.perform(delete("/api/users/{userId}/favorites/{listingId}", user.getId(), listing.getId()))
+        mockMvc.perform(delete("/api/users/me/favorites/{listingId}", listing.getId())
+                        .with(authenticatedJwt()))
                 .andExpect(status().isNotFound());
     }
 
     @Test
-    void removeFavorite_shouldReturn400WhenUserIdIsInvalid() throws Exception {
-        mockMvc.perform(delete("/api/users/{userId}/favorites/{listingId}", 0, listing.getId()))
+    void removeFavorite_shouldReturn400WhenListingIdIsInvalid() throws Exception {
+        mockMvc.perform(delete("/api/users/me/favorites/{listingId}", 0)
+                        .with(authenticatedJwt()))
                 .andExpect(status().isBadRequest());
     }
 
-    @Test
-    void removeFavorite_shouldReturn400WhenListingIdIsInvalid() throws Exception {
-        mockMvc.perform(delete("/api/users/{userId}/favorites/{listingId}", user.getId(), 0))
-                .andExpect(status().isBadRequest());
+    private RequestPostProcessor authenticatedJwt() {
+        return jwt().jwt(jwt -> jwt
+                .subject("supabase-user-1")
+                .claim("email", "test@example.com"));
     }
 }
