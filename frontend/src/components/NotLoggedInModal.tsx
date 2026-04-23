@@ -1,32 +1,40 @@
 "use client";
 
+import Link from "next/link";
 import { type FormEvent, useState } from "react";
+
+type AuthMode = "login" | "signup";
 
 type Props = {
   onDismiss: () => void;
   onLogIn: (email: string, password: string) => Promise<void> | void;
+  onSignUp?: (email: string, password: string) => Promise<void> | void;
   onContinueWithGoogle?: () => Promise<void> | void;
   isSubmitting?: boolean;
   error?: string | null;
+  message?: string | null;
   title?: string;
   description?: string;
-  submitLabel?: string;
+  initialMode?: AuthMode;
 };
 
 export default function NotLoggedInModal({
   onDismiss,
   onLogIn,
+  onSignUp,
   onContinueWithGoogle,
   isSubmitting = false,
   error = null,
+  message = null,
   title = "Please log in to save favorites",
   description =
-    "Enter your email and password to continue, or use Google to sign in faster.",
-  submitLabel = "Continue",
+    "Log in or create an account to continue, or use Google to sign in faster.",
+  initialMode = "login",
 }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
+  const [mode, setMode] = useState<AuthMode>(initialMode);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -54,6 +62,11 @@ export default function NotLoggedInModal({
     }
 
     setLocalError(null);
+    if (mode === "signup" && onSignUp) {
+      void onSignUp(normalizedEmail, password);
+      return;
+    }
+
     void onLogIn(normalizedEmail, password);
   };
 
@@ -71,6 +84,39 @@ export default function NotLoggedInModal({
       >
         <h2 className="mb-2 text-lg font-bold text-zinc-900">{title}</h2>
         <p className="mb-4 text-sm text-zinc-500">{description}</p>
+
+        {onSignUp ? (
+          <div className="mb-4 grid grid-cols-2 rounded-lg bg-zinc-100 p-1">
+            <button
+              type="button"
+              className={`rounded-md px-3 py-2 text-sm font-medium transition ${
+                mode === "login"
+                  ? "bg-white text-zinc-900 shadow-sm"
+                  : "text-zinc-600 hover:text-zinc-900"
+              }`}
+              onClick={() => {
+                setMode("login");
+                setLocalError(null);
+              }}
+            >
+              Log in
+            </button>
+            <button
+              type="button"
+              className={`rounded-md px-3 py-2 text-sm font-medium transition ${
+                mode === "signup"
+                  ? "bg-white text-zinc-900 shadow-sm"
+                  : "text-zinc-600 hover:text-zinc-900"
+              }`}
+              onClick={() => {
+                setMode("signup");
+                setLocalError(null);
+              }}
+            >
+              Create account
+            </button>
+          </div>
+        ) : null}
 
         <label
           htmlFor="login-email"
@@ -117,6 +163,10 @@ export default function NotLoggedInModal({
           disabled={isSubmitting}
         />
 
+        {message ? (
+          <p className="mb-4 text-sm font-medium text-emerald-700">{message}</p>
+        ) : null}
+
         {(localError || error) && (
           <p
             className="mb-4 text-sm font-medium text-rose-600"
@@ -154,7 +204,13 @@ export default function NotLoggedInModal({
             data-testid="modal-login-button"
             disabled={isSubmitting}
           >
-            {isSubmitting ? "Saving..." : submitLabel}
+            {isSubmitting
+              ? mode === "signup"
+                ? "Creating..."
+                : "Saving..."
+              : mode === "signup"
+                ? "Create account"
+                : "Continue"}
           </button>
           <button
             type="button"
@@ -167,6 +223,19 @@ export default function NotLoggedInModal({
             Cancel
           </button>
         </div>
+
+        {!onSignUp ? (
+          <p className="mt-4 text-center text-sm text-zinc-500">
+            Need an account?{" "}
+            <Link
+              href="/login?mode=signup"
+              className="font-semibold text-cyan-700"
+              onClick={onDismiss}
+            >
+              Create one
+            </Link>
+          </p>
+        ) : null}
       </form>
     </div>
   );

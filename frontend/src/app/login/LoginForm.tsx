@@ -5,24 +5,66 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
+type AuthMode = "login" | "signup";
+
 export default function LoginForm() {
   const supabase = createClient();
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = searchParams.get("next") ?? "/favorites";
+  const mode: AuthMode =
+    searchParams.get("mode") === "signup" ? "signup" : "login";
   const oauthError =
     searchParams.get("error_description") ?? searchParams.get("error") ?? "";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
+
+  function buildModeHref(nextMode: AuthMode) {
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (nextMode === "signup") {
+      params.set("mode", "signup");
+    } else {
+      params.delete("mode");
+    }
+
+    const query = params.toString();
+    return query ? `/login?${query}` : "/login";
+  }
 
   async function handleSubmit(e: React.SubmitEvent) {
     e.preventDefault();
     setError("");
+    setMessage("");
     setIsSubmitting(true);
+
+    if (mode === "signup") {
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim().toLowerCase(),
+        password,
+      });
+
+      setIsSubmitting(false);
+
+      if (error) {
+        setError(error.message);
+        return;
+      }
+
+      if (data.session) {
+        router.push(nextPath);
+        router.refresh();
+        return;
+      }
+
+      setMessage("Check your email to confirm your account.");
+      return;
+    }
 
     const { error } = await supabase.auth.signInWithPassword({
       email: email.trim().toLowerCase(),
@@ -64,17 +106,51 @@ export default function LoginForm() {
   return (
     <section className="mx-auto max-w-md rounded-[32px] border border-white/80 bg-white/85 p-8 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur">
       <p className="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-700">
-        Welcome back
+        {mode === "signup" ? "Start saving homes" : "Welcome back"}
       </p>
       <h1 className="mt-3 text-4xl font-semibold tracking-[-0.05em]">
-        Log in
+        {mode === "signup" ? "Create account" : "Log in"}
       </h1>
       <p className="mt-3 text-sm leading-6 text-slate-600">
-        Use your HomeMatch account to save homes, manage favorites, and keep
-        your shortlist synced.
+        {mode === "signup"
+          ? "Create your HomeMatch account to save homes, manage favorites, and keep your shortlist synced."
+          : "Use your HomeMatch account to save homes, manage favorites, and keep your shortlist synced."}
       </p>
 
       <div className="mt-8 space-y-4">
+        <div className="grid grid-cols-2 rounded-full bg-slate-100 p-1">
+          <button
+            type="button"
+            onClick={() => {
+              router.replace(buildModeHref("login"));
+              setError("");
+              setMessage("");
+            }}
+            className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+              mode === "login"
+                ? "bg-white text-slate-950 shadow-sm"
+                : "text-slate-600 hover:text-slate-950"
+            }`}
+          >
+            Log in
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              router.replace(buildModeHref("signup"));
+              setError("");
+              setMessage("");
+            }}
+            className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+              mode === "signup"
+                ? "bg-white text-slate-950 shadow-sm"
+                : "text-slate-600 hover:text-slate-950"
+            }`}
+          >
+            Create account
+          </button>
+        </div>
+
         <button
           type="button"
           onClick={() => void handleGoogleSignIn()}
@@ -119,6 +195,10 @@ export default function LoginForm() {
             />
           </label>
 
+          {message && (
+            <p className="text-sm font-medium text-emerald-700">{message}</p>
+          )}
+
           {(error || oauthError) && (
             <p className="text-sm font-medium text-rose-600">
               {error || oauthError}
@@ -130,15 +210,24 @@ export default function LoginForm() {
             disabled={isSubmitting || isGoogleSubmitting}
             className="w-full rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isSubmitting ? "Logging in..." : "Log in"}
+            {isSubmitting
+              ? mode === "signup"
+                ? "Creating account..."
+                : "Logging in..."
+              : mode === "signup"
+                ? "Create account"
+                : "Log in"}
           </button>
         </form>
       </div>
 
       <p className="mt-6 text-center text-sm text-slate-600">
-        New here?{" "}
-        <Link href="/signup" className="font-semibold text-cyan-700">
-          Create an account
+        {mode === "signup" ? "Already have an account?" : "New here?"}{" "}
+        <Link
+          href={mode === "signup" ? "/login" : "/login?mode=signup"}
+          className="font-semibold text-cyan-700"
+        >
+          {mode === "signup" ? "Log in" : "Create an account"}
         </Link>
       </p>
     </section>

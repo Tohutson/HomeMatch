@@ -1,6 +1,5 @@
 "use client";
 
-import NotLoggedInModal from "@/components/NotLoggedInModal";
 import Toast from "@/components/Toast";
 import ListingCard from "@/features/listings/components/listing-card";
 import { useCallback, useEffect, useState, type ChangeEvent } from "react";
@@ -9,7 +8,6 @@ import ListingFilters from "../components/listing-filters";
 import { ListingsBanner } from "@/features/listings/components/listings-banner";
 import { ListingsPagination } from "@/features/listings/components/listings-pagination";
 
-import { useFavoritesContext } from "@/features/favorites/context/favorites-context";
 import { useListingsFavoriteWorkflow } from "@/features/favorites/hooks/use-listings-favorite-workflow";
 import { useListings } from "@/features/listings/hooks/use-listings";
 import { usePagedListingNavigation } from "@/features/listings/hooks/use-paged-listing-navigation";
@@ -55,10 +53,6 @@ function ListingsPageContent({
     setSort(initialSort);
   }, [initialSort]);
   const [toast, setToast] = useState<string | null>(null);
-  const [showNotLoggedIn, setShowNotLoggedIn] = useState(false);
-  const [loginError, setLoginError] = useState<string | null>(null);
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const { signIn, signInWithGoogle } = useFavoritesContext();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -79,8 +73,13 @@ function ListingsPageContent({
   } = useListingsFavoriteWorkflow({
     onToast: setToast,
     onRequireLogin: () => {
-      setLoginError(null);
-      setShowNotLoggedIn(true);
+      const nextPath = searchParams?.toString()
+        ? `${pathname}?${searchParams.toString()}`
+        : pathname ?? "/listings";
+
+      const params = new URLSearchParams();
+      params.set("next", nextPath);
+      router.push(`/login?${params.toString()}`);
     },
   });
 
@@ -190,10 +189,6 @@ function ListingsPageContent({
     return true;
   }, [goNext]);
 
-  const nextPath = searchParams?.toString()
-    ? `${pathname}?${searchParams.toString()}`
-    : pathname;
-
   if (isInitialLoading)
     return (
       <main className="min-h-screen p-8 bg-zinc-50 text-black">
@@ -211,49 +206,6 @@ function ListingsPageContent({
   return (
     <main className="min-h-screen bg-zinc-50 p-8 text-black">
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
-
-      {showNotLoggedIn && (
-        <NotLoggedInModal
-          onDismiss={() => {
-            setShowNotLoggedIn(false);
-            setLoginError(null);
-          }}
-          onLogIn={async (email, password) => {
-            setIsLoggingIn(true);
-            setLoginError(null);
-
-            const didSignIn = await signIn(email, password);
-
-            setIsLoggingIn(false);
-
-            if (!didSignIn) {
-              setLoginError("Unable to log in right now. Please try again.");
-              return;
-            }
-
-            setShowNotLoggedIn(false);
-            setToast("Logged in. You can now save favorites.");
-          }}
-          onContinueWithGoogle={async () => {
-            setIsLoggingIn(true);
-            setLoginError(null);
-
-            const didStartLogin = await signInWithGoogle(nextPath);
-
-            setIsLoggingIn(false);
-
-            if (!didStartLogin) {
-              setLoginError(
-                "Unable to start Google sign-in right now. Please try again."
-              );
-            }
-          }}
-          isSubmitting={isLoggingIn}
-          error={loginError}
-          description="Log in with your HomeMatch account or continue with Google to save favorites."
-          submitLabel="Log in"
-        />
-      )}
 
       <ListingsBanner
         show={showBanner}
