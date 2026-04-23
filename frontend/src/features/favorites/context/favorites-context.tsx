@@ -132,7 +132,7 @@ export function FavoritesProvider({
       user,
       isLoggedIn,
       isUserReady,
-      favoriteCount: favorites.favoriteIds.size,
+      favoriteCount: isLoggedIn ? favorites.favoriteIds.size : 0,
       signIn,
       signInWithGoogle,
       signOut,

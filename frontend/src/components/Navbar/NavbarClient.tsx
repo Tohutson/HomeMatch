@@ -6,7 +6,6 @@ import { useState } from "react";
 import { useFavoritesContext } from "@/features/favorites/context/favorites-context";
 import SearchBar from "@/features/search/components/SearchBar";
 import NotLoggedInModal from "@/components/NotLoggedInModal";
-import { signOut } from "@/lib/actions/auth";
 
 type NavbarUser = {
   id: string;
@@ -15,10 +14,19 @@ type NavbarUser = {
 
 export default function NavbarClient({ user }: { user: NavbarUser }) {
   const router = useRouter();
-  const { favoriteCount, signIn, signInWithGoogle } = useFavoritesContext();
+  const {
+    user: sessionUser,
+    isUserReady,
+    favoriteCount,
+    signIn,
+    signInWithGoogle,
+    signOut,
+  } = useFavoritesContext();
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+
+  const currentUser = isUserReady ? sessionUser : user;
 
   const handleLogin = async (email: string, password: string) => {
     try {
@@ -58,6 +66,21 @@ export default function NavbarClient({ user }: { user: NavbarUser }) {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      setIsSubmitting(true);
+      setAuthError(null);
+      setShowLoginModal(false);
+      await signOut();
+      router.push("/");
+      router.refresh();
+    } catch {
+      setAuthError("Unable to log out right now. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <>
       <nav className="relative z-40 w-full border-b border-sky-200/70 bg-linear-to-r from-sky-100 via-cyan-50 to-white shadow-[0_10px_35px_rgba(14,116,144,0.08)] backdrop-blur">
@@ -82,26 +105,26 @@ export default function NavbarClient({ user }: { user: NavbarUser }) {
               ♥ Favorites ({favoriteCount})
             </Link>
 
-            {user ? (
+            {currentUser ? (
               <>
                 <Link
                   href="/profile"
                   className="hidden max-w-48 truncate rounded-full bg-white/80 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-white md:inline-block"
-                  title={user.email ?? ""}
+                  title={currentUser.email ?? ""}
                   data-testid="logged-in-email"
                 >
-                  {user.email ?? "Profile"}
+                  {currentUser.email ?? "Profile"}
                 </Link>
 
-                <form action={signOut}>
-                  <button
-                    type="submit"
-                    className="rounded-full border border-slate-300 bg-white/80 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-white"
-                    data-testid="logout-button"
-                  >
-                    Log Out
-                  </button>
-                </form>
+                <button
+                  type="button"
+                  onClick={() => void handleLogout()}
+                  className="rounded-full border border-slate-300 bg-white/80 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                  data-testid="logout-button"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Logging Out..." : "Log Out"}
+                </button>
               </>
             ) : (
               <button
