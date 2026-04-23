@@ -19,5 +19,5 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${SUPABASE_JWT_ISSUER_URI}
-          jwk-set-uri: ${SUPABASE_JWT_JWK_SET_URI:${SUPABASE_JWT_ISSUER_URI}/.well-known/jwks.json}
+          issuer-uri: ${SUPABASE_JWT_ISSUER_URI:${SUPABASE_URL:https://bwreiezwxlaqnvegpuas.supabase.co}/auth/v1}
+          jwk-set-uri: ${SUPABASE_JWT_JWK_SET_URI:${SUPABASE_URL:https://bwreiezwxlaqnvegpuas.supabase.co}/auth/v1/.well-known/jwks.json}

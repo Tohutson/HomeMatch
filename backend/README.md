@@ -58,6 +58,44 @@ http://localhost:8081
 
 ---
 
+## E2E Profile
+
+Use the `e2e` profile for local Playwright runs and for GitHub Actions. It uses the disposable Postgres database from [`docker-compose.e2e.yml`](../docker-compose.e2e.yml) and inherits the same hosted Supabase JWT issuer as normal development, so signed-in requests work without extra JWT env setup.
+
+Start the e2e database:
+
+```bash
+docker compose -f docker-compose.e2e.yml up -d
+```
+
+Run the backend with the e2e profile:
+
+```bash
+cd backend
+./mvnw spring-boot:run -Dspring-boot.run.profiles=e2e
+```
+
+The defaults validate tokens from:
+
+```text
+https://bwreiezwxlaqnvegpuas.supabase.co/auth/v1
+```
+
+If you ever switch to a fully local Supabase stack, override one of these before starting the backend:
+
+```bash
+export SUPABASE_URL=http://localhost:54321
+```
+
+or
+
+```bash
+export SUPABASE_JWT_ISSUER_URI=http://localhost:54321/auth/v1
+export SUPABASE_JWT_JWK_SET_URI=http://localhost:54321/auth/v1/.well-known/jwks.json
+```
+
+---
+
 ## API Documentation
 
 Base URL:
@@ -226,18 +264,19 @@ Endpoints for managing user favorites.
 
 ### Endpoints
 
-| Method | Path                                        | Description                  |
-| ------ | ------------------------------------------- | ---------------------------- |
-| GET    | `/api/users/{userId}/favorites`             | Get all favorites for a user |
-| POST   | `/api/users/{userId}/favorites`             | Add a favorite               |
-| DELETE | `/api/users/{userId}/favorites/{listingId}` | Remove a favorite            |
+| Method | Path                                | Description                               |
+| ------ | ----------------------------------- | ----------------------------------------- |
+| GET    | `/api/users/me/favorites`           | Get all favorites for the current user    |
+| POST   | `/api/users/me/favorites`           | Add a favorite for the current user       |
+| DELETE | `/api/users/me/favorites/{listingId}` | Remove a favorite for the current user  |
 
 ---
 
 ### GET Favorites
 
 ```bash
-curl "http://localhost:8081/api/users/1/favorites"
+curl -H "Authorization: Bearer <supabase-access-token>" \
+  "http://localhost:8081/api/users/me/favorites"
 ```
 
 Returns:
