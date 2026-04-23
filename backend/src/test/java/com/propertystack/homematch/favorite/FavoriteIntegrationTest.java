@@ -192,6 +192,22 @@ class FavoriteIntegrationTest {
     }
 
     @Test
+    void getFavorites_shouldSyncUpdatedEmailForAuthenticatedSupabaseSubject() throws Exception {
+        user.setEmail("old-email@example.com");
+        userRepository.save(user);
+
+        mockMvc.perform(get("/api/users/me/favorites").with(authenticatedJwt("updated@example.com")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+
+        assertThat(userRepository.findBySupabaseUserId("supabase-user-1"))
+                .isPresent()
+                .get()
+                .extracting(User::getEmail)
+                .isEqualTo("updated@example.com");
+    }
+
+    @Test
     void removeFavorite_shouldDeleteFromDatabase() throws Exception {
         favoriteRepository.save(Favorite.builder()
                 .user(user)
@@ -221,8 +237,12 @@ class FavoriteIntegrationTest {
     }
 
     private RequestPostProcessor authenticatedJwt() {
+        return authenticatedJwt("test@example.com");
+    }
+
+    private RequestPostProcessor authenticatedJwt(String email) {
         return jwt().jwt(jwt -> jwt
                 .subject("supabase-user-1")
-                .claim("email", "test@example.com"));
+                .claim("email", email));
     }
 }

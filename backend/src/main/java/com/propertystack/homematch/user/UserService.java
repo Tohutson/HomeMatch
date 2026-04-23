@@ -15,20 +15,40 @@ public class UserService {
 
     public User getOrCreateUser(Jwt jwt) {
         String supabaseUserId = jwt.getSubject();
-        String email = jwt.getClaimAsString("email");
+        String email = normalizeEmail(jwt.getClaimAsString("email"));
 
         return userRepository.findBySupabaseUserId(supabaseUserId)
-                .orElseGet(() -> {
-                    User user = new User();
-                    user.setSupabaseUserId(supabaseUserId);
-                    user.setEmail(email);
-                    return userRepository.save(user);
-                });
+                .map(user -> syncEmail(user, email))
+                .orElseGet(() -> createUser(supabaseUserId, email));
     }
 
     @Transactional
     public void deleteCurrentUser(Jwt jwt) {
         userRepository.findBySupabaseUserId(jwt.getSubject())
                 .ifPresent(userRepository::delete);
+    }
+
+    private User createUser(String supabaseUserId, String email) {
+        User user = new User();
+        user.setSupabaseUserId(supabaseUserId);
+        user.setEmail(email);
+        return userRepository.save(user);
+    }
+
+    private User syncEmail(User user, String email) {
+        if (email == null || email.equals(user.getEmail())) {
+            return user;
+        }
+
+        user.setEmail(email);
+        return userRepository.save(user);
+    }
+
+    private String normalizeEmail(String email) {
+        if (email == null) {
+            return null;
+        }
+
+        return email.trim().toLowerCase();
     }
 }

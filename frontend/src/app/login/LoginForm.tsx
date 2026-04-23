@@ -62,7 +62,9 @@ export default function LoginForm() {
         return;
       }
 
-      setMessage("Check your email to confirm your account.");
+      setMessage(
+        "If this email can be used for signup, check your inbox for the next step."
+      );
       return;
     }
 

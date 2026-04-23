@@ -22,7 +22,7 @@ type FavoritesContextValue = UseFavoritesResult & {
   isUserReady: boolean;
   favoriteCount: number;
   signIn: (email: string, password: string) => Promise<boolean>;
-  signUp: (email: string, password: string) => Promise<"success" | "needs_confirmation" | "error">;
+  signUp: (email: string, password: string) => Promise<"success" | "pending" | "error">;
   signInWithGoogle: (nextPath?: string) => Promise<boolean>;
   signOut: () => Promise<void>;
 };
@@ -121,7 +121,7 @@ export function FavoritesProvider({
         return "success";
       }
 
-      return "needs_confirmation";
+      return "pending";
     },
     [supabase]
   );
