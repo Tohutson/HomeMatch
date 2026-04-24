@@ -45,6 +45,8 @@ jobs:
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/homefinder
           SPRING_DATASOURCE_USERNAME: postgres
           SPRING_DATASOURCE_PASSWORD: postgres
+          SUPABASE_JWT_ISSUER_URI: ${{ secrets.SUPABASE_JWT_ISSUER_URI }}
+          SUPABASE_JWT_JWK_SET_URI: ${{ secrets.SUPABASE_JWT_JWK_SET_URI }}
           LOGGING_LEVEL_ORG_FLYWAYDB: INFO
           LOGGING_LEVEL_ORG_SPRINGFRAMEWORK: WARN
         run: ./mvnw -B clean verify
@@ -69,9 +71,17 @@ jobs:
         run: npm install
 
       - name: Build frontend
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+          NEXT_PUBLIC_API_BASE_URL: ${{ secrets.NEXT_PUBLIC_API_BASE_URL }}
         run: npm run build
 
       - name: Run frontend tests
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+          NEXT_PUBLIC_API_BASE_URL: ${{ secrets.NEXT_PUBLIC_API_BASE_URL }}
         run: npm test -- --watchAll=false
   
   e2e:
@@ -113,6 +123,8 @@ jobs:
         working-directory: backend
         env:
           SPRING_PROFILES_ACTIVE: e2e
+          SUPABASE_JWT_ISSUER_URI: ${{ secrets.SUPABASE_JWT_ISSUER_URI }}
+          SUPABASE_JWT_JWK_SET_URI: ${{ secrets.SUPABASE_JWT_JWK_SET_URI }}
         run: |
           java -jar target/*.jar &
           echo "Waiting for backend..."
@@ -140,4 +152,12 @@ jobs:
 
       - name: Run e2e tests
         working-directory: frontend
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+          NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:8081
+          E2E_AUTH_EMAIL_ONE: ${{ secrets.E2E_AUTH_EMAIL_ONE }}
+          E2E_AUTH_PASSWORD_ONE: ${{ secrets.E2E_AUTH_PASSWORD_ONE }}
+          E2E_AUTH_EMAIL_TWO: ${{ secrets.E2E_AUTH_EMAIL_TWO }}
+          E2E_AUTH_PASSWORD_TWO: ${{ secrets.E2E_AUTH_PASSWORD_TWO }}
         run: npm run test:e2e
