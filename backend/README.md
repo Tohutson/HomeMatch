@@ -284,8 +284,12 @@ Returns:
 ```json
 [
   {
-    "userId": 1,
-    "listingId": 42
+    "id": 10,
+    "createdAt": "2026-04-24T12:00:00",
+    "listing": {
+      "id": 42,
+      "address": "42 Test St"
+    }
   }
 ]
 ```
@@ -303,7 +307,8 @@ Request body:
 ```
 
 ```bash
-curl -X POST http://localhost:8081/api/users/1/favorites \
+curl -X POST http://localhost:8081/api/users/me/favorites \
+  -H "Authorization: Bearer <supabase-access-token>" \
   -H "Content-Type: application/json" \
   -d '{"listingId": 42}'
 ```
@@ -315,49 +320,11 @@ Returns `201 Created` with the favorite.
 ### DELETE Remove Favorite
 
 ```bash
-curl -X DELETE http://localhost:8081/api/users/1/favorites/42
+curl -X DELETE http://localhost:8081/api/users/me/favorites/42 \
+  -H "Authorization: Bearer <supabase-access-token>"
 ```
 
 Returns `204 No Content`.
-
----
-
-## Simple User Login API
-
-Very simple email-based login endpoint used by the frontend.
-If the email exists and password matches, it returns that user id.
-If the email does not exist, it creates a new user row and returns the new id.
-
-### Endpoint
-
-| Method | Path               | Description                    |
-| ------ | ------------------ | ------------------------------ |
-| POST   | `/api/users/login` | Log in or create user by email |
-
-### Request Body
-
-```json
-{
-  "email": "user@example.com",
-  "password": "secret123"
-}
-```
-
-### Example
-
-```bash
-curl -X POST http://localhost:8081/api/users/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"user@example.com","password":"secret123"}'
-```
-
-### Response
-
-```json
-{
-  "id": 7
-}
-```
 
 ---
 

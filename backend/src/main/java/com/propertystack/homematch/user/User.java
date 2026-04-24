@@ -18,7 +18,7 @@ public class User {
     @Column(name = "supabase_user_id", unique = true, nullable = false)
     private String supabaseUserId;
 
-    @Column(nullable = false)
+    @Column
     private String email;
 
     private String displayName;

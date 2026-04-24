@@ -14,11 +14,16 @@ public record SecurityProperties(
 
     public SecurityProperties {
         allowedOrigins = allowedOrigins == null ? List.of() : List.copyOf(allowedOrigins);
-        jwt = jwt == null ? new Jwt(null) : jwt;
+        jwt = jwt == null ? new Jwt("authenticated") : jwt;
         rateLimit = rateLimit == null ? new RateLimit(Duration.ofMinutes(1), 120, 30, 60) : rateLimit;
     }
 
     public record Jwt(String audience) {
+        public Jwt {
+            if (audience == null || audience.isBlank()) {
+                audience = "authenticated";
+            }
+        }
     }
 
     public record RateLimit(

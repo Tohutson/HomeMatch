@@ -3,30 +3,20 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useAuth } from "@/features/auth/context/auth-context";
 import { useFavoritesContext } from "@/features/favorites/context/favorites-context";
 import SearchBar from "@/features/search/components/SearchBar";
 
-type NavbarUser = {
-  id: string;
-  email: string | null;
-} | null;
-
-export default function NavbarClient({ user }: { user: NavbarUser }) {
+export default function NavbarClient() {
   const router = useRouter();
-  const {
-    user: sessionUser,
-    isUserReady,
-    favoriteCount,
-    signOut,
-  } = useFavoritesContext();
+  const { user, isAuthReady, isAuthenticated, logout } = useAuth();
+  const { favoriteCount } = useFavoritesContext();
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const currentUser = isUserReady ? sessionUser : user;
 
   const handleLogout = async () => {
     try {
       setIsSubmitting(true);
-      await signOut();
+      await logout();
       router.push("/");
       router.refresh();
     } catch {
@@ -59,15 +49,15 @@ export default function NavbarClient({ user }: { user: NavbarUser }) {
               ♥ Favorites ({favoriteCount})
             </Link>
 
-            {currentUser ? (
+            {isAuthReady && isAuthenticated ? (
               <>
                 <Link
                   href="/profile"
                   className="hidden max-w-48 truncate rounded-full bg-white/80 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-white md:inline-block"
-                  title={currentUser.email ?? ""}
+                  title={user?.email ?? ""}
                   data-testid="logged-in-email"
                 >
-                  {currentUser.email ?? "Profile"}
+                  {user?.email ?? "Profile"}
                 </Link>
 
                 <button

@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import HomePage from "../src/app/page";
 import NavbarClient from "../src/components/Navbar/NavbarClient";
+import { AuthProvider } from "../src/features/auth/context/auth-context";
 import { FavoritesProvider } from "../src/features/favorites/context/favorites-context";
 
 jest.mock("../src/features/search/components/SearchBar", () => ({
@@ -16,10 +17,12 @@ jest.mock("next/navigation", () => ({
 
 async function renderHomePage() {
   render(
-    <FavoritesProvider>
-      <NavbarClient user={null} />
-      <HomePage />
-    </FavoritesProvider>,
+    <AuthProvider>
+      <FavoritesProvider>
+        <NavbarClient />
+        <HomePage />
+      </FavoritesProvider>
+    </AuthProvider>,
   );
 
   await waitFor(() => {

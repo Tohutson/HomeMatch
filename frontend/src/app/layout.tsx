@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "@/styles/globals.css";
-import Navbar from "@/components/Navbar/Navbar";
+import NavbarClient from "@/components/Navbar/NavbarClient";
+import { AuthProvider } from "@/features/auth/context/auth-context";
 import { FavoritesProvider } from "@/features/favorites/context/favorites-context";
 
 export const metadata: Metadata = {
@@ -16,10 +17,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-        <FavoritesProvider>
-          <Navbar />
-          {children}
-        </FavoritesProvider>
+        <AuthProvider>
+          <FavoritesProvider>
+            <NavbarClient />
+            {children}
+          </FavoritesProvider>
+        </AuthProvider>
       </body>
     </html>
   );

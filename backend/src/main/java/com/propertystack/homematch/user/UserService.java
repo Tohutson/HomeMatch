@@ -8,9 +8,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final SupabaseAdminClient supabaseAdminClient;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, SupabaseAdminClient supabaseAdminClient) {
         this.userRepository = userRepository;
+        this.supabaseAdminClient = supabaseAdminClient;
     }
 
     public User getOrCreateUser(Jwt jwt) {
@@ -24,7 +26,10 @@ public class UserService {
 
     @Transactional
     public void deleteCurrentUser(Jwt jwt) {
-        userRepository.findBySupabaseUserId(jwt.getSubject())
+        String supabaseUserId = jwt.getSubject();
+        supabaseAdminClient.deleteUser(supabaseUserId);
+
+        userRepository.findBySupabaseUserId(supabaseUserId)
                 .ifPresent(userRepository::delete);
     }
 
@@ -45,7 +50,7 @@ public class UserService {
     }
 
     private String normalizeEmail(String email) {
-        if (email == null) {
+        if (email == null || email.isBlank()) {
             return null;
         }
 

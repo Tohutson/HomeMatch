@@ -22,10 +22,9 @@ public class UserController {
         User user = userService.getOrCreateUser(jwt);
 
         return Map.of(
-                "id", user.getId(),
                 "sub", jwt.getSubject(),
                 "supabaseUserId", user.getSupabaseUserId(),
-                "email", user.getEmail()
+                "email", user.getEmail() == null ? "" : user.getEmail()
         );
     }
 

@@ -60,7 +60,9 @@ describe("useFavorites", () => {
       .mockImplementationOnce(() => firstFetch.promise)
       .mockImplementationOnce(() => secondFetch.promise);
 
-    const { result } = renderHook(() => useFavorites({ enabled: true }));
+    const { result } = renderHook(() =>
+      useFavorites({ enabled: true, userSub: "supabase-user-1" })
+    );
 
     act(() => {
       void result.current.refetchFavorites();
@@ -98,7 +100,9 @@ describe("useFavorites", () => {
       .mockResolvedValueOnce([favorite])
       .mockRejectedValueOnce(new Error("network down"));
 
-    const { result } = renderHook(() => useFavorites({ enabled: true }));
+    const { result } = renderHook(() =>
+      useFavorites({ enabled: true, userSub: "supabase-user-1" })
+    );
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);

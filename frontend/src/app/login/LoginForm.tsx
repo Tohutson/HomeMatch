@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/features/auth/context/auth-context";
 
 type AuthMode = "login" | "signup";
 
 export default function LoginForm() {
-  const supabase = createClient();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { login, signup, loginWithGoogle } = useAuth();
   const nextPath = searchParams.get("next") ?? "/favorites";
   const mode: AuthMode =
     searchParams.get("mode") === "signup" ? "signup" : "login";
@@ -44,19 +44,15 @@ export default function LoginForm() {
     setIsSubmitting(true);
 
     if (mode === "signup") {
-      const { data, error } = await supabase.auth.signUp({
-        email: email.trim().toLowerCase(),
-        password,
-      });
-
+      const result = await signup(email, password);
       setIsSubmitting(false);
 
-      if (error) {
-        setError(error.message);
+      if (result.status === "error") {
+        setError(result.error);
         return;
       }
 
-      if (data.session) {
+      if (result.status === "success") {
         router.push(nextPath);
         router.refresh();
         return;
@@ -68,15 +64,11 @@ export default function LoginForm() {
       return;
     }
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
-      password,
-    });
-
+    const result = await login(email, password);
     setIsSubmitting(false);
 
-    if (error) {
-      setError(error.message);
+    if (!result.success) {
+      setError(result.error);
       return;
     }
 
@@ -88,20 +80,11 @@ export default function LoginForm() {
     setError("");
     setIsGoogleSubmitting(true);
 
-    const redirectTo = new URL("/auth/callback", window.location.origin);
-    redirectTo.searchParams.set("next", nextPath);
-
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: redirectTo.toString(),
-      },
-    });
-
+    const result = await loginWithGoogle(nextPath);
     setIsGoogleSubmitting(false);
 
-    if (error) {
-      setError(error.message);
+    if (!result.success) {
+      setError(result.error);
     }
   }
 

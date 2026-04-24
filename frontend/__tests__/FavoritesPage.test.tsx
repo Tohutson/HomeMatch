@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import FavoritesPage from "../src/features/favorites/pages/FavoritesPage";
+import { AuthProvider } from "../src/features/auth/context/auth-context";
 import { FavoritesProvider } from "../src/features/favorites/context/favorites-context";
 
 const mockFavorites = [
@@ -86,9 +87,11 @@ function setupFetch(
 describe("FavoritesPage", () => {
   function renderFavoritesPage() {
     return render(
-      <FavoritesProvider>
-        <FavoritesPage />
-      </FavoritesProvider>
+      <AuthProvider>
+        <FavoritesProvider>
+          <FavoritesPage />
+        </FavoritesProvider>
+      </AuthProvider>
     );
   }
 

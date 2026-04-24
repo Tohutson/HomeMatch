@@ -1,57 +1,59 @@
 import { apiFetch } from "@/lib/api";
 
-const QUEUE_KEY = "homematch_offline_favorite_queue";
-
 export type QueuedFavorite = {
   listingId: number;
 };
+
+function queueKey(userSub: string): string {
+  return `favorites_queue_${userSub}`;
+}
 
 function isBrowser(): boolean {
   return typeof window !== "undefined";
 }
 
-export function enqueueOfflineFavorite(item: QueuedFavorite): void {
+export function enqueueOfflineFavorite(userSub: string, item: QueuedFavorite): void {
   if (!isBrowser()) return;
 
-  const existing = getOfflineQueue();
+  const existing = getOfflineQueue(userSub);
   const already = existing.some(
     (q) => q.listingId === item.listingId
   );
 
   if (!already) {
-    localStorage.setItem(QUEUE_KEY, JSON.stringify([...existing, item]));
+    localStorage.setItem(queueKey(userSub), JSON.stringify([...existing, item]));
   }
 }
 
-export function getOfflineQueue(): QueuedFavorite[] {
+export function getOfflineQueue(userSub: string): QueuedFavorite[] {
   if (!isBrowser()) return [];
 
   try {
-    const raw = localStorage.getItem(QUEUE_KEY);
+    const raw = localStorage.getItem(queueKey(userSub));
     return raw ? (JSON.parse(raw) as QueuedFavorite[]) : [];
   } catch {
     return [];
   }
 }
 
-export function removeFromOfflineQueue(item: QueuedFavorite): void {
+export function removeFromOfflineQueue(userSub: string, item: QueuedFavorite): void {
   if (!isBrowser()) return;
 
-  const updated = getOfflineQueue().filter(
+  const updated = getOfflineQueue(userSub).filter(
     (q) => q.listingId !== item.listingId
   );
-  localStorage.setItem(QUEUE_KEY, JSON.stringify(updated));
+  localStorage.setItem(queueKey(userSub), JSON.stringify(updated));
 }
 
-export function clearOfflineQueue(): void {
+export function clearOfflineQueue(userSub: string): void {
   if (!isBrowser()) return;
-  localStorage.removeItem(QUEUE_KEY);
+  localStorage.removeItem(queueKey(userSub));
 }
 
-export async function flushOfflineQueue(): Promise<number> {
+export async function flushOfflineQueue(userSub: string): Promise<number> {
   if (!isBrowser()) return 0;
 
-  const queue = getOfflineQueue();
+  const queue = getOfflineQueue(userSub);
   if (queue.length === 0) return 0;
 
   let synced = 0;
@@ -65,7 +67,7 @@ export async function flushOfflineQueue(): Promise<number> {
       });
 
       if (res.ok || res.status === 409) {
-        removeFromOfflineQueue(item);
+        removeFromOfflineQueue(userSub, item);
         synced++;
       }
     } catch {

@@ -9,6 +9,7 @@ import type { FavoriteRecord } from "@/features/favorites/types";
 
 type UseFavoritesParams = {
   enabled?: boolean;
+  userSub?: string | null;
 };
 
 type ActionResult =
@@ -55,6 +56,7 @@ function mergeFavoriteRecord(
 
 export function useFavorites({
   enabled = true,
+  userSub = null,
 }: UseFavoritesParams): UseFavoritesResult {
   const [favorites, setFavorites] = useState<FavoriteRecord[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
@@ -67,7 +69,7 @@ export function useFavorites({
     async ({ background = false }: RefetchFavoritesOptions = {}) => {
       activeRequestRef.current?.abort();
 
-      if (!enabled) {
+      if (!enabled || !userSub) {
         setFavorites([]);
         setFavoriteIds(new Set());
         setError(null);
@@ -123,11 +125,11 @@ export function useFavorites({
         }
       }
     },
-    [enabled]
+    [enabled, userSub]
   );
 
   useEffect(() => {
-    if (!enabled) {
+    if (!enabled || !userSub) {
       activeRequestRef.current?.abort();
       setFavorites([]);
       setFavoriteIds(new Set());
@@ -141,7 +143,7 @@ export function useFavorites({
     return () => {
       activeRequestRef.current?.abort();
     };
-  }, [enabled, refetchFavorites]);
+  }, [enabled, refetchFavorites, userSub]);
 
   const isFavorited = useCallback(
     (listingId: number) => favoriteIds.has(listingId),
@@ -174,6 +176,10 @@ export function useFavorites({
   const addFavorite = useCallback(
     async (listingId: number): Promise<ActionResult> => {
       if (!enabled) {
+        if (!userSub) {
+          return { ok: false, reason: "missing_user" };
+        }
+
         return { ok: false, reason: "missing_user" };
       }
 
@@ -203,12 +209,16 @@ export function useFavorites({
         return { ok: false, reason: "request_failed" };
       }
     },
-    [enabled]
+    [enabled, userSub]
   );
 
   const removeFavorite = useCallback(
     async (listingId: number): Promise<ActionResult> => {
       if (!enabled) {
+        if (!userSub) {
+          return { ok: false, reason: "missing_user" };
+        }
+
         return { ok: false, reason: "missing_user" };
       }
 
@@ -233,7 +243,7 @@ export function useFavorites({
         return { ok: false, reason: "request_failed" };
       }
     },
-    [enabled]
+    [enabled, userSub]
   );
 
   return {

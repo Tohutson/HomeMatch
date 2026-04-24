@@ -1,6 +1,6 @@
 package com.propertystack.homematch.favorite;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.propertystack.homematch.favorite.dto.FavoriteDTO;
 import com.propertystack.homematch.favorite.exception.FavoriteAlreadyExistsException;
 import com.propertystack.homematch.favorite.exception.FavoriteNotFoundException;
@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.security.oauth2.server.resource.autoconfigure.servlet.OAuth2ResourceServerAutoConfiguration;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
@@ -44,6 +45,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         controllers = FavoriteController.class,
         excludeAutoConfiguration = OAuth2ResourceServerAutoConfiguration.class
 )
+@AutoConfigureMockMvc(addFilters = false)
 @ActiveProfiles("test")
 class FavoriteControllerTest {
 

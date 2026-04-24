@@ -1,30 +1,70 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useAuth } from "@/features/auth/context/auth-context";
+import { apiFetch } from "@/lib/api";
 
 type ProfileUser = {
-  id: number;
   supabaseUserId: string;
-  email: string;
 };
 
-type Props = {
-  user: ProfileUser;
-  canDeleteAccount: boolean;
-};
-
-export default function ProfilePageClient({ user, canDeleteAccount }: Props) {
+export default function ProfilePageClient() {
   const router = useRouter();
+  const { user: authUser, logout } = useAuth();
+  const [profile, setProfile] = useState<ProfileUser | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadProfile() {
+      try {
+        setLoadingProfile(true);
+        const response = await apiFetch("/api/users/me", {
+          method: "GET",
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          throw new Error("Unable to load profile.");
+        }
+
+        const data = (await response.json()) as ProfileUser;
+
+        if (!cancelled) {
+          setProfile(data);
+        }
+      } catch (loadError) {
+        if (!cancelled) {
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : "Unable to load profile.",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingProfile(false);
+        }
+      }
+    }
+
+    void loadProfile();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function handleDeleteAccount() {
     setIsDeleting(true);
     setError(null);
 
-    const res = await fetch("/api/account", {
+    const res = await apiFetch("/api/users/me", {
       method: "DELETE",
     });
 
@@ -37,6 +77,7 @@ export default function ProfilePageClient({ user, canDeleteAccount }: Props) {
       return;
     }
 
+    await logout();
     router.push("/");
     router.refresh();
   }
@@ -56,10 +97,21 @@ export default function ProfilePageClient({ user, canDeleteAccount }: Props) {
         </p>
 
         <div className="mt-8 grid gap-4 md:grid-cols-2">
-          <ProfileField label="Email" value={user.email} />
-          <ProfileField label="HomeMatch user id" value={String(user.id)} />
-          <ProfileField label="Supabase user id" value={user.supabaseUserId} />
+          <ProfileField
+            label="Email"
+            value={authUser?.email ?? "No email available"}
+          />
+          <ProfileField
+            label="Supabase user id"
+            value={profile?.supabaseUserId ?? authUser?.id ?? "Loading..."}
+          />
         </div>
+
+        {loadingProfile && (
+          <p className="mt-4 text-sm font-medium text-slate-500">
+            Loading profile details...
+          </p>
+        )}
 
         <div className="mt-10 rounded-[28px] border border-rose-200 bg-rose-50/80 p-5">
           <h2 className="text-xl font-semibold tracking-[-0.03em] text-rose-950">
@@ -69,13 +121,6 @@ export default function ProfilePageClient({ user, canDeleteAccount }: Props) {
             This removes your HomeMatch user data, favorites, and Supabase Auth
             account. This action cannot be undone.
           </p>
-
-          {!canDeleteAccount && (
-            <p className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
-              Account deletion needs `SUPABASE_SERVICE_ROLE_KEY` configured on
-              the frontend server.
-            </p>
-          )}
 
           {error && (
             <p className="mt-4 rounded-2xl border border-rose-200 bg-white px-4 py-3 text-sm font-medium text-rose-700">
@@ -88,8 +133,7 @@ export default function ProfilePageClient({ user, canDeleteAccount }: Props) {
               <button
                 type="button"
                 onClick={() => setIsConfirmingDelete(true)}
-                disabled={!canDeleteAccount}
-                className="rounded-full bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-full bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700"
               >
                 Delete account
               </button>

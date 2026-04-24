@@ -6,7 +6,6 @@ import ListingsPage from "../pages/ListingsPage";
 const mockUseListings = jest.fn();
 const mockUsePagedListingNavigation = jest.fn();
 const mockUseListingsFavoriteWorkflow = jest.fn();
-const mockSignIn = jest.fn();
 const mockReplace = jest.fn();
 const mockSearchParamsGet = jest.fn();
 const mockSearchParamsToString = jest.fn();
@@ -25,10 +24,9 @@ jest.mock("@/features/favorites/hooks/use-listings-favorite-workflow", () => ({
     mockUseListingsFavoriteWorkflow(...args),
 }));
 
-jest.mock("@/features/favorites/context/favorites-context", () => ({
-  useFavoritesContext: () => ({
-    signIn: mockSignIn,
-    signInWithGoogle: jest.fn(),
+jest.mock("@/features/auth/context/auth-context", () => ({
+  useAuth: () => ({
+    isAuthenticated: true,
   }),
 }));
 

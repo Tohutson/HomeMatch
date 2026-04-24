@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Toast from "@/components/Toast";
+import { useAuth } from "@/features/auth/context/auth-context";
 import { useFavoritesContext } from "@/features/favorites/context/favorites-context";
 import { useFavoriteUndo } from "@/features/favorites/hooks/use-favorite-undo";
 import { useFavoritesSync } from "@/features/favorites/hooks/use-favorites-sync";
@@ -16,11 +17,11 @@ export default function FavoritesPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [sortOption, setSortOption] = useState<SortOption>("date_desc");
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const { isAuthReady, user } = useAuth();
   const {
     favorites,
     loading,
     error,
-    isUserReady,
     addFavorite: addFavoriteRequest,
     removeFavorite: removeFavoriteRequest,
     refetchFavorites,
@@ -51,6 +52,7 @@ export default function FavoritesPage() {
   });
 
   const { syncingIds } = useFavoritesSync({
+    userSub: user?.id ?? null,
     refetchFavorites,
     onToast: setToast,
   });
@@ -154,7 +156,7 @@ export default function FavoritesPage() {
     return next;
   }, [favorites, sortOption]);
 
-  if ((!isUserReady || loading) && favorites.length === 0) {
+  if ((!isAuthReady || loading) && favorites.length === 0) {
     return (
       <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(186,230,253,0.7),_transparent_34%),linear-gradient(180deg,_#f8fafc_0%,_#eef2ff_100%)] px-6 py-10 text-slate-950 md:px-8">
         <div className="mx-auto max-w-7xl rounded-[36px] border border-white/75 bg-white/75 p-8 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur">

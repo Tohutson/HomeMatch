@@ -8,8 +8,8 @@ const mockSupabaseSession = {
   },
 };
 
-jest.mock("@/lib/supabase/client", () => ({
-  createClient: () => ({
+jest.mock("@/features/auth/lib/supabase-browser", () => ({
+  createBrowserSupabaseClient: () => ({
     auth: {
       getSession: jest.fn().mockResolvedValue({
         data: { session: mockSupabaseSession },
@@ -38,8 +38,8 @@ jest.mock("@/lib/supabase/client", () => ({
   }),
 }));
 
-jest.mock("@/lib/supabase/server", () => ({
-  createClient: jest.fn().mockResolvedValue({
+jest.mock("@/features/auth/lib/supabase-server", () => ({
+  createServerSupabaseClient: jest.fn().mockResolvedValue({
     auth: {
       getClaims: jest.fn().mockResolvedValue({
         data: {
@@ -49,9 +49,6 @@ jest.mock("@/lib/supabase/server", () => ({
           },
         },
         error: null,
-      }),
-      getSession: jest.fn().mockResolvedValue({
-        data: { session: mockSupabaseSession },
       }),
     },
   }),
