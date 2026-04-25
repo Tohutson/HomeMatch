@@ -1,13 +1,19 @@
 package com.propertystack.homematch.listing.dto;
 
-import com.propertystack.homematch.listing.query.ListingFilter;
-import jakarta.validation.constraints.*;
-import lombok.Getter;
-import lombok.Setter;
+import java.math.BigDecimal;
+
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
-import java.math.BigDecimal;
+import com.propertystack.homematch.listing.query.ListingFilter;
+
+import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
+import lombok.Getter;
+import lombok.Setter;
 
 @Getter
 @Setter
@@ -44,7 +50,7 @@ public class ListingSearchRequest {
     @Size(max = 100)
     private String location;
 
-    private SortOption sortOption;
+    private SortOption sort;
 
     public ListingFilter toFilter() {
         return new ListingFilter(
@@ -60,11 +66,11 @@ public class ListingSearchRequest {
     }
 
     public PageRequest toPageable() {
-        Sort sort = (sortOption != null)
-                ? sortOption.toSort()
+        Sort resolvedSort = (sort != null)
+                ? sort.toSort()
                 : Sort.by(Sort.Direction.ASC, "price"); // default
 
-        return PageRequest.of(page, size, sort);
+        return PageRequest.of(page, size, resolvedSort);
     }
 
     @AssertTrue(message = "minPrice must be <= maxPrice")

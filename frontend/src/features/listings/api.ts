@@ -1,10 +1,11 @@
 import { API_BASE } from "@/lib/env";
-import type { Listing, ListingFilters, ListingsResponse } from "./types";
+import type { Listing, ListingFilters, ListingSortOption, ListingsResponse } from "./types";
 
 type GetListingsParams = {
   page?: number;
   size?: number;
   filters?: ListingFilters;
+  sort?: ListingSortOption | null;
   signal?: AbortSignal;
 };
 
@@ -13,6 +14,10 @@ export function buildListingsQuery(params: GetListingsParams): string {
 
   searchParams.set("page", String(params.page ?? 0));
   searchParams.set("size", String(params.size ?? 12));
+
+  if (params.sort) {
+    searchParams.set("sort", params.sort);
+  }
 
   const filters = params.filters;
 
@@ -119,4 +124,43 @@ export async function getAvailableListingIds(
   }
 
   return (await response.json()) as number[];
+}
+
+export function isListingSortOption(value: string): value is ListingSortOption {
+  return [
+    "PRICE_ASC",
+    "PRICE_DESC",
+    "SIZE_ASC",
+    "SIZE_DESC",
+    "ENERGY_DESC",
+  ].includes(value);
+}
+
+export function sortListings(
+  listings: Listing[],
+  sort: ListingSortOption | null
+): Listing[] {
+  const copiedListings = [...listings];
+
+  switch (sort) {
+    case "PRICE_ASC":
+      return copiedListings.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+
+    case "PRICE_DESC":
+      return copiedListings.sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
+
+    case "SIZE_ASC":
+      return copiedListings.sort((a, b) => (a.sqft ?? 0) - (b.sqft ?? 0));
+
+    case "SIZE_DESC":
+      return copiedListings.sort((a, b) => (b.sqft ?? 0) - (a.sqft ?? 0));
+
+    case "ENERGY_DESC":
+      return copiedListings.sort(
+        (a, b) => (b.energyStarScore ?? 0) - (a.energyStarScore ?? 0)
+      );
+
+    default:
+      return copiedListings;
+  }
 }

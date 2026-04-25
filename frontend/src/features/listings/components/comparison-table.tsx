@@ -66,19 +66,19 @@ export default function ComparisonTable({
     },
     {
       label: "Beds",
-      getValue: (listing) => listing.bedrooms,
+      getValue: (listing) => listing.beds,
       bestValue: "highest",
       format: formatNumber,
     },
     {
       label: "Baths",
-      getValue: (listing) => listing.bathrooms,
+      getValue: (listing) => listing.baths,
       bestValue: "highest",
       format: formatNumber,
     },
     {
       label: "Square Footage",
-      getValue: (listing) => listing.squareFootage,
+      getValue: (listing) => listing.sqft,
       bestValue: "highest",
       format: formatNumber,
     },
@@ -118,12 +118,16 @@ export default function ComparisonTable({
                 className="min-w-56 px-5 py-4 align-top text-sm font-semibold text-zinc-900"
               >
                 <div className="space-y-3">
-                  <p>
-                    {listing.address}
-                    {listing.city ? `, ${listing.city}` : ""}
-                    {listing.state ? `, ${listing.state}` : ""}
-                    {listing.zipCode ? ` ${listing.zipCode}` : ""}
-                  </p>
+                <p>
+                {[
+                    listing.address,
+                    listing.city,
+                    listing.state,
+                    listing.zipCode,
+                ]
+                    .filter(Boolean)
+                    .join(", ") || "Unknown address"}
+                </p>
 
                   <button
                     type="button"

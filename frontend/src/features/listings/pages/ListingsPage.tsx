@@ -3,7 +3,7 @@
 import NotLoggedInModal from "@/components/NotLoggedInModal";
 import Toast from "@/components/Toast";
 import ListingCard from "@/features/listings/components/listing-card";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from "react";
 import ListingFilters from "../components/listing-filters";
 
 import { ListingsBanner } from "@/features/listings/components/listings-banner";
@@ -14,27 +14,48 @@ import { useListingsFavoriteWorkflow } from "@/features/favorites/hooks/use-list
 import { useComparison } from "@/features/listings/context/comparison-context";
 import { useListings } from "@/features/listings/hooks/use-listings";
 import { usePagedListingNavigation } from "@/features/listings/hooks/use-paged-listing-navigation";
-import type { Listing } from "@/features/listings/types";
+import { type Listing, type ListingSortOption } from "@/features/listings/types";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { isListingSortOption, sortListings } from "../api";
 import ComparisonBar from "../components/comparison-bar";
 import { useListingFilters } from "../hooks/use-listing-filters";
+
 
 const PAGE_SIZE = 12;
 
 export default function ListingsPage() {
-  const locationParam = useSearchParams()?.get("location") ?? "";
+  const searchParams = useSearchParams();
+  const locationParam = searchParams?.get("location") ?? "";
+  const rawSortParam = searchParams?.get("sort") ?? null;
+  const initialSort = rawSortParam && isListingSortOption(rawSortParam) ? rawSortParam : null;
 
   return (
-    <ListingsPageContent key={locationParam} locationParam={locationParam} />
+    <ListingsPageContent
+      key={locationParam}
+      locationParam={locationParam}
+      initialSort={initialSort}
+    />
   );
 }
 
-function ListingsPageContent({ locationParam }: { locationParam: string }) {
+function ListingsPageContent({
+  locationParam,
+  initialSort,
+}: {
+  locationParam: string;
+  initialSort: ListingSortOption | null;
+}) {
   const [currentPage, setCurrentPage] = useState(0);
+  const [sort, setSort] = useState<ListingSortOption | null>(initialSort);
+
+  useEffect(() => {
+    setSort(initialSort);
+  }, [initialSort]);
   const [toast, setToast] = useState<string | null>(null);
   const [showNotLoggedIn, setShowNotLoggedIn] = useState(false);
   const { ensureUserId } = useFavoritesContext();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const pathname = usePathname();
 
   const {
@@ -70,7 +91,23 @@ function ListingsPageContent({ locationParam }: { locationParam: string }) {
     page: currentPage,
     size: PAGE_SIZE,
     filters: appliedFilters,
+    sort,
   });
+
+  const sortedListings = useMemo(() => {
+    const result = sortListings(listings, sort);
+    console.log(
+      "SORT:",
+      sort,
+      result.map((listing) => ({
+        id: listing.id,
+        price: listing.price,
+        sqft: listing.sqft,
+        energy: listing.energyStarScore,
+      }))
+    );
+    return result;
+  }, [listings, sort]);
 
   const {
     currentIndex,
@@ -81,7 +118,7 @@ function ListingsPageContent({ locationParam }: { locationParam: string }) {
     goPrevious,
     setCurrentIndex,
   } = usePagedListingNavigation({
-    listings,
+    listings: sortedListings,
     currentPage,
     totalPages,
     onPageChange: setCurrentPage,
@@ -94,18 +131,47 @@ function ListingsPageContent({ locationParam }: { locationParam: string }) {
     applyFilters();
   }, [applyFilters, setCurrentIndex]);
 
+  const handleSortChange = useCallback(
+    (event: ChangeEvent<HTMLSelectElement>) => {
+      const value = event.target.value as ListingSortOption | "";
+      const nextSort = value === "" ? null : value;
+  
+      setSort(nextSort);
+      setCurrentPage(0);
+      setCurrentIndex(0);
+  
+      const params = new URLSearchParams(searchParams?.toString() ?? "");
+  
+      if (nextSort) {
+        params.set("sort", nextSort);
+      } else {
+        params.delete("sort");
+      }
+  
+      const query = params.toString();
+      router.replace(query ? `${pathname}?${query}` : (pathname ?? "/listings"));
+    },
+    [pathname, router, searchParams, setCurrentIndex]
+  );
+
   const nextListing =
-    currentIndex < listings.length - 1 ? listings[currentIndex + 1] : null;
-  const isInitialLoading = loading && listings.length === 0;
-  const hasNoListings = listings.length === 0;
-  const hasExhaustedListings = listings.length > 0 && !currentListing;
+    currentIndex < sortedListings.length - 1 ? sortedListings[currentIndex + 1] : null;
+  const isInitialLoading = loading && sortedListings.length === 0;
+  const hasNoListings = sortedListings.length === 0;
+  const hasExhaustedListings = sortedListings.length > 0 && !currentListing;
 
   const handleClearFilters = useCallback(() => {
     setCurrentPage(0);
     setCurrentIndex(0);
+    setSort(null);
     clearFilters();
-    router.replace(pathname ?? "/listings");
-  }, [clearFilters, pathname, router, setCurrentIndex]);
+    const params = new URLSearchParams(searchParams?.toString() ?? "");
+    params.delete("sort");
+    params.delete("location");
+  
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : (pathname ?? "/listings"));
+  }, [clearFilters, pathname, router, searchParams, setCurrentIndex]);
 
   const {
     comparedListings,
@@ -223,6 +289,24 @@ function ListingsPageContent({ locationParam }: { locationParam: string }) {
         />
 
           <div className="mx-auto w-full max-w-3xl">
+          <div className="mb-4 flex items-center justify-end">
+            <label htmlFor="listing-sort" className="mr-3 text-sm font-medium text-zinc-700">
+              Sort by
+            </label>
+            <select
+              id="listing-sort"
+              value={sort ?? ""}
+              onChange={handleSortChange}
+              className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm"
+            >
+              <option value="">Recommended</option>
+              <option value="PRICE_ASC">Price: Low to High</option>
+              <option value="PRICE_DESC">Price: High to Low</option>
+              <option value="SIZE_ASC">Size: Small to Large</option>
+              <option value="SIZE_DESC">Size: Large to Small</option>
+              <option value="ENERGY_DESC">Energy Score: High to Low</option>
+            </select>
+          </div>
             {hasNoListings ? (
               <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
                 <h2 className="mb-2 text-xl font-semibold">
