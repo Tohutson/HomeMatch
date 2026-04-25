@@ -1,6 +1,9 @@
 export type Listing = {
   id: number;
   address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zipCode?: string | null;
   price?: number | null;
   beds?: number | null;
   baths?: number | null;

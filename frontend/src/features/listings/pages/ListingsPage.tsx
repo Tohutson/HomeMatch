@@ -3,18 +3,21 @@
 import NotLoggedInModal from "@/components/NotLoggedInModal";
 import Toast from "@/components/Toast";
 import ListingCard from "@/features/listings/components/listing-card";
-import ListingFilters from "../components/listing-filters";
 import { useCallback, useState } from "react";
+import ListingFilters from "../components/listing-filters";
 
 import { ListingsBanner } from "@/features/listings/components/listings-banner";
 import { ListingsPagination } from "@/features/listings/components/listings-pagination";
 
 import { useFavoritesContext } from "@/features/favorites/context/favorites-context";
 import { useListingsFavoriteWorkflow } from "@/features/favorites/hooks/use-listings-favorite-workflow";
-import { useListingFilters } from "../hooks/use-listing-filters";
+import { useComparison } from "@/features/listings/context/comparison-context";
 import { useListings } from "@/features/listings/hooks/use-listings";
 import { usePagedListingNavigation } from "@/features/listings/hooks/use-paged-listing-navigation";
+import type { Listing } from "@/features/listings/types";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import ComparisonBar from "../components/comparison-bar";
+import { useListingFilters } from "../hooks/use-listing-filters";
 
 const PAGE_SIZE = 12;
 
@@ -104,6 +107,23 @@ function ListingsPageContent({ locationParam }: { locationParam: string }) {
     router.replace(pathname ?? "/listings");
   }, [clearFilters, pathname, router, setCurrentIndex]);
 
+  const {
+    comparedListings,
+    addListing,
+    removeListing,
+    clearComparison,
+    isSelected,
+    canAddMore,
+  } = useComparison();
+
+  const handleToggleCompare = useCallback((listing: Listing) => {
+    if (isSelected(listing.id)) {
+      removeListing(listing.id);
+    } else {
+      addListing(listing);
+    }
+  }, [isSelected, removeListing, addListing]);
+
   const handleSwipeRight = useCallback(async () => {
     if (!currentListing) return false;
 
@@ -166,6 +186,30 @@ function ListingsPageContent({ locationParam }: { locationParam: string }) {
         onRedo={handleRedo}
       />
 
+      {comparedListings.length > 0 && (
+        <div className="mx-auto mb-6 flex max-w-7xl items-center justify-between rounded-2xl border border-zinc-200 bg-white px-5 py-4 shadow-sm">
+          <div>
+            <p className="text-sm font-medium text-zinc-900">
+              {comparedListings.length} of 4 homes selected for comparison
+            </p>
+            <p className="text-sm text-zinc-500">
+              Select up to 4 homes, then build your comparison page later
+            </p>
+          </div>
+          <ComparisonBar
+            selectedCount={comparedListings.length}
+            onClear={clearComparison}
+          />
+          <button
+            type="button"
+            onClick={clearComparison}
+            className="rounded-full bg-zinc-200 px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-300"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
       <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start">
         <ListingFilters
           filters={draftFilters}
@@ -178,17 +222,17 @@ function ListingsPageContent({ locationParam }: { locationParam: string }) {
           matchCount={totalElements}
         />
 
-        <div className="mx-auto w-full max-w-3xl">
-          {hasNoListings ? (
-            <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
-              <h2 className="mb-2 text-xl font-semibold">
-                No homes found matching your criteria
-              </h2>
-              <p className="text-zinc-500">
-                Try changing or clearing your filters
-              </p>
-            </div>
-          ) : hasExhaustedListings || !currentListing ? (
+          <div className="mx-auto w-full max-w-3xl">
+            {hasNoListings ? (
+              <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
+                <h2 className="mb-2 text-xl font-semibold">
+                  No homes found matching your criteria
+                </h2>
+                <p className="text-zinc-500">
+                  Try changing or clearing your filters
+                </p>
+              </div>
+            ) : hasExhaustedListings || !currentListing ? (
             <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
               <h2 className="mb-2 text-xl font-semibold">
                 You&apos;ve reached the end of these matches
@@ -213,15 +257,18 @@ function ListingsPageContent({ locationParam }: { locationParam: string }) {
               )}
 
               <div className="relative z-10">
-                <ListingCard
-                  key={currentListing.id}
-                  listing={currentListing}
-                  isFavorited={favoriteIds.has(currentListing.id)}
-                  isSyncing={syncingIds.has(currentListing.id)}
-                  onFavorite={handleFavorite}
-                  onSwipeRight={handleSwipeRight}
-                  onSwipeLeft={handleSwipeLeft}
-                />
+              <ListingCard
+                key={currentListing.id}
+                listing={currentListing}
+                isFavorited={favoriteIds.has(currentListing.id)}
+                isSyncing={syncingIds.has(currentListing.id)}
+                onFavorite={handleFavorite}
+                onSwipeRight={handleSwipeRight}
+                onSwipeLeft={handleSwipeLeft}
+                isCompared={isSelected(currentListing.id)}
+                onToggleCompare={handleToggleCompare}
+                disableCompare={!isSelected(currentListing.id) && !canAddMore}
+              />
               </div>
 
               {loading && (
