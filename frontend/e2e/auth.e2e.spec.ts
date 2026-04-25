@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { seedDatabase } from "./utils/seedDatabase";
 
 const userOneEmail = process.env.E2E_AUTH_EMAIL_ONE;
 const userOnePassword = process.env.E2E_AUTH_PASSWORD_ONE;
@@ -21,11 +22,16 @@ test.describe("real auth flow", () => {
     "E2E auth credentials are not configured",
   );
 
+  test.beforeEach(() => {
+    seedDatabase("seed-listings.sql");
+  });
+
   test("keeps favorites isolated across two authenticated users", async ({
     page,
   }) => {
     await login(page, userOneEmail!, userOnePassword!);
     await page.goto("/listings");
+    await expect(page.getByTestId("favorite-button").first()).toBeVisible();
 
     const createFavoriteResponse = page.waitForResponse((response) => {
       return (
