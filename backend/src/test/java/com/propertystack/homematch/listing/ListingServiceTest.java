@@ -1,9 +1,11 @@
 package com.propertystack.homematch.listing;
 
 import com.propertystack.homematch.listing.dto.ListingDTO;
+import com.propertystack.homematch.listing.dto.ListingPageResponse;
 import com.propertystack.homematch.listing.exception.ListingNotFoundException;
 import com.propertystack.homematch.listing.mapper.ListingMapper;
 import com.propertystack.homematch.listing.query.ListingFilter;
+import com.propertystack.homematch.recommendation.RecommendationService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -38,6 +40,9 @@ class ListingServiceTest {
 
         @Mock
         private ListingMapper listingMapper;
+
+        @Mock
+        private RecommendationService recommendationService;
 
         @InjectMocks
         private ListingService listingService;
@@ -94,12 +99,12 @@ class ListingServiceTest {
                         .thenReturn(new PageImpl<>(List.of(listing), pageable, 1));
                 when(listingMapper.toDTO(listing)).thenReturn(dto);
 
-                Page<ListingDTO> result = listingService.getListings(filter, pageable);
+                ListingPageResponse result = listingService.getListings(filter, pageable);
 
-                assertThat(result.getContent()).containsExactly(dto);
-                assertThat(result.getTotalElements()).isEqualTo(1);
-                assertThat(result.getNumber()).isEqualTo(0);
-                assertThat(result.getSize()).isEqualTo(20);
+                assertThat(result.content()).containsExactly(dto);
+                assertThat(result.totalElements()).isEqualTo(1);
+                assertThat(result.number()).isEqualTo(0);
+                assertThat(result.size()).isEqualTo(20);
 
                 verify(listingRepository).findAll(any(Specification.class), eq(pageable));
                 verify(listingMapper).toDTO(listing);
@@ -122,10 +127,10 @@ class ListingServiceTest {
                 when(listingRepository.findAll(any(Specification.class), eq(pageable)))
                         .thenReturn(Page.empty(pageable));
 
-                Page<ListingDTO> result = listingService.getListings(filter, pageable);
+                ListingPageResponse result = listingService.getListings(filter, pageable);
 
-                assertThat(result).isEmpty();
-                assertThat(result.getTotalElements()).isZero();
+                assertThat(result.content()).isEmpty();
+                assertThat(result.totalElements()).isZero();
 
                 verify(listingRepository).findAll(any(Specification.class), eq(pageable));
                 verifyNoInteractions(listingMapper);

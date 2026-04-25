@@ -9,6 +9,7 @@ const mockUseListingsFavoriteWorkflow = jest.fn();
 const mockReplace = jest.fn();
 const mockSearchParamsGet = jest.fn();
 const mockSearchParamsToString = jest.fn();
+let mockIsAuthenticated = true;
 
 jest.mock("@/features/listings/hooks/use-listings", () => ({
   useListings: (...args: unknown[]) => mockUseListings(...args),
@@ -26,7 +27,7 @@ jest.mock("@/features/favorites/hooks/use-listings-favorite-workflow", () => ({
 
 jest.mock("@/features/auth/context/auth-context", () => ({
   useAuth: () => ({
-    isAuthenticated: true,
+    isAuthenticated: mockIsAuthenticated,
   }),
 }));
 
@@ -60,6 +61,7 @@ describe("ListingsPage", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockIsAuthenticated = true;
     mockSearchParamsGet.mockReturnValue(null);
     mockSearchParamsToString.mockReturnValue("");
     global.fetch = jest.fn().mockResolvedValue({
@@ -111,7 +113,31 @@ describe("ListingsPage", () => {
     expect(screen.getByText(/1 match/i)).toBeInTheDocument();
   });
 
-  it("renders only the backend-supported sort options", async () => {
+  it("renders recommended sort only when logged in", async () => {
+    renderListingsPage();
+
+    const sortSelect = await screen.findByLabelText(/sort results/i);
+    const optionValues = Array.from(
+      sortSelect.querySelectorAll("option"),
+      (option) => option.getAttribute("value")
+    );
+
+    expect(optionValues).toEqual([
+      "",
+      "RECOMMENDED",
+      "PRICE_ASC",
+      "PRICE_DESC",
+      "SQFT_ASC",
+      "SQFT_DESC",
+      "ENERGY_DESC",
+    ]);
+    expect(screen.getByRole("option", { name: /recommended for you/i })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /energy score: low to high/i })).not.toBeInTheDocument();
+  });
+
+  it("hides recommended sort when logged out", async () => {
+    mockIsAuthenticated = false;
+
     renderListingsPage();
 
     const sortSelect = await screen.findByLabelText(/sort results/i);
@@ -128,7 +154,7 @@ describe("ListingsPage", () => {
       "SQFT_DESC",
       "ENERGY_DESC",
     ]);
-    expect(screen.queryByRole("option", { name: /energy score: low to high/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /recommended for you/i })).not.toBeInTheDocument();
   });
 
   it("keeps filters and the current listing visible while loading the next page", async () => {

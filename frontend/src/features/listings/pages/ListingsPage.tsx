@@ -2,17 +2,18 @@
 
 import Toast from "@/components/Toast";
 import ListingCard from "@/features/listings/components/listing-card";
-import { useCallback, useEffect, useState, type ChangeEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react";
 import ListingFilters from "../components/listing-filters";
 
 import { ListingsBanner } from "@/features/listings/components/listings-banner";
 import { ListingsPagination } from "@/features/listings/components/listings-pagination";
 
+import { useAuth } from "@/features/auth/context/auth-context";
 import { useListingsFavoriteWorkflow } from "@/features/favorites/hooks/use-listings-favorite-workflow";
 import { useListings } from "@/features/listings/hooks/use-listings";
 import { usePagedListingNavigation } from "@/features/listings/hooks/use-paged-listing-navigation";
 import {
-  LISTING_SORT_OPTIONS,
+  STANDARD_LISTING_SORT_OPTIONS,
   type ListingSortOption,
 } from "@/features/listings/types";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -22,7 +23,10 @@ const PAGE_SIZE = 12;
 
 
 function isListingSortOption(value: string | null): value is ListingSortOption {
-  return value !== null && LISTING_SORT_OPTIONS.some((option) => option.value === value);
+  return (
+    value === "RECOMMENDED" ||
+    (value !== null && STANDARD_LISTING_SORT_OPTIONS.some((option) => option.value === value))
+  );
 }
 
 export default function ListingsPage() {
@@ -49,8 +53,17 @@ function ListingsPageContent({
 }) {
   const [currentPage, setCurrentPage] = useState(0);
   const [sort, setSort] = useState<ListingSortOption | null>(initialSort);
+  const [recommendationSessionResetKey, setRecommendationSessionResetKey] = useState(0);
+  const hasMountedSortEffect = useRef(false);
+  const { isAuthenticated } = useAuth();
   useEffect(() => {
     setSort(initialSort);
+
+    if (hasMountedSortEffect.current) {
+      setRecommendationSessionResetKey((key) => key + 1);
+    } else {
+      hasMountedSortEffect.current = true;
+    }
   }, [initialSort]);
   const [toast, setToast] = useState<string | null>(null);
   const router = useRouter();
@@ -94,11 +107,20 @@ function ListingsPageContent({
     isClearDisabled,
   } = useListingFilters(locationParam);
 
-  const { listings, totalPages, totalElements, loading, error } = useListings({
+  const {
+    listings,
+    totalPages,
+    totalElements,
+    loading,
+    error,
+    usingRecommendationFallback,
+    recommendationMessage,
+  } = useListings({
     page: currentPage,
     size: PAGE_SIZE,
     filters: appliedFilters,
     sort,
+    recommendationSessionResetKey,
   });
 
   const {
@@ -117,9 +139,22 @@ function ListingsPageContent({
     loading,
   });
 
+  useEffect(() => {
+    if (!isAuthenticated && sort === "RECOMMENDED") {
+      setSort(null);
+      setCurrentPage(0);
+      setCurrentIndex(0);
+    }
+
+    if (!isAuthenticated) {
+      setRecommendationSessionResetKey((key) => key + 1);
+    }
+  }, [isAuthenticated, sort, setCurrentIndex]);
+
   const handleApplyFilters = useCallback(() => {
     setCurrentPage(0);
     setCurrentIndex(0);
+    setRecommendationSessionResetKey((key) => key + 1);
     applyFilters();
   }, [applyFilters, setCurrentIndex]);
 
@@ -131,6 +166,7 @@ function ListingsPageContent({
       setSort(nextSort);
       setCurrentPage(0);
       setCurrentIndex(0);
+      setRecommendationSessionResetKey((key) => key + 1);
   
       const params = new URLSearchParams(searchParams?.toString() ?? "");
   
@@ -156,6 +192,7 @@ function ListingsPageContent({
     setCurrentPage(0);
     setCurrentIndex(0);
     setSort(null);
+    setRecommendationSessionResetKey((key) => key + 1);
     clearFilters();
   
     const params = new URLSearchParams(searchParams?.toString() ?? "");
@@ -247,8 +284,11 @@ function ListingsPageContent({
                 onChange={handleSortChange}
                 className="w-full appearance-none rounded-full border border-zinc-300 bg-zinc-50 px-4 py-3 pr-11 text-sm font-medium text-zinc-800 outline-none transition focus:border-zinc-400 focus:bg-white"
               >
-                <option value="">Recommended</option>
-                {LISTING_SORT_OPTIONS.map((option) => (
+                <option value="">Default</option>
+                {isAuthenticated && (
+                  <option value="RECOMMENDED">Recommended for you</option>
+                )}
+                {STANDARD_LISTING_SORT_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
@@ -270,6 +310,12 @@ function ListingsPageContent({
                 </svg>
               </span>
             </div>
+            {sort === "RECOMMENDED" && usingRecommendationFallback && (
+              <p className="mt-3 text-sm leading-5 text-zinc-500">
+                {recommendationMessage ??
+                  "Like a few homes to personalize your recommendations."}
+              </p>
+            )}
           </div>
         </aside>
 

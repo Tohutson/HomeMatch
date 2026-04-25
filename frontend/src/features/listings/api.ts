@@ -1,4 +1,5 @@
 import { API_BASE } from "@/lib/env";
+import { apiFetch } from "@/lib/api";
 import type { Listing, ListingFilters, ListingSortOption, ListingsResponse } from "./types";
 
 type GetListingsParams = {
@@ -6,6 +7,7 @@ type GetListingsParams = {
   size?: number;
   filters?: ListingFilters;
   sort?: ListingSortOption | null;
+  recommendationSessionId?: string | null;
   signal?: AbortSignal;
 };
 
@@ -17,6 +19,10 @@ export function buildListingsQuery(params: GetListingsParams): string {
 
   if (params.sort) {
     searchParams.set("sortOption", params.sort);
+  }
+
+  if (params.recommendationSessionId) {
+    searchParams.set("recommendationSessionId", params.recommendationSessionId);
   }
 
   const filters = params.filters;
@@ -54,7 +60,7 @@ export async function getListings(
 ): Promise<ListingsResponse> {
   const query = buildListingsQuery(params);
 
-  const res = await fetch(`${API_BASE}/api/listings?${query}`, {
+  const res = await apiFetch(`/api/listings?${query}`, {
     method: "GET",
     cache: "no-store",
     signal: params.signal,
@@ -72,6 +78,10 @@ export async function getListings(
     totalElements: data.totalElements,
     size: data.size,
     number: data.number,
+    page: data.page,
+    recommendationSessionId: data.recommendationSessionId,
+    usingRecommendationFallback: data.usingRecommendationFallback,
+    message: data.message,
   };
 }
 
