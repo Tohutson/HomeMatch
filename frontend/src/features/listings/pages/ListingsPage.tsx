@@ -4,7 +4,13 @@ import Toast from "@/components/Toast";
 import ComparisonBar from "@/features/listings/components/comparison-bar";
 import ListingCard from "@/features/listings/components/listing-card";
 import { useComparison } from "@/features/listings/context/comparison-context";
-import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ChangeEvent,
+} from "react";
 import ListingFilters from "../components/listing-filters";
 
 import { ListingsBanner } from "@/features/listings/components/listings-banner";
@@ -23,6 +29,12 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useListingFilters } from "../hooks/use-listing-filters";
 
 const PAGE_SIZE = 12;
+const SIGNED_IN_DEFAULT_SORT: ListingSortOption = "RECOMMENDED";
+const SIGNED_OUT_DEFAULT_SORT: ListingSortOption = "PRICE_ASC";
+
+function getDefaultListingSort(isAuthenticated: boolean): ListingSortOption {
+  return isAuthenticated ? SIGNED_IN_DEFAULT_SORT : SIGNED_OUT_DEFAULT_SORT;
+}
 
 
 function isListingSortOption(value: string | null): value is ListingSortOption {
@@ -55,23 +67,57 @@ function ListingsPageContent({
   initialSort: ListingSortOption | null;
 }) {
   const [currentPage, setCurrentPage] = useState(0);
-  const [sort, setSort] = useState<ListingSortOption | null>(initialSort);
+  const [selectedSort, setSelectedSort] = useState<ListingSortOption | null>(
+    null
+  );
   const [recommendationSessionResetKey, setRecommendationSessionResetKey] = useState(0);
-  const hasMountedSortEffect = useRef(false);
-  const { isAuthenticated } = useAuth();
-  useEffect(() => {
-    setSort(initialSort);
-
-    if (hasMountedSortEffect.current) {
-      setRecommendationSessionResetKey((key) => key + 1);
-    } else {
-      hasMountedSortEffect.current = true;
-    }
-  }, [initialSort]);
+  const { isAuthenticated, isAuthReady } = useAuth();
   const [toast, setToast] = useState<string | null>(null);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const defaultSort = isAuthReady
+    ? getDefaultListingSort(isAuthenticated)
+    : SIGNED_OUT_DEFAULT_SORT;
+  const requestedSort = selectedSort ?? initialSort;
+  const effectiveSort =
+    requestedSort === "RECOMMENDED" && (!isAuthReady || !isAuthenticated)
+      ? SIGNED_OUT_DEFAULT_SORT
+      : requestedSort ?? defaultSort;
+  const sortOptions = useMemo(() => {
+    if (isAuthenticated) {
+      return [
+        { value: "RECOMMENDED" as const, label: "Recommended for you" },
+        ...STANDARD_LISTING_SORT_OPTIONS,
+      ];
+    }
+
+    return [
+      { value: "PRICE_ASC" as const, label: "Default: Price Low to High" },
+      ...STANDARD_LISTING_SORT_OPTIONS.filter(
+        (option) => option.value !== "PRICE_ASC"
+      ),
+    ];
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthReady || isAuthenticated || initialSort !== "RECOMMENDED") {
+      return;
+    }
+
+    const params = new URLSearchParams(searchParams?.toString() ?? "");
+    params.delete("sort");
+
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : (pathname ?? "/listings"));
+  }, [
+    initialSort,
+    isAuthReady,
+    isAuthenticated,
+    pathname,
+    router,
+    searchParams,
+  ]);
 
   const {
     favoriteIds,
@@ -123,7 +169,7 @@ function ListingsPageContent({
     page: currentPage,
     size: PAGE_SIZE,
     filters: appliedFilters,
-    sort,
+    sort: effectiveSort,
     recommendationSessionResetKey,
   });
 
@@ -152,18 +198,6 @@ function ListingsPageContent({
     loading,
   });
 
-  useEffect(() => {
-    if (!isAuthenticated && sort === "RECOMMENDED") {
-      setSort(null);
-      setCurrentPage(0);
-      setCurrentIndex(0);
-    }
-
-    if (!isAuthenticated) {
-      setRecommendationSessionResetKey((key) => key + 1);
-    }
-  }, [isAuthenticated, sort, setCurrentIndex]);
-
   const handleApplyFilters = useCallback(() => {
     setCurrentPage(0);
     setCurrentIndex(0);
@@ -173,26 +207,24 @@ function ListingsPageContent({
 
   const handleSortChange = useCallback(
     (event: ChangeEvent<HTMLSelectElement>) => {
-      const value = event.target.value as ListingSortOption | "";
-      const nextSort = value === "" ? null : value;
+      const nextSort = event.target.value as ListingSortOption;
   
-      setSort(nextSort);
+      setSelectedSort(nextSort);
       setCurrentPage(0);
       setCurrentIndex(0);
-      setRecommendationSessionResetKey((key) => key + 1);
   
       const params = new URLSearchParams(searchParams?.toString() ?? "");
   
-      if (nextSort) {
-        params.set("sort", nextSort);
-      } else {
+      if (nextSort === getDefaultListingSort(isAuthenticated)) {
         params.delete("sort");
+      } else {
+        params.set("sort", nextSort);
       }
   
       const query = params.toString();
       router.replace(query ? `${pathname}?${query}` : (pathname ?? "/listings"));
     },
-    [pathname, router, searchParams, setCurrentIndex]
+    [isAuthenticated, pathname, router, searchParams, setCurrentIndex]
   );
 
   const nextListing =
@@ -204,7 +236,7 @@ function ListingsPageContent({
   const handleClearFilters = useCallback(() => {
     setCurrentPage(0);
     setCurrentIndex(0);
-    setSort(null);
+    setSelectedSort(null);
     setRecommendationSessionResetKey((key) => key + 1);
     clearFilters();
   
@@ -311,15 +343,11 @@ function ListingsPageContent({
             <div className="relative">
               <select
                 id="listing-sort"
-                value={sort ?? ""}
+                value={effectiveSort}
                 onChange={handleSortChange}
                 className="w-full appearance-none rounded-full border border-zinc-300 bg-zinc-50 px-4 py-3 pr-11 text-sm font-medium text-zinc-800 outline-none transition focus:border-zinc-400 focus:bg-white"
               >
-                <option value="">Default</option>
-                {isAuthenticated && (
-                  <option value="RECOMMENDED">Recommended for you</option>
-                )}
-                {STANDARD_LISTING_SORT_OPTIONS.map((option) => (
+                {sortOptions.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
@@ -341,7 +369,7 @@ function ListingsPageContent({
                 </svg>
               </span>
             </div>
-            {sort === "RECOMMENDED" && usingRecommendationFallback && (
+            {effectiveSort === "RECOMMENDED" && usingRecommendationFallback && (
               <p className="mt-3 text-sm leading-5 text-zinc-500">
                 {recommendationMessage ??
                   "Like a few homes to personalize your recommendations."}

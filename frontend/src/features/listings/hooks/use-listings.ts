@@ -119,7 +119,7 @@ export function useListings({
         activeRequestRef.current = null;
       }
     }
-  }, [page, size, filters, sort, recommendationSessionResetKey]);
+  }, [page, size, filters, sort]);
 
   useEffect(() => {
     void fetchListings();
@@ -127,7 +127,7 @@ export function useListings({
     return () => {
       activeRequestRef.current?.abort();
     };
-  }, [fetchListings]);
+  }, [fetchListings, recommendationSessionResetKey]);
 
   return {
     listings,

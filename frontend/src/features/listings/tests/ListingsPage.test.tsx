@@ -30,6 +30,7 @@ jest.mock("@/features/favorites/hooks/use-listings-favorite-workflow", () => ({
 jest.mock("@/features/auth/context/auth-context", () => ({
   useAuth: () => ({
     isAuthenticated: mockIsAuthenticated,
+    isAuthReady: true,
   }),
 }));
 
@@ -136,7 +137,6 @@ describe("ListingsPage", () => {
     );
 
     expect(optionValues).toEqual([
-      "",
       "RECOMMENDED",
       "PRICE_ASC",
       "PRICE_DESC",
@@ -144,7 +144,9 @@ describe("ListingsPage", () => {
       "SQFT_DESC",
       "ENERGY_DESC",
     ]);
+    expect(sortSelect).toHaveValue("RECOMMENDED");
     expect(screen.getByRole("option", { name: /recommended for you/i })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /^default/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("option", { name: /energy score: low to high/i })).not.toBeInTheDocument();
   });
 
@@ -160,13 +162,16 @@ describe("ListingsPage", () => {
     );
 
     expect(optionValues).toEqual([
-      "",
       "PRICE_ASC",
       "PRICE_DESC",
       "SQFT_ASC",
       "SQFT_DESC",
       "ENERGY_DESC",
     ]);
+    expect(sortSelect).toHaveValue("PRICE_ASC");
+    expect(
+      screen.getByRole("option", { name: /default: price low to high/i })
+    ).toBeInTheDocument();
     expect(screen.queryByRole("option", { name: /recommended for you/i })).not.toBeInTheDocument();
   });
 
@@ -341,12 +346,33 @@ describe("ListingsPage", () => {
 
     const sortSelect = await screen.findByLabelText(/sort results/i);
 
-    expect(sortSelect).toHaveValue("");
+    expect(sortSelect).toHaveValue("RECOMMENDED");
 
     await waitFor(() => {
       const latestCall = mockUseListings.mock.calls.at(-1)?.[0];
-      expect(latestCall.sort).toBeNull();
+      expect(latestCall.sort).toBe("RECOMMENDED");
     });
+  });
+
+  it("falls back to price sorting when a logged-out user has a recommended sort URL", async () => {
+    mockIsAuthenticated = false;
+    mockSearchParamsGet.mockImplementation((key: string) =>
+      key === "sort" ? "RECOMMENDED" : null
+    );
+    mockSearchParamsToString.mockReturnValue("sort=RECOMMENDED");
+
+    renderListingsPage();
+
+    const sortSelect = await screen.findByLabelText(/sort results/i);
+
+    expect(sortSelect).toHaveValue("PRICE_ASC");
+    expect(screen.queryByRole("option", { name: /recommended for you/i })).not.toBeInTheDocument();
+
+    await waitFor(() => {
+      const latestCall = mockUseListings.mock.calls.at(-1)?.[0];
+      expect(latestCall.sort).toBe("PRICE_ASC");
+    });
+    expect(mockReplace).toHaveBeenCalledWith("/listings");
   });
 
   it("shows the no homes found empty state when filtered results are empty", async () => {

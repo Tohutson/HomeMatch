@@ -158,7 +158,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
     setSession(null);
     setUser(null);
-  }, [supabase, user?.id]);
+  }, [supabase, user]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
