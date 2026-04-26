@@ -43,6 +43,48 @@ describe("ListingCard", () => {
     );
   });
 
+  it("calls onToggleCompare with the listing when compare is clicked", async () => {
+    const user = userEvent.setup();
+    const onToggleCompare = jest.fn();
+
+    render(
+      <ListingCard listing={listing} onToggleCompare={onToggleCompare} />
+    );
+
+    await user.click(screen.getByTestId("compare-button"));
+
+    expect(onToggleCompare).toHaveBeenCalledWith(listing);
+  });
+
+  it("disables adding to comparison when the max is reached", () => {
+    render(<ListingCard listing={listing} disableCompare />);
+
+    expect(screen.getByTestId("compare-button")).toBeDisabled();
+  });
+
+  it("allows a selected listing to be removed even when comparison is full", async () => {
+    const user = userEvent.setup();
+    const onToggleCompare = jest.fn();
+
+    render(
+      <ListingCard
+        listing={listing}
+        isCompared
+        onToggleCompare={onToggleCompare}
+        disableCompare={false}
+      />
+    );
+
+    const compareButton = screen.getByTestId("compare-button");
+
+    expect(compareButton).not.toBeDisabled();
+    expect(compareButton).toHaveTextContent(/remove compare/i);
+
+    await user.click(compareButton);
+
+    expect(onToggleCompare).toHaveBeenCalledWith(listing);
+  });
+
   it("shows 'Add to favorites' aria-label when not favorited", () => {
     render(<ListingCard listing={listing} isFavorited={false} />);
     expect(screen.getByTestId("favorite-button")).toHaveAttribute(

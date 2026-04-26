@@ -3,8 +3,8 @@ package com.propertystack.homematch.listing;
 import com.propertystack.homematch.listing.dto.ListingDTO;
 import com.propertystack.homematch.listing.mapper.ListingMapper;
 import com.propertystack.homematch.listing.mapper.ListingMapperImpl;
-import org.springframework.test.context.ActiveProfiles;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
 

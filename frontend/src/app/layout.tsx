@@ -3,6 +3,7 @@ import "@/styles/globals.css";
 import NavbarClient from "@/components/Navbar/NavbarClient";
 import { AuthProvider } from "@/features/auth/context/auth-context";
 import { FavoritesProvider } from "@/features/favorites/context/favorites-context";
+import { ComparisonProvider } from "@/features/listings/context/comparison-context";
 
 export const metadata: Metadata = {
   title: "HomeMatch",
@@ -19,8 +20,10 @@ export default function RootLayout({
       <body className="antialiased">
         <AuthProvider>
           <FavoritesProvider>
-            <NavbarClient />
-            {children}
+            <ComparisonProvider>
+              <NavbarClient />
+              {children}
+            </ComparisonProvider>
           </FavoritesProvider>
         </AuthProvider>
       </body>

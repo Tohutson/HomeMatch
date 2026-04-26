@@ -2,6 +2,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ListingsPage from "../pages/ListingsPage";
+import { FavoritesProvider } from "@/features/favorites/context/favorites-context";
+import { ComparisonProvider } from "@/features/listings/context/comparison-context";
 
 const mockUseListings = jest.fn();
 const mockUsePagedListingNavigation = jest.fn();
@@ -44,7 +46,13 @@ jest.mock("next/navigation", () => ({
 
 describe("ListingsPage", () => {
   function renderListingsPage() {
-    return render(<ListingsPage />);
+    return render(
+      <FavoritesProvider>
+        <ComparisonProvider>
+          <ListingsPage />
+        </ComparisonProvider>
+      </FavoritesProvider>
+    );
   }
 
   const listing = {
@@ -101,6 +109,10 @@ describe("ListingsPage", () => {
       loading: false,
       error: null,
     });
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   it("renders listing filters and listing card", async () => {
@@ -508,5 +520,28 @@ describe("ListingsPage", () => {
       expect(handleSwipeFavorite).toHaveBeenCalledWith(listing);
       expect(goNext).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it("toggles the current listing comparison state", async () => {
+    const user = userEvent.setup();
+
+    renderListingsPage();
+
+    const compareButton = await screen.findByRole("button", {
+      name: /compare/i,
+    });
+
+    await user.click(compareButton);
+
+    expect(compareButton).toHaveTextContent(/remove compare/i);
+    expect(compareButton).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.getByText(/1 of 4 homes selected for comparison/i)
+    ).toBeInTheDocument();
+
+    await user.click(compareButton);
+
+    expect(compareButton).toHaveTextContent(/^compare$/i);
+    expect(screen.queryByText(/selected for comparison/i)).not.toBeInTheDocument();
   });
 });
