@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
-import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
-import type { Listing } from "@/features/listings/types";
 import { useSwipe } from "@/app/hooks/useSwipe";
+import type { Listing } from "@/features/listings/types";
+import Image from "next/image";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 
 type ListingCardProps = {
   listing: Listing;
@@ -14,11 +14,15 @@ type ListingCardProps = {
   onFavorite?: (listing: Listing) => unknown;
   onSwipeRight?: () => boolean | Promise<boolean>;
   onSwipeLeft?: () => boolean | Promise<boolean>;
+  isCompared?: boolean;
+  onToggleCompare?: (listing: Listing) => void;
+  disableCompare?: boolean;
 };
 
 const SWIPE_EXIT_DISTANCE = 420;
 const SWIPE_EXIT_DURATION_MS = 260;
 const SWIPE_TRIGGER_THRESHOLD = 110;
+const HEART_BOUNCE_DURATION_MS = 600;
 
 export default function ListingCard({
   listing,
@@ -28,12 +32,20 @@ export default function ListingCard({
   onFavorite,
   onSwipeRight,
   onSwipeLeft,
+  isCompared = false,
+  onToggleCompare,
+  disableCompare = false,
 }: ListingCardProps) {
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [exitDirection, setExitDirection] = useState<"left" | "right" | null>(null);
+  const [shouldAnimateFavorite, setShouldAnimateFavorite] = useState(false);
   const swipeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const favoriteAnimationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
+  const previousIsFavoritedRef = useRef(isFavorited);
   const photoUrls = listing.photoUrls ?? [];
   const hasPhotos = photoUrls.length > 0;
   const activePhotoUrl = hasPhotos ? photoUrls[activePhotoIndex] : null;
@@ -104,11 +116,43 @@ export default function ListingCard({
   };
 
   useEffect(() => {
+    const wasFavorited = previousIsFavoritedRef.current;
+    previousIsFavoritedRef.current = isFavorited;
+
+    if (!isFavorited) {
+      if (favoriteAnimationTimeoutRef.current) {
+        clearTimeout(favoriteAnimationTimeoutRef.current);
+        favoriteAnimationTimeoutRef.current = null;
+      }
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setShouldAnimateFavorite(false);
+      return;
+    }
+
+    if (wasFavorited) {
+      return;
+    }
+    setShouldAnimateFavorite(true);
+
+    if (favoriteAnimationTimeoutRef.current) {
+      clearTimeout(favoriteAnimationTimeoutRef.current);
+    }
+
+    favoriteAnimationTimeoutRef.current = setTimeout(() => {
+      setShouldAnimateFavorite(false);
+      favoriteAnimationTimeoutRef.current = null;
+    }, HEART_BOUNCE_DURATION_MS);
+  }, [isFavorited]);
+
+  useEffect(() => {
     return () => {
       if (swipeTimeoutRef.current) {
         clearTimeout(swipeTimeoutRef.current);
       }
 
+      if (favoriteAnimationTimeoutRef.current) {
+        clearTimeout(favoriteAnimationTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -179,7 +223,7 @@ export default function ListingCard({
               : "cursor-grab"
         } ${exitDirection === "right" ? "animate-card-swipe-right" : ""} ${
           exitDirection === "left" ? "animate-card-swipe-left" : ""
-        }`}
+        } ${isCompared ? "ring-2 ring-emerald-300" : ""}`}
         data-testid={interactive ? "listing-card" : "listing-card-preview"}
         style={{
           transform: `translateX(${dragX}px) rotate(${cardRotation}deg) scale(${cardScale})`,
@@ -210,7 +254,7 @@ export default function ListingCard({
             strokeWidth={2}
             className={`h-6 w-6 transition-colors ${
               isFavorited ? "text-rose-500" : "text-zinc-400"
-            }`}
+            } ${shouldAnimateFavorite ? "animate-heart-bounce" : ""}`}
             data-testid="heart-icon"
           >
             <path
@@ -344,14 +388,34 @@ export default function ListingCard({
       </div>
 
       {interactive ? (
-        <Link
-          href={`/listings/${listing.id}`}
-          onClick={(e) => e.stopPropagation()}
-          className="mt-4 inline-flex items-center rounded-full bg-rose-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-600"
-          data-testid="view-details-link"
-        >
-          View Details
-        </Link>
+        <div className="mt-4 flex gap-3">
+          <Link
+            href={`/listings/${listing.id}`}
+            onClick={(e) => e.stopPropagation()}
+            className="inline-flex items-center rounded-full bg-rose-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-600"
+            data-testid="view-details-link"
+          >
+            View Details
+          </Link>
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleCompare?.(listing);
+            }}
+            disabled={disableCompare}
+            aria-pressed={isCompared}
+            className={`inline-flex items-center rounded-full px-4 py-2 text-sm font-medium transition ${
+              isCompared
+                ? "bg-emerald-500 text-white hover:bg-emerald-600"
+                : "bg-zinc-200 text-zinc-800 hover:bg-zinc-300"
+            } ${disableCompare ? "cursor-not-allowed opacity-50" : ""}`}
+            data-testid="compare-button"
+          >
+            {isCompared ? "Remove Compare" : "Compare"}
+          </button>
+        </div>
       ) : (
         <div className="mt-4 h-10 rounded-full bg-zinc-100" aria-hidden="true" />
       )}
