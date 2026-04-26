@@ -41,6 +41,7 @@ export default function FavoritesPage() {
     recordAddedFavorite,
     handleUndo,
     handleRedo,
+    handleDismissBanner,
     canUndo,
     canRedo,
     undoVisible,
@@ -195,7 +196,7 @@ export default function FavoritesPage() {
 
       <div className="mx-auto max-w-7xl">
         {showBanner && (
-          <div className="fixed top-24 left-1/2 z-50 grid w-[min(88vw,40rem)] -translate-x-1/2 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[24px] border border-white/10 bg-slate-900/72 px-4 py-3 text-white shadow-[0_18px_50px_rgba(15,23,42,0.18)] backdrop-blur-md animate-banner-fade-in">
+          <div className="fixed top-4 left-1/2 z-50 grid w-[min(86vw,30rem)] -translate-x-1/2 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 rounded-[18px] border border-white/10 bg-slate-900/72 px-3 py-2 text-white shadow-[0_18px_50px_rgba(15,23,42,0.18)] backdrop-blur-md animate-banner-fade-in sm:top-6">
             <div className="min-w-0 text-sm font-medium text-white/90">
               {undoVisible ? (
                 <p>Favorite removed. Undo available for {undoTimeLeft}s.</p>
@@ -204,22 +205,31 @@ export default function FavoritesPage() {
               ) : null}
             </div>
 
-            <div className="flex min-h-10 min-w-[8.5rem] items-center justify-end gap-2">
+            <div className="flex min-h-9 min-w-[8.5rem] items-center justify-end gap-2">
               <button
                 onClick={() => void handleUndo()}
                 disabled={!canUndo}
-                className="rounded-full bg-white px-3 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-full bg-white px-3 py-1.5 text-sm font-medium text-slate-900 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {canUndo ? `Undo (${undoTimeLeft}s)` : "Undo"}
               </button>
               <button
                 onClick={() => void handleRedo()}
                 disabled={!canRedo}
-                className="rounded-full border border-white/20 px-3 py-2 text-sm font-medium text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-full border border-white/20 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Redo
               </button>
             </div>
+
+            <button
+              type="button"
+              onClick={handleDismissBanner}
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-semibold leading-none text-white/75 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/60"
+              aria-label="Dismiss undo notification"
+            >
+              x
+            </button>
           </div>
         )}
 

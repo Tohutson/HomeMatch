@@ -22,6 +22,7 @@ type UseFavoriteUndoResult = {
   recordAddedFavorite: (listing: Listing) => void;
   handleUndo: () => Promise<void>;
   handleRedo: () => Promise<void>;
+  handleDismissBanner: () => void;
   pendingFavorite: boolean;
   canUndo: boolean;
   canRedo: boolean;
@@ -214,6 +215,17 @@ export function useFavoriteUndo({
     onToast?.("Favorite restored");
   }, [redoStack, addFavorite, clearRedoTimer, startUndoTimer, onToast]);
 
+  const handleDismissBanner = useCallback(() => {
+    pendingEntryRef.current = null;
+    setPendingEntry(null);
+    setUndoStack([]);
+    setRedoStack([]);
+    setRedoVisible(false);
+    setUndoTimeLeft(0);
+    clearUndoTimer();
+    clearRedoTimer();
+  }, [clearRedoTimer, clearUndoTimer]);
+
   const canUndo = undoStack.length > 0 && undoTimeLeft > 0;
   const canRedo = redoStack.length > 0 && redoVisible;
   const pendingFavorite = pendingEntry != null;
@@ -227,6 +239,7 @@ export function useFavoriteUndo({
     recordAddedFavorite,
     handleUndo,
     handleRedo,
+    handleDismissBanner,
     pendingFavorite,
     canUndo,
     canRedo,

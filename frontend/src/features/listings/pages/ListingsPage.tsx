@@ -80,6 +80,7 @@ function ListingsPageContent({
     handleFavorite,
     handleUndo,
     handleRedo,
+    handleDismissBanner,
     pendingFavorite,
     canUndo,
     canRedo,
@@ -277,6 +278,7 @@ function ListingsPageContent({
         undoTimeLeft={undoTimeLeft}
         onUndo={handleUndo}
         onRedo={handleRedo}
+        onDismiss={handleDismissBanner}
       />
 
       <ComparisonBar
