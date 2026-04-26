@@ -1,136 +1,153 @@
 # Contributing to HomeMatch
 
-This document is our shared source of truth for how we collaborate on this codebase. Please read it before opening your first pull request.
-
----
-
-## Table of Contents
-
-- [Branch Strategy](#branch-strategy)
-- [Branch Naming](#branch-naming)
-- [Commit Messages](#commit-messages)
-- [Pull Requests](#pull-requests)
-- [Merge Conflict Guidance](#merge-conflict-guidance)
-
----
+This guide defines the branch, commit, review, and merge workflow for HomeMatch.
 
 ## Branch Strategy
 
-We use three levels of branches:
+Use three branch levels:
 
 | Branch | Purpose |
-|---|---|
-| `main` | Production-ready code only. Never commit directly to this branch. |
-| `dev` | Integration branch. All feature work merges here first. Should always be in a working state. |
-| `feature/*`, `bug/*`, etc. | Short-lived branches for individual tasks. Branched off `dev`, merged back into `dev` via PR. |
+| --- | --- |
+| `main` | Stable milestone code. Do not commit directly to this branch. |
+| `dev` | Integration branch for feature work. Keep this branch in a working state. |
+| `feature/*`, `bug/*`, `chore/*`, `docs/*` | Short-lived task branches created from `dev` and merged back through pull requests. |
 
-**The flow is:** your branch → `dev` → `main`
+Standard flow:
 
-`main` is only updated from `dev` when the team agrees a milestone is stable (e.g. before a submission or demo).
+```text
+task branch -> dev -> main
+```
 
----
+Update `main` from `dev` only when the team agrees the milestone is stable.
 
 ## Branch Naming
 
-Always branch off `dev` (not `main`) for day-to-day work.
+Create day-to-day branches from `dev`.
 
-Use one of the following prefixes:
+Use one of these prefixes:
 
-| Prefix | When to use |
-|---|---|
+| Prefix | Use case |
+| --- | --- |
 | `feature/` | New functionality |
-| `bug/` | Fixing a broken or incorrect behaviour |
-| `chore/` | Maintenance tasks — dependency updates, config changes, refactoring |
-| `docs/` | Documentation only changes |
+| `bug/` | Bug fixes |
+| `chore/` | Maintenance, configuration, dependencies, or refactoring |
+| `docs/` | Documentation-only changes |
 
-Follow the prefix with a short, lowercase, hyphen-separated description of the work.
+Use a short, lowercase, hyphen-separated description after the prefix:
 
-**Examples:**
-```
+```text
 feature/property-search-filters
-feature/map-view-integration
 bug/listing-price-not-displaying
 chore/update-eslint-config
 docs/update-setup-instructions
 ```
 
----
-
 ## Commit Messages
 
-Keep commit messages short and descriptive. Write them in the **imperative mood** — as if completing the sentence *"This commit will…"*
+Write short, descriptive commit messages in the imperative mood:
 
-```
-# Good
+```text
 Add property card component
-Fix broken image URL on listing page
-Update README with database setup steps
+Fix listing image fallback
+Update backend setup instructions
+```
 
-# Avoid
-added stuff
+Avoid vague messages such as:
+
+```text
 fix
-WIP
+updates
+misc changes
 ```
 
-For more context, add an optional body after a blank line:
+Add a commit body when the reason for the change is not obvious:
 
+```text
+Fix listing image fallback
+
+Some listing records do not include a usable image URL. This change
+keeps the card layout stable when the API returns an empty photo list.
 ```
-Fix broken image URL on listing page
-
-The S3 bucket URL was missing a trailing slash, causing images
-to 404 on the property detail view.
-```
-
----
 
 ## Pull Requests
 
-### Opening a PR
+Before opening a pull request:
 
-1. Make sure your branch is up to date with `dev` before opening a PR (see [Merge Conflict Guidance](#merge-conflict-guidance) below).
-2. Open a PR from your branch **into `dev`**.
-3. Fill out the PR description — at minimum include:
-   - **What** the PR does
-   - **How to test it** (if applicable)
-   - Any relevant screenshots for UI changes
+1. Sync your branch with the latest `dev`.
+2. Run the relevant tests for the files you changed.
+3. Open the pull request into `dev`.
 
-### Review Rules
+Include in the pull request description:
 
-- **1 approval** is required before merging a feature/bug/chore branch into `dev`.
-- Don't approve your own PR.
-- Try to review open PRs within **24 hours** so teammates aren't blocked.
-- Use GitHub's **"Request changes"** if something needs fixing before merge, or **"Approve"** when it's good to go.
+- What changed
+- How the change was tested
+- Screenshots for visible UI changes
+- Any known limitations or follow-up work
 
-### Merging
+## Review and Merge
 
-- Use **"Squash and merge"** when merging feature branches into `dev` — this keeps the `dev` history clean.
-- Delete the branch after merging.
+- Require at least one approval before merging into `dev`.
+- Do not approve your own pull request.
+- Use GitHub review states consistently: approve when ready, request changes when required, or comment for non-blocking feedback.
+- Use squash merge for task branches into `dev`.
+- Delete merged task branches.
 
----
+## Syncing With `dev`
 
-## Merge Conflict Guidance
-
-
-**Before opening a PR**, sync your branch with the latest `dev`:
+Before opening a pull request:
 
 ```bash
 git checkout dev
 git pull origin dev
-git checkout your-branch-name
+git checkout <your-branch-name>
 git merge dev
 ```
 
-Resolve any conflicts in your editor, then:
+After resolving conflicts:
 
 ```bash
 git add .
-git commit -m "Merge dev into your-branch-name"
+git commit -m "Merge dev into <your-branch-name>"
 git push
 ```
 
-**Tips for avoiding conflicts in the first place:**
-- Pull from `dev` regularly, especially on long-running branches.
-- Communicate with teammates if you're both editing the same files.
-- Keep branches short-lived — the smaller the PR, the fewer the conflicts.
+## Local Verification
 
-If you're stuck on a conflict, ask a teammate for help before force-pushing anything.
+Run the checks that match your change.
+
+Backend:
+
+```bash
+cd backend
+./mvnw test
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm run lint
+npm test -- --watchAll=false
+```
+
+End-to-end:
+
+```bash
+docker compose -f docker-compose.e2e.yml up -d
+cd backend
+./mvnw spring-boot:run -Dspring-boot.run.profiles=e2e
+```
+
+In another terminal:
+
+```bash
+cd frontend
+npm run test:e2e
+```
+
+## Conflict Guidance
+
+- Pull from `dev` regularly on long-running branches.
+- Communicate with teammates before editing the same files.
+- Keep pull requests focused and short-lived.
+- Ask another teammate to review difficult conflict resolutions before force-pushing.
