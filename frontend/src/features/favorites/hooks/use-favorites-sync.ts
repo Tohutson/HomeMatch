@@ -3,6 +3,7 @@ import { flushOfflineQueue, getOfflineQueue } from "@/lib/offline-queue";
 import type { RefetchFavoritesOptions } from "./use-favorites";
 
 type UseFavoritesSyncParams = {
+  userSub: string | null;
   refetchFavorites: (options?: RefetchFavoritesOptions) => Promise<void>;
   onToast?: (message: string) => void;
 };
@@ -13,6 +14,7 @@ type UseFavoritesSyncResult = {
 };
 
 export function useFavoritesSync({
+  userSub,
   refetchFavorites,
   onToast,
 }: UseFavoritesSyncParams): UseFavoritesSyncResult {
@@ -24,16 +26,21 @@ export function useFavoritesSync({
   }, []);
 
   const syncOfflineFavorites = useCallback(async () => {
+    if (!userSub) {
+      setSyncingIds(new Set());
+      return;
+    }
+
     if (isSyncing) return;
 
-    const queue = getOfflineQueue();
+    const queue = getOfflineQueue(userSub);
     if (!queue.length) return;
 
     try {
       setIsSyncing(true);
       setSyncingIds(new Set(queue.map((item) => item.listingId)));
 
-      const syncedCount = await flushOfflineQueue();
+      const syncedCount = await flushOfflineQueue(userSub);
       await refetchFavorites({ background: true });
 
       setSyncingIds(new Set());
@@ -48,10 +55,14 @@ export function useFavoritesSync({
     } finally {
       setIsSyncing(false);
     }
-  }, [isSyncing, refetchFavorites, onToast]);
+  }, [isSyncing, refetchFavorites, onToast, userSub]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (!userSub) {
+      setSyncingIds(new Set());
+      return;
+    }
 
     function handleOnline() {
       void syncOfflineFavorites();
@@ -66,7 +77,7 @@ export function useFavoritesSync({
     return () => {
       window.removeEventListener("online", handleOnline);
     };
-  }, [syncOfflineFavorites]);
+  }, [syncOfflineFavorites, userSub]);
 
   return {
     syncingIds,

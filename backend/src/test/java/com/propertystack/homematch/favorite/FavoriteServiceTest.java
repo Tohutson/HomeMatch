@@ -42,6 +42,9 @@ class FavoriteServiceTest {
     @Mock
     private ListingMapper listingMapper;
 
+    @Mock
+    private com.propertystack.homematch.user.SupabaseAdminClient supabaseAdminClient;
+
     @InjectMocks
     private FavoriteService favoriteService;
 
@@ -128,6 +131,17 @@ class FavoriteServiceTest {
     }
 
     @Test
+    void removeFavorite_shouldNotDeleteAnotherUsersFavorite() {
+        when(favoriteRepository.findByUserIdAndListingId(1L, 2L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> favoriteService.removeFavorite(1L, 2L))
+                .isInstanceOf(FavoriteNotFoundException.class);
+
+        verify(favoriteRepository).findByUserIdAndListingId(1L, 2L);
+        verifyNoMoreInteractions(favoriteRepository, userRepository, listingRepository, listingMapper);
+    }
+
+    @Test
     void getFavorites_shouldReturnMappedDTOs() {
         Listing listing = listing(2L);
         Favorite favorite = favorite(10L, user(1L), listing);
@@ -163,6 +177,8 @@ class FavoriteServiceTest {
     private User user(Long id) {
         return User.builder()
                 .id(id)
+                .supabaseUserId("supabase-user-" + id)
+                .email("user" + id + "@example.com")
                 .build();
     }
 

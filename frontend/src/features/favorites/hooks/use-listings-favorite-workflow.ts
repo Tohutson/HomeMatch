@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { useAuth } from "@/features/auth/context/auth-context";
 import type { Listing } from "@/features/listings/types";
 import { useFavoritesContext } from "@/features/favorites/context/favorites-context";
 import { useFavoriteUndo } from "@/features/favorites/hooks/use-favorite-undo";
@@ -34,8 +35,8 @@ export function useListingsFavoriteWorkflow({
   onToast,
   onRequireLogin,
 }: UseListingsFavoriteWorkflowParams): UseListingsFavoriteWorkflowResult {
+  const { user, isAuthenticated } = useAuth();
   const {
-    userId,
     favoriteIds,
     loading,
     error,
@@ -65,13 +66,14 @@ export function useListingsFavoriteWorkflow({
   });
 
   const { syncingIds, markQueued } = useFavoritesSync({
+    userSub: user?.id ?? null,
     refetchFavorites,
     onToast,
   });
 
   const startFavoriteAdd = useCallback(
     (listing: Listing): ActionResult => {
-      if (!userId || userId <= 0) {
+      if (!isAuthenticated || !user?.id) {
         onRequireLogin?.();
         return { ok: false, reason: "missing_user" };
       }
@@ -84,8 +86,7 @@ export function useListingsFavoriteWorkflow({
       recordPendingFavorite(listing);
 
       if (typeof navigator !== "undefined" && !navigator.onLine) {
-        enqueueOfflineFavorite({
-          userId,
+        enqueueOfflineFavorite(user.id, {
           listingId: listing.id,
         });
 
@@ -114,7 +115,7 @@ export function useListingsFavoriteWorkflow({
       return { ok: true };
     },
     [
-      userId,
+      isAuthenticated,
       isFavorited,
       setFavoriteOptimistic,
       recordPendingFavorite,
@@ -124,6 +125,7 @@ export function useListingsFavoriteWorkflow({
       discardPendingFavorite,
       onRequireLogin,
       onToast,
+      user,
     ]
   );
 
@@ -134,7 +136,7 @@ export function useListingsFavoriteWorkflow({
 
   const handleFavorite = useCallback(
     async (listing: Listing): Promise<ActionResult> => {
-      if (!userId || userId <= 0) {
+      if (!isAuthenticated) {
         onRequireLogin?.();
         return { ok: false, reason: "missing_user" };
       }
@@ -158,7 +160,7 @@ export function useListingsFavoriteWorkflow({
       return startFavoriteAdd(listing);
     },
     [
-      userId,
+      isAuthenticated,
       isFavorited,
       removeFavorite,
       startFavoriteAdd,

@@ -1,29 +1,11 @@
 "use client";
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { createContext, useContext, useMemo } from "react";
+import { useAuth } from "@/features/auth/context/auth-context";
 import { useFavorites, type UseFavoritesResult } from "@/features/favorites/hooks/use-favorites";
-import {
-  clearStoredUserSession,
-  getOrCreateUserId,
-  getStoredUserEmail,
-  getStoredUserId,
-} from "@/lib/userId";
 
 type FavoritesContextValue = UseFavoritesResult & {
-  userId: number | null;
-  userEmail: string | null;
-  isLoggedIn: boolean;
-  isUserReady: boolean;
   favoriteCount: number;
-  ensureUserId: (email?: string, password?: string) => Promise<number | null>;
-  logout: () => void;
 };
 
 const FavoritesContext = createContext<FavoritesContextValue | null>(null);
@@ -33,79 +15,18 @@ export function FavoritesProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const [userId, setUserId] = useState<number | null>(() => getStoredUserId());
-  const [userEmail, setUserEmail] = useState<string | null>(() =>
-    getStoredUserEmail()
-  );
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    const syncFromStorage = () => {
-      setUserId(getStoredUserId());
-      setUserEmail(getStoredUserEmail());
-    };
-
-    window.addEventListener("storage", syncFromStorage);
-
-    return () => {
-      window.removeEventListener("storage", syncFromStorage);
-    };
-  }, []);
-
-  const isLoggedIn = Boolean(userId && userId > 0);
-  const isUserReady = true;
-  const favorites = useFavorites({ userId, enabled: isUserReady });
-
-  const ensureUserId = useCallback(async (email?: string, password?: string) => {
-    if (userId && userId > 0) {
-      return userId;
-    }
-
-    if (!email || !password) {
-      return null;
-    }
-
-    try {
-      const normalizedEmail = email.trim().toLowerCase();
-      const id = await getOrCreateUserId(normalizedEmail, password);
-      setUserId(id);
-      setUserEmail(normalizedEmail);
-      return id;
-    } catch (err) {
-      console.error("Failed to initialize user:", err);
-      return null;
-    }
-  }, [userId]);
-
-  const logout = useCallback(() => {
-    clearStoredUserSession();
-    setUserId(null);
-    setUserEmail(null);
-  }, []);
+  const { user, isAuthenticated, isAuthReady } = useAuth();
+  const favorites = useFavorites({
+    enabled: isAuthReady && isAuthenticated,
+    userSub: user?.id ?? null,
+  });
 
   const value = useMemo(
     () => ({
       ...favorites,
-      userId,
-      userEmail,
-      isLoggedIn,
-      isUserReady,
-      favoriteCount: favorites.favoriteIds.size,
-      ensureUserId,
-      logout,
+      favoriteCount: isAuthenticated ? favorites.favoriteIds.size : 0,
     }),
-    [
-      favorites,
-      userId,
-      userEmail,
-      isLoggedIn,
-      isUserReady,
-      ensureUserId,
-      logout,
-    ]
+    [favorites, isAuthenticated]
   );
 
   return (

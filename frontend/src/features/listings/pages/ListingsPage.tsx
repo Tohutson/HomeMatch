@@ -1,6 +1,5 @@
 "use client";
 
-import NotLoggedInModal from "@/components/NotLoggedInModal";
 import Toast from "@/components/Toast";
 import ComparisonBar from "@/features/listings/components/comparison-bar";
 import ListingCard from "@/features/listings/components/listing-card";
@@ -11,7 +10,6 @@ import ListingFilters from "../components/listing-filters";
 import { ListingsBanner } from "@/features/listings/components/listings-banner";
 import { ListingsPagination } from "@/features/listings/components/listings-pagination";
 
-import { useFavoritesContext } from "@/features/favorites/context/favorites-context";
 import { useListingsFavoriteWorkflow } from "@/features/favorites/hooks/use-listings-favorite-workflow";
 import { useListings } from "@/features/listings/hooks/use-listings";
 import { usePagedListingNavigation } from "@/features/listings/hooks/use-paged-listing-navigation";
@@ -58,10 +56,6 @@ function ListingsPageContent({
     setSort(initialSort);
   }, [initialSort]);
   const [toast, setToast] = useState<string | null>(null);
-  const [showNotLoggedIn, setShowNotLoggedIn] = useState(false);
-  const [loginError, setLoginError] = useState<string | null>(null);
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const { ensureUserId } = useFavoritesContext();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -82,8 +76,13 @@ function ListingsPageContent({
   } = useListingsFavoriteWorkflow({
     onToast: setToast,
     onRequireLogin: () => {
-      setLoginError(null);
-      setShowNotLoggedIn(true);
+      const nextPath = searchParams?.toString()
+        ? `${pathname}?${searchParams.toString()}`
+        : pathname ?? "/listings";
+
+      const params = new URLSearchParams();
+      params.set("next", nextPath);
+      router.push(`/login?${params.toString()}`);
     },
   });
 
@@ -231,35 +230,6 @@ function ListingsPageContent({
   return (
     <main className="min-h-screen bg-zinc-50 p-8 text-black">
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
-
-      {showNotLoggedIn && (
-        <NotLoggedInModal
-          onDismiss={() => {
-            setShowNotLoggedIn(false);
-            setLoginError(null);
-          }}
-          onLogIn={async (email, password) => {
-            setIsLoggingIn(true);
-            setLoginError(null);
-
-            const id = await ensureUserId(email, password);
-
-            setIsLoggingIn(false);
-
-            if (!id) {
-              setLoginError("Unable to log in right now. Please try again.");
-              return;
-            }
-
-            setShowNotLoggedIn(false);
-            setToast("Logged in. You can now save favorites.");
-          }}
-          isSubmitting={isLoggingIn}
-          error={loginError}
-          description="Log in with email and password to save favorites. If you are new, we will create your account."
-          submitLabel="Continue"
-        />
-      )}
 
       <ListingsBanner
         show={showBanner}

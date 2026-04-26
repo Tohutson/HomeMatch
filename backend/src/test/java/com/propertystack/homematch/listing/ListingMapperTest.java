@@ -2,6 +2,7 @@ package com.propertystack.homematch.listing;
 
 import com.propertystack.homematch.listing.dto.ListingDTO;
 import com.propertystack.homematch.listing.mapper.ListingMapper;
+import com.propertystack.homematch.listing.mapper.ListingMapperImpl;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -12,7 +13,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ActiveProfiles("test")
 class ListingMapperTest {
 
-    private final ListingMapper mapper = new ListingMapper();
+    private final ListingMapper mapper = new ListingMapperImpl();
 
     @Test
     void shouldMapListingToDTO() {

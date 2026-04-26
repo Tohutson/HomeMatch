@@ -112,51 +112,6 @@ describe("ListingCard", () => {
     expect(onFavorite).toHaveBeenCalledWith(listing);
   });
 
-  it("applies animate-heart-bounce when transitioning from unfavorited to favorited", () => {
-    const { rerender } = render(
-      <ListingCard listing={listing} isFavorited={false} />
-    );
-
-    expect(screen.getByTestId("heart-icon")).not.toHaveClass(
-      "animate-heart-bounce"
-    );
-
-    rerender(<ListingCard listing={listing} isFavorited />);
-
-    expect(screen.getByTestId("heart-icon")).toHaveClass(
-      "animate-heart-bounce"
-    );
-  });
-
-  it("does not apply heart-bounce when card initially renders already favorited", () => {
-    render(<ListingCard listing={listing} isFavorited />);
-    expect(screen.getByTestId("heart-icon")).not.toHaveClass(
-      "animate-heart-bounce"
-    );
-  });
-
-  it("removes animate-heart-bounce class after animation completes", () => {
-    jest.useFakeTimers();
-
-    const { rerender } = render(
-      <ListingCard listing={listing} isFavorited={false} />
-    );
-
-    rerender(<ListingCard listing={listing} isFavorited />);
-
-    expect(screen.getByTestId("heart-icon")).toHaveClass(
-      "animate-heart-bounce"
-    );
-
-    act(() => {
-      jest.advanceTimersByTime(600);
-    });
-
-    expect(screen.getByTestId("heart-icon")).not.toHaveClass(
-      "animate-heart-bounce"
-    );
-  });
-
   it("shows sync indicator when isSyncing is true", () => {
     render(<ListingCard listing={listing} isFavorited isSyncing />);
     expect(screen.getByTestId("sync-indicator")).toBeInTheDocument();

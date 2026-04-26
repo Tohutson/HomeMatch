@@ -1,5 +1,59 @@
 import "@testing-library/jest-dom";
 
+const mockSupabaseSession = {
+  access_token: "test-access-token",
+  user: {
+    id: "supabase-user-1",
+    email: "test@example.com",
+  },
+};
+
+jest.mock("@/features/auth/lib/supabase-browser", () => ({
+  createBrowserSupabaseClient: () => ({
+    auth: {
+      getSession: jest.fn().mockResolvedValue({
+        data: { session: mockSupabaseSession },
+      }),
+      onAuthStateChange: jest.fn().mockReturnValue({
+        data: {
+          subscription: {
+            unsubscribe: jest.fn(),
+          },
+        },
+      }),
+      signInWithPassword: jest.fn().mockResolvedValue({
+        data: { user: mockSupabaseSession.user },
+        error: null,
+      }),
+      signInWithOAuth: jest.fn().mockResolvedValue({
+        data: { url: "http://localhost:3000/auth/callback" },
+        error: null,
+      }),
+      exchangeCodeForSession: jest.fn().mockResolvedValue({
+        data: { session: mockSupabaseSession },
+        error: null,
+      }),
+      signOut: jest.fn().mockResolvedValue({ error: null }),
+    },
+  }),
+}));
+
+jest.mock("@/features/auth/lib/supabase-server", () => ({
+  createServerSupabaseClient: jest.fn().mockResolvedValue({
+    auth: {
+      getClaims: jest.fn().mockResolvedValue({
+        data: {
+          claims: {
+            sub: mockSupabaseSession.user.id,
+            email: mockSupabaseSession.user.email,
+          },
+        },
+        error: null,
+      }),
+    },
+  }),
+}));
+
 (
   globalThis as typeof globalThis & {
     IS_REACT_ACT_ENVIRONMENT?: boolean;

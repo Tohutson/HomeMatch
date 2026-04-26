@@ -1,8 +1,9 @@
-import Navbar from "@/components/Navbar";
+import type { Metadata } from "next";
+import "@/styles/globals.css";
+import NavbarClient from "@/components/Navbar/NavbarClient";
+import { AuthProvider } from "@/features/auth/context/auth-context";
 import { FavoritesProvider } from "@/features/favorites/context/favorites-context";
 import { ComparisonProvider } from "@/features/listings/context/comparison-context";
-import "@/styles/globals.css";
-import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "HomeMatch",
@@ -17,12 +18,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-        <FavoritesProvider>
-          <ComparisonProvider>
-            <Navbar />
-            {children}
-          </ComparisonProvider>
-        </FavoritesProvider>
+        <AuthProvider>
+          <FavoritesProvider>
+            <ComparisonProvider>
+              <NavbarClient />
+              {children}
+            </ComparisonProvider>
+          </FavoritesProvider>
+        </AuthProvider>
       </body>
     </html>
   );

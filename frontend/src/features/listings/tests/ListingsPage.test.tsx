@@ -26,16 +26,16 @@ jest.mock("@/features/favorites/hooks/use-listings-favorite-workflow", () => ({
     mockUseListingsFavoriteWorkflow(...args),
 }));
 
-jest.mock("@/lib/userId", () => ({
-  getOrCreateUserId: jest.fn().mockResolvedValue(123),
-  getStoredUserId: jest.fn().mockReturnValue(null),
-  getStoredUserEmail: jest.fn().mockReturnValue(null),
-  clearStoredUserSession: jest.fn(),
+jest.mock("@/features/auth/context/auth-context", () => ({
+  useAuth: () => ({
+    isAuthenticated: true,
+  }),
 }));
 
 jest.mock("next/navigation", () => ({
   useRouter: () => ({
     replace: mockReplace,
+    refresh: jest.fn(),
   }),
   usePathname: () => "/listings",
   useSearchParams: () => ({

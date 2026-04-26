@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Toast from "@/components/Toast";
+import { useAuth } from "@/features/auth/context/auth-context";
 import { useFavoritesContext } from "@/features/favorites/context/favorites-context";
 import { useFavoriteUndo } from "@/features/favorites/hooks/use-favorite-undo";
 import { useFavoritesSync } from "@/features/favorites/hooks/use-favorites-sync";
@@ -16,11 +17,11 @@ export default function FavoritesPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [sortOption, setSortOption] = useState<SortOption>("date_desc");
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const { isAuthReady, user } = useAuth();
   const {
     favorites,
     loading,
     error,
-    isUserReady,
     addFavorite: addFavoriteRequest,
     removeFavorite: removeFavoriteRequest,
     refetchFavorites,
@@ -28,12 +29,12 @@ export default function FavoritesPage() {
 
   const removeFavoriteFromPage = useCallback(
     (listingId: number) => removeFavoriteRequest(listingId),
-    [removeFavoriteRequest]
+    [removeFavoriteRequest],
   );
 
   const restoreFavoriteToPage = useCallback(
     (listingId: number) => addFavoriteRequest(listingId),
-    [addFavoriteRequest]
+    [addFavoriteRequest],
   );
 
   const {
@@ -51,11 +52,12 @@ export default function FavoritesPage() {
   });
 
   const { syncingIds } = useFavoritesSync({
+    userSub: user?.id ?? null,
     refetchFavorites,
     onToast: setToast,
   });
   const { unavailableIds } = useListingAvailability(
-    favorites.map((favorite) => favorite.listing.id)
+    favorites.map((favorite) => favorite.listing.id),
   );
 
   const handleRemove = useCallback(
@@ -74,65 +76,62 @@ export default function FavoritesPage() {
     [removeFavoriteFromPage, recordAddedFavorite],
   );
 
-  const handleShare = useCallback(
-    async (favorite: FavoriteRecord) => {
-      const shareUrl = favorite.listing.listingUrl?.trim();
+  const handleShare = useCallback(async (favorite: FavoriteRecord) => {
+    const shareUrl = favorite.listing.listingUrl?.trim();
 
-      if (!shareUrl) {
-        setToast("No listing link is available to share.");
-        return;
-      }
+    if (!shareUrl) {
+      setToast("No listing link is available to share.");
+      return;
+    }
 
-      const shareTitle = favorite.listing.address || "Home listing";
+    const shareTitle = favorite.listing.address || "Home listing";
 
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            title: shareTitle,
-            text: "Check out this home",
-            url: shareUrl,
-          });
-          setToast("Listing shared.");
-          return;
-        } catch (err) {
-          if (err instanceof DOMException && err.name === "AbortError") {
-            return;
-          }
-        }
-      }
-
-      if (navigator.clipboard?.writeText) {
-        try {
-          await navigator.clipboard.writeText(shareUrl);
-          setToast("Listing link copied to clipboard.");
-          return;
-        } catch {
-          // Fall back to execCommand when clipboard permissions are unavailable.
-        }
-      }
-
-      const textArea = document.createElement("textarea");
-      textArea.value = shareUrl;
-      textArea.style.position = "fixed";
-      textArea.style.opacity = "0";
-
-      let copied = false;
-      document.body.appendChild(textArea);
+    if (navigator.share) {
       try {
-        textArea.focus();
-        textArea.select();
-        copied = document.execCommand("copy");
-      } finally {
-        document.body.removeChild(textArea);
+        await navigator.share({
+          title: shareTitle,
+          text: "Check out this home",
+          url: shareUrl,
+        });
+        setToast("Listing shared.");
+        return;
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") {
+          return;
+        }
       }
-      setToast(
-        copied
-          ? "Listing link copied to clipboard."
-          : "Unable to share this listing right now."
-      );
-    },
-    [],
-  );
+    }
+
+    if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        setToast("Listing link copied to clipboard.");
+        return;
+      } catch {
+        // Fall back to execCommand when clipboard permissions are unavailable.
+      }
+    }
+
+    const textArea = document.createElement("textarea");
+    textArea.value = shareUrl;
+    textArea.style.position = "fixed";
+    textArea.style.opacity = "0";
+
+    let copied = false;
+    document.body.appendChild(textArea);
+    try {
+      textArea.focus();
+      textArea.select();
+      copied = document.execCommand("copy");
+    } finally {
+      document.body.removeChild(textArea);
+    }
+    setToast(
+      copied
+        ? "Listing link copied to clipboard."
+        : "Unable to share this listing right now.",
+    );
+  }, []);
 
   const sortedFavorites = useMemo(() => {
     const next = [...favorites];
@@ -157,7 +156,7 @@ export default function FavoritesPage() {
     return next;
   }, [favorites, sortOption]);
 
-  if ((!isUserReady || loading) && favorites.length === 0) {
+  if ((!isAuthReady || loading) && favorites.length === 0) {
     return (
       <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(186,230,253,0.7),_transparent_34%),linear-gradient(180deg,_#f8fafc_0%,_#eef2ff_100%)] px-6 py-10 text-slate-950 md:px-8">
         <div className="mx-auto max-w-7xl rounded-[36px] border border-white/75 bg-white/75 p-8 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur">
@@ -248,7 +247,8 @@ export default function FavoritesPage() {
 
             <div className="flex flex-wrap items-center gap-3">
               <div className="rounded-full bg-rose-50 px-4 py-2 text-sm font-medium text-rose-600">
-                {favorites.length} saved {favorites.length === 1 ? "home" : "homes"}
+                {favorites.length} saved{" "}
+                {favorites.length === 1 ? "home" : "homes"}
               </div>
 
               <label className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 shadow-sm">
