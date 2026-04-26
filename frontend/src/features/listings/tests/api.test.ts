@@ -12,6 +12,18 @@ describe("buildListingsQuery", () => {
     expect(query).toContain("size=12");
   });
 
+  it("includes sortOption when a sort is provided", () => {
+    const query = buildListingsQuery({
+      page: 0,
+      size: 12,
+      sort: "SQFT_DESC",
+      filters: {},
+    });
+
+    expect(query).toContain("sortOption=SQFT_DESC");
+    expect(query).not.toContain("sort=SQFT_DESC");
+  });
+
   it("includes maxSqft when provided", () => {
     const query = buildListingsQuery({
       page: 0,

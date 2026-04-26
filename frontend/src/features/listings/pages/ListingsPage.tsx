@@ -2,8 +2,10 @@
 
 import NotLoggedInModal from "@/components/NotLoggedInModal";
 import Toast from "@/components/Toast";
+import ComparisonBar from "@/features/listings/components/comparison-bar";
 import ListingCard from "@/features/listings/components/listing-card";
-import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { useComparison } from "@/features/listings/context/comparison-context";
+import { useCallback, useEffect, useState, type ChangeEvent } from "react";
 import ListingFilters from "../components/listing-filters";
 
 import { ListingsBanner } from "@/features/listings/components/listings-banner";
@@ -11,23 +13,28 @@ import { ListingsPagination } from "@/features/listings/components/listings-pagi
 
 import { useFavoritesContext } from "@/features/favorites/context/favorites-context";
 import { useListingsFavoriteWorkflow } from "@/features/favorites/hooks/use-listings-favorite-workflow";
-import { useComparison } from "@/features/listings/context/comparison-context";
 import { useListings } from "@/features/listings/hooks/use-listings";
 import { usePagedListingNavigation } from "@/features/listings/hooks/use-paged-listing-navigation";
-import { type Listing, type ListingSortOption } from "@/features/listings/types";
+import {
+  LISTING_SORT_OPTIONS,
+  type Listing,
+  type ListingSortOption,
+} from "@/features/listings/types";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { isListingSortOption, sortListings } from "../api";
-import ComparisonBar from "../components/comparison-bar";
 import { useListingFilters } from "../hooks/use-listing-filters";
 
-
 const PAGE_SIZE = 12;
+
+
+function isListingSortOption(value: string | null): value is ListingSortOption {
+  return value !== null && LISTING_SORT_OPTIONS.some((option) => option.value === value);
+}
 
 export default function ListingsPage() {
   const searchParams = useSearchParams();
   const locationParam = searchParams?.get("location") ?? "";
   const rawSortParam = searchParams?.get("sort") ?? null;
-  const initialSort = rawSortParam && isListingSortOption(rawSortParam) ? rawSortParam : null;
+  const initialSort = isListingSortOption(rawSortParam) ? rawSortParam : null;
 
   return (
     <ListingsPageContent
@@ -47,16 +54,17 @@ function ListingsPageContent({
 }) {
   const [currentPage, setCurrentPage] = useState(0);
   const [sort, setSort] = useState<ListingSortOption | null>(initialSort);
-
   useEffect(() => {
     setSort(initialSort);
   }, [initialSort]);
   const [toast, setToast] = useState<string | null>(null);
   const [showNotLoggedIn, setShowNotLoggedIn] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const { ensureUserId } = useFavoritesContext();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const {
     favoriteIds,
@@ -73,7 +81,10 @@ function ListingsPageContent({
     showBanner,
   } = useListingsFavoriteWorkflow({
     onToast: setToast,
-    onRequireLogin: () => setShowNotLoggedIn(true),
+    onRequireLogin: () => {
+      setLoginError(null);
+      setShowNotLoggedIn(true);
+    },
   });
 
   const {
@@ -94,20 +105,14 @@ function ListingsPageContent({
     sort,
   });
 
-  const sortedListings = useMemo(() => {
-    const result = sortListings(listings, sort);
-    console.log(
-      "SORT:",
-      sort,
-      result.map((listing) => ({
-        id: listing.id,
-        price: listing.price,
-        sqft: listing.sqft,
-        energy: listing.energyStarScore,
-      }))
-    );
-    return result;
-  }, [listings, sort]);
+  const {
+    comparedListings,
+    addListing,
+    removeListing,
+    clearComparison,
+    isSelected,
+    canAddMore,
+  } = useComparison();
 
   const {
     currentIndex,
@@ -118,7 +123,7 @@ function ListingsPageContent({
     goPrevious,
     setCurrentIndex,
   } = usePagedListingNavigation({
-    listings: sortedListings,
+    listings,
     currentPage,
     totalPages,
     onPageChange: setCurrentPage,
@@ -155,16 +160,17 @@ function ListingsPageContent({
   );
 
   const nextListing =
-    currentIndex < sortedListings.length - 1 ? sortedListings[currentIndex + 1] : null;
-  const isInitialLoading = loading && sortedListings.length === 0;
-  const hasNoListings = sortedListings.length === 0;
-  const hasExhaustedListings = sortedListings.length > 0 && !currentListing;
+    currentIndex < listings.length - 1 ? listings[currentIndex + 1] : null;
+  const isInitialLoading = loading && listings.length === 0;
+  const hasNoListings = listings.length === 0;
+  const hasExhaustedListings = listings.length > 0 && !currentListing;
 
   const handleClearFilters = useCallback(() => {
     setCurrentPage(0);
     setCurrentIndex(0);
     setSort(null);
     clearFilters();
+  
     const params = new URLSearchParams(searchParams?.toString() ?? "");
     params.delete("sort");
     params.delete("location");
@@ -173,22 +179,17 @@ function ListingsPageContent({
     router.replace(query ? `${pathname}?${query}` : (pathname ?? "/listings"));
   }, [clearFilters, pathname, router, searchParams, setCurrentIndex]);
 
-  const {
-    comparedListings,
-    addListing,
-    removeListing,
-    clearComparison,
-    isSelected,
-    canAddMore,
-  } = useComparison();
+  const handleToggleCompare = useCallback(
+    (listing: Listing) => {
+      if (isSelected(listing.id)) {
+        removeListing(listing.id);
+        return;
+      }
 
-  const handleToggleCompare = useCallback((listing: Listing) => {
-    if (isSelected(listing.id)) {
-      removeListing(listing.id);
-    } else {
       addListing(listing);
-    }
-  }, [isSelected, removeListing, addListing]);
+    },
+    [addListing, isSelected, removeListing]
+  );
 
   const handleSwipeRight = useCallback(async () => {
     if (!currentListing) return false;
@@ -233,11 +234,30 @@ function ListingsPageContent({
 
       {showNotLoggedIn && (
         <NotLoggedInModal
-          onDismiss={() => setShowNotLoggedIn(false)}
-          onLogIn={() => {
+          onDismiss={() => {
             setShowNotLoggedIn(false);
-            void ensureUserId();
+            setLoginError(null);
           }}
+          onLogIn={async (email, password) => {
+            setIsLoggingIn(true);
+            setLoginError(null);
+
+            const id = await ensureUserId(email, password);
+
+            setIsLoggingIn(false);
+
+            if (!id) {
+              setLoginError("Unable to log in right now. Please try again.");
+              return;
+            }
+
+            setShowNotLoggedIn(false);
+            setToast("Logged in. You can now save favorites.");
+          }}
+          isSubmitting={isLoggingIn}
+          error={loginError}
+          description="Log in with email and password to save favorites. If you are new, we will create your account."
+          submitLabel="Continue"
         />
       )}
 
@@ -252,72 +272,78 @@ function ListingsPageContent({
         onRedo={handleRedo}
       />
 
-      {comparedListings.length > 0 && (
-        <div className="mx-auto mb-6 flex max-w-7xl items-center justify-between rounded-2xl border border-zinc-200 bg-white px-5 py-4 shadow-sm">
-          <div>
-            <p className="text-sm font-medium text-zinc-900">
-              {comparedListings.length} of 4 homes selected for comparison
-            </p>
-            <p className="text-sm text-zinc-500">
-              Select up to 4 homes, then build your comparison page later
-            </p>
-          </div>
-          <ComparisonBar
-            selectedCount={comparedListings.length}
-            onClear={clearComparison}
+      <ComparisonBar
+        selectedCount={comparedListings.length}
+        onClear={clearComparison}
+      />
+
+      <div className="mx-auto flex max-w-7xl flex-col gap-8 lg:grid lg:grid-cols-[320px_minmax(0,1fr)_280px] lg:items-start">
+        <div className="order-1">
+          <ListingFilters
+            filters={draftFilters}
+            onFilterChange={updateDraftFilter}
+            onApply={handleApplyFilters}
+            onClear={handleClearFilters}
+            validationErrors={validationErrors}
+            isApplyDisabled={isApplyDisabled}
+            isClearDisabled={isClearDisabled}
+            matchCount={totalElements}
           />
-          <button
-            type="button"
-            onClick={clearComparison}
-            className="rounded-full bg-zinc-200 px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-300"
-          >
-            Clear
-          </button>
         </div>
-      )}
 
-      <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start">
-        <ListingFilters
-          filters={draftFilters}
-          onFilterChange={updateDraftFilter}
-          onApply={handleApplyFilters}
-          onClear={handleClearFilters}
-          validationErrors={validationErrors}
-          isApplyDisabled={isApplyDisabled}
-          isClearDisabled={isClearDisabled}
-          matchCount={totalElements}
-        />
-
-          <div className="mx-auto w-full max-w-3xl">
-          <div className="mb-4 flex items-center justify-end">
-            <label htmlFor="listing-sort" className="mr-3 text-sm font-medium text-zinc-700">
-              Sort by
-            </label>
-            <select
-              id="listing-sort"
-              value={sort ?? ""}
-              onChange={handleSortChange}
-              className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm"
+        <aside className="order-2 lg:order-3 lg:sticky lg:top-24">
+          <div className="rounded-[28px] border border-zinc-200 bg-white p-4 shadow-sm">
+            <label
+              htmlFor="listing-sort"
+              className="mb-2 block text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400"
             >
-              <option value="">Recommended</option>
-              <option value="PRICE_ASC">Price: Low to High</option>
-              <option value="PRICE_DESC">Price: High to Low</option>
-              <option value="SIZE_ASC">Size: Small to Large</option>
-              <option value="SIZE_DESC">Size: Large to Small</option>
-              <option value="ENERGY_DESC">Energy Score: High to Low</option>
-            </select>
+              Sort Results
+            </label>
+            <div className="relative">
+              <select
+                id="listing-sort"
+                value={sort ?? ""}
+                onChange={handleSortChange}
+                className="w-full appearance-none rounded-full border border-zinc-300 bg-zinc-50 px-4 py-3 pr-11 text-sm font-medium text-zinc-800 outline-none transition focus:border-zinc-400 focus:bg-white"
+              >
+                <option value="">Recommended</option>
+                {LISTING_SORT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-zinc-400">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  className="h-5 w-5"
+                  aria-hidden="true"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 1 1 1.08 1.04l-4.25 4.511a.75.75 0 0 1-1.08 0L5.21 8.27a.75.75 0 0 1 .02-1.06Z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </span>
+            </div>
           </div>
-            {hasNoListings ? (
-              <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
-                <h2 className="mb-2 text-xl font-semibold">
-                  No homes found matching your criteria
-                </h2>
-                <p className="text-zinc-500">
-                  Try changing or clearing your filters
-                </p>
-              </div>
-            ) : hasExhaustedListings || !currentListing ? (
-            <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
+        </aside>
+
+        <div className="order-3 mx-auto w-full max-w-2xl lg:order-2">
+          {hasNoListings ? (
+            <div className="w-full rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
+              <h2 className="mb-2 text-xl font-semibold">
+                No homes found matching your criteria
+              </h2>
+              <p className="text-zinc-500">
+                Try changing or clearing your filters
+              </p>
+            </div>
+          ) : hasExhaustedListings || !currentListing ? (
+            <div className="w-full rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
               <h2 className="mb-2 text-xl font-semibold">
                 You&apos;ve reached the end of these matches
               </h2>
@@ -326,7 +352,7 @@ function ListingsPageContent({
               </p>
             </div>
           ) : (
-            <div className="relative">
+            <div className="relative w-full">
               {nextListing && (
                 <div
                   aria-hidden="true"
@@ -341,18 +367,18 @@ function ListingsPageContent({
               )}
 
               <div className="relative z-10">
-              <ListingCard
-                key={currentListing.id}
-                listing={currentListing}
-                isFavorited={favoriteIds.has(currentListing.id)}
-                isSyncing={syncingIds.has(currentListing.id)}
-                onFavorite={handleFavorite}
-                onSwipeRight={handleSwipeRight}
-                onSwipeLeft={handleSwipeLeft}
-                isCompared={isSelected(currentListing.id)}
-                onToggleCompare={handleToggleCompare}
-                disableCompare={!isSelected(currentListing.id) && !canAddMore}
-              />
+                <ListingCard
+                  key={currentListing.id}
+                  listing={currentListing}
+                  isFavorited={favoriteIds.has(currentListing.id)}
+                  isSyncing={syncingIds.has(currentListing.id)}
+                  onFavorite={handleFavorite}
+                  onSwipeRight={handleSwipeRight}
+                  onSwipeLeft={handleSwipeLeft}
+                  isCompared={isSelected(currentListing.id)}
+                  onToggleCompare={handleToggleCompare}
+                  disableCompare={!isSelected(currentListing.id) && !canAddMore}
+                />
               </div>
 
               {loading && (

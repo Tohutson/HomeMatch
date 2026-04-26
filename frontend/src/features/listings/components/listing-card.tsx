@@ -124,6 +124,7 @@ export default function ListingCard({
         clearTimeout(favoriteAnimationTimeoutRef.current);
         favoriteAnimationTimeoutRef.current = null;
       }
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShouldAnimateFavorite(false);
       return;
     }
@@ -131,7 +132,6 @@ export default function ListingCard({
     if (wasFavorited) {
       return;
     }
-
     setShouldAnimateFavorite(true);
 
     if (favoriteAnimationTimeoutRef.current) {
@@ -223,7 +223,7 @@ export default function ListingCard({
               : "cursor-grab"
         } ${exitDirection === "right" ? "animate-card-swipe-right" : ""} ${
           exitDirection === "left" ? "animate-card-swipe-left" : ""
-        }`}
+        } ${isCompared ? "ring-2 ring-emerald-300" : ""}`}
         data-testid={interactive ? "listing-card" : "listing-card-preview"}
         style={{
           transform: `translateX(${dragX}px) rotate(${cardRotation}deg) scale(${cardScale})`,
@@ -405,11 +405,13 @@ export default function ListingCard({
               onToggleCompare?.(listing);
             }}
             disabled={disableCompare}
+            aria-pressed={isCompared}
             className={`inline-flex items-center rounded-full px-4 py-2 text-sm font-medium transition ${
               isCompared
                 ? "bg-emerald-500 text-white hover:bg-emerald-600"
                 : "bg-zinc-200 text-zinc-800 hover:bg-zinc-300"
             } ${disableCompare ? "cursor-not-allowed opacity-50" : ""}`}
+            data-testid="compare-button"
           >
             {isCompared ? "Remove Compare" : "Compare"}
           </button>

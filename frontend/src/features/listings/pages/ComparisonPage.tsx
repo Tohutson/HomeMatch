@@ -20,7 +20,7 @@ export default function ComparisonPage() {
             href="/listings"
             className="inline-flex rounded-full bg-rose-500 px-4 py-2 text-sm font-medium text-white hover:bg-rose-600"
           >
-            Back to Browse
+            Back to Listings
           </Link>
         </div>
       </main>
@@ -49,7 +49,7 @@ export default function ComparisonPage() {
             <button
               type="button"
               onClick={clearComparison}
-              className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+              className="rounded-full bg-rose-500 px-4 py-2 text-sm font-medium text-white hover:bg-rose-600"
             >
               Clear All
             </button>

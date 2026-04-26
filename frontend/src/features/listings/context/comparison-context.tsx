@@ -1,7 +1,7 @@
 "use client";
 
 import type { Listing } from "@/features/listings/types";
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useMemo, useState } from "react";
 
 type ComparisonContextValue = {
   comparedListings: Listing[];
@@ -13,7 +13,7 @@ type ComparisonContextValue = {
   maxCompare: number;
 };
 
-const MAX_COMPARE = 4;
+export const MAX_COMPARE = 4;
 
 const ComparisonContext = createContext<ComparisonContextValue | undefined>(
   undefined
@@ -26,26 +26,29 @@ export function ComparisonProvider({
 }) {
   const [comparedListings, setComparedListings] = useState<Listing[]>([]);
 
-  const addListing = (listing: Listing) => {
+  const addListing = useCallback((listing: Listing) => {
     setComparedListings((prev) => {
       if (prev.some((item) => item.id === listing.id)) return prev;
       if (prev.length >= MAX_COMPARE) return prev;
       return [...prev, listing];
     });
-  };
+  }, []);
 
-  const removeListing = (id: string | number) => {
+  const removeListing = useCallback((id: string | number) => {
     setComparedListings((prev) =>
       prev.filter((listing) => listing.id !== id)
     );
-  };
+  }, []);
 
-  const clearComparison = () => {
+  const clearComparison = useCallback(() => {
     setComparedListings([]);
-  };
+  }, []);
 
-  const isSelected = (id: string | number) =>
-    comparedListings.some((listing) => listing.id === id);
+  const isSelected = useCallback(
+    (id: string | number) =>
+      comparedListings.some((listing) => listing.id === id),
+    [comparedListings]
+  );
 
   const canAddMore = comparedListings.length < MAX_COMPARE;
 
@@ -59,7 +62,14 @@ export function ComparisonProvider({
       canAddMore,
       maxCompare: MAX_COMPARE,
     }),
-    [comparedListings, canAddMore]
+    [
+      addListing,
+      canAddMore,
+      clearComparison,
+      comparedListings,
+      isSelected,
+      removeListing,
+    ]
   );
 
   return (

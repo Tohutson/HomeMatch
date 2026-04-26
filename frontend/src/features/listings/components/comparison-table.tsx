@@ -7,16 +7,19 @@ type ComparisonTableProps = {
   onRemove: (listingId: number) => void;
 };
 
+type ComparisonRow = {
+  label: string;
+  format: (listing: Listing) => string;
+  getValue: (listing: Listing) => number | null | undefined;
+  best: "min" | "max";
+};
+
 function formatPrice(price?: number | null) {
   if (price === undefined || price === null) {
     return "N/A";
   }
 
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(price);
+  return `$${price.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
 }
 
 function formatValue(value?: number | null) {
@@ -27,93 +30,74 @@ function formatValue(value?: number | null) {
   return String(value);
 }
 
-function toNumber(value: number | string | null | undefined) {
-    if (value === undefined || value === null || value === "") {
-      return null;
-    }
-  
-    const numericValue = Number(value);
-  
-    if (Number.isNaN(numericValue)) {
-      return null;
-    }
-  
-    return numericValue;
+function getBestValue(listings: Listing[], row: ComparisonRow) {
+  const values = listings
+    .map(row.getValue)
+    .filter((value): value is number => value !== undefined && value !== null);
+
+  if (values.length === 0) {
+    return null;
   }
-  
-  function getBestValue(
-    listings: Listing[],
-    getValue: (listing: Listing) => number | string | null | undefined,
-    mode: "min" | "max"
-  ) {
-    const values = listings
-      .map((listing) => toNumber(getValue(listing)))
-      .filter((value): value is number => value !== null);
-  
-    if (values.length === 0) {
-      return null;
-    }
-  
-    return mode === "min" ? Math.min(...values) : Math.max(...values);
-  }
-  
-  function isBestValue(
-    listing: Listing,
-    bestValue: number | null,
-    getValue: (listing: Listing) => number | string | null | undefined
-  ) {
-    const value = toNumber(getValue(listing));
-  
-    if (bestValue === null || value === null) {
-      return false;
-    }
-  
-    return value === bestValue;
-  }
-  
-  function bestStyle(isBest: boolean) {
-    if (!isBest) {
-      return {};
-    }
-  
-    return {
-      backgroundColor: "#bbf7d0",
-      color: "#166534",
-      fontWeight: 700,
-      borderRadius: "8px",
-      padding: "4px 8px",
-      display: "inline-block",
-    };
-  }
+
+  return row.best === "min" ? Math.min(...values) : Math.max(...values);
+}
+
+function isBestValue(listing: Listing, row: ComparisonRow, bestValue: number | null) {
+  const value = row.getValue(listing);
+
+  return bestValue !== null && value !== undefined && value !== null && value === bestValue;
+}
+
+const rows: ComparisonRow[] = [
+  {
+    label: "Price",
+    format: (listing) => formatPrice(listing.price),
+    getValue: (listing) => listing.price,
+    best: "min",
+  },
+  {
+    label: "Beds",
+    format: (listing) => formatValue(listing.beds),
+    getValue: (listing) => listing.beds,
+    best: "max",
+  },
+  {
+    label: "Baths",
+    format: (listing) => formatValue(listing.baths),
+    getValue: (listing) => listing.baths,
+    best: "max",
+  },
+  {
+    label: "Square Footage",
+    format: (listing) => formatValue(listing.sqft),
+    getValue: (listing) => listing.sqft,
+    best: "max",
+  },
+  {
+    label: "Energy Rating",
+    format: (listing) => formatValue(listing.energyStarScore),
+    getValue: (listing) => listing.energyStarScore,
+    best: "max",
+  },
+];
 
 export function ComparisonTable({ listings, onRemove }: ComparisonTableProps) {
-  const bestPrice = getBestValue(listings, (listing) => listing.price, "min");
-  const bestBeds = getBestValue(listings, (listing) => listing.beds, "max");
-  const bestBaths = getBestValue(listings, (listing) => listing.baths, "max");
-  const bestSqft = getBestValue(listings, (listing) => listing.sqft, "max");
-  const bestEnergy = getBestValue(
-    listings,
-    (listing) => listing.energyStarScore,
-    "max"
-  );
-
   return (
-    <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
+    <div className="overflow-x-auto rounded-2xl border border-zinc-200 bg-white shadow-sm">
       <table className="w-full border-collapse text-left">
         <thead>
-          <tr className="border-b border-gray-200">
-            <th className="p-4 font-semibold text-gray-700">Feature</th>
+          <tr className="border-b border-zinc-200">
+            <th className="p-4 font-semibold text-zinc-700">Feature</th>
 
             {listings.map((listing) => (
-              <th key={listing.id} className="p-4 align-top font-semibold text-gray-900">
+              <th key={listing.id} className="p-4 align-top font-semibold text-zinc-900">
                 <div className="space-y-3">
-                  <div>
-                    {listing.address ?? "Unknown Address"}
-                  </div>
+                  <div>{listing.address ?? "Unknown Address"}</div>
 
                   <button
                     type="button"
                     onClick={() => onRemove(listing.id)}
+                    aria-label={`Remove ${listing.address ?? "home"} from comparison`}
                     className="rounded-full bg-emerald-500 px-4 py-1 text-sm font-semibold text-white hover:bg-emerald-600"
                   >
                     Remove
@@ -125,64 +109,36 @@ export function ComparisonTable({ listings, onRemove }: ComparisonTableProps) {
         </thead>
 
         <tbody>
-          <tr className="border-b border-gray-200">
-            <td className="p-4 font-semibold text-gray-900">Price</td>
-            {listings.map((listing) => (
-              <td key={listing.id} className="p-4">
-                <span style={bestStyle(isBestValue(listing, bestPrice, (item) => item.price))}>
-                    {formatPrice(listing.price)}
-                </span>
-              </td>
-            ))}
-          </tr>
+          {rows.map((row, rowIndex) => {
+            const bestValue = getBestValue(listings, row);
 
-          <tr className="border-b border-gray-200">
-            <td className="p-4 font-semibold text-gray-900">Beds</td>
-            {listings.map((listing) => (
-              <td key={listing.id} className="p-4">
-                <span style={bestStyle(isBestValue(listing, bestBeds, (item) => item.beds))}>
-                    {formatValue(listing.beds)}
-                </span>
-              </td>
-            ))}
-          </tr>
+            return (
+              <tr
+                key={row.label}
+                className={rowIndex === rows.length - 1 ? "" : "border-b border-zinc-200"}
+              >
+                <td className="p-4 font-semibold text-zinc-900">{row.label}</td>
+                {listings.map((listing) => {
+                  const isBest = isBestValue(listing, row, bestValue);
 
-          <tr className="border-b border-gray-200">
-            <td className="p-4 font-semibold text-gray-900">Baths</td>
-            {listings.map((listing) => (
-              <td key={listing.id} className="p-4">
-                <span style={bestStyle(isBestValue(listing, bestBaths, (item) => item.baths))}>
-                    {formatValue(listing.baths)}
-                </span>
-              </td>
-            ))}
-          </tr>
-
-          <tr className="border-b border-gray-200">
-            <td className="p-4 font-semibold text-gray-900">Square Footage</td>
-            {listings.map((listing) => (
-              <td key={listing.id} className="p-4">
-                <span style={bestStyle(isBestValue(listing, bestSqft, (item) => item.sqft))}>
-                    {formatValue(listing.sqft)}
-                </span>
-              </td>
-            ))}
-          </tr>
-
-          <tr>
-            <td className="p-4 font-semibold text-gray-900">Energy Rating</td>
-            {listings.map((listing) => (
-              <td key={listing.id} className="p-4">
-                <span
-                    style={bestStyle(
-                        isBestValue(listing, bestEnergy, (item) => item.energyStarScore)
-                    )}
-                >
-                    {formatValue(listing.energyStarScore)}
-                </span>
-              </td>
-            ))}
-          </tr>
+                  return (
+                    <td key={listing.id} className="p-4">
+                      <span
+                        data-testid={isBest ? "best-value" : undefined}
+                        className={
+                          isBest
+                            ? "inline-block rounded-lg bg-emerald-100 px-2 py-1 font-bold text-emerald-700"
+                            : undefined
+                        }
+                      >
+                        {row.format(listing)}
+                      </span>
+                    </td>
+                  );
+                })}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

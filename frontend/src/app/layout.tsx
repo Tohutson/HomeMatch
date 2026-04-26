@@ -17,7 +17,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-        
         <FavoritesProvider>
           <ComparisonProvider>
             <Navbar />
@@ -28,5 +27,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-

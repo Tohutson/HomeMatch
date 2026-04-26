@@ -1,9 +1,6 @@
 export type Listing = {
   id: number;
   address?: string | null;
-  city?: string | null;
-  state?: string | null;
-  zipCode?: string | null;
   price?: number | null;
   beds?: number | null;
   baths?: number | null;
@@ -46,8 +43,8 @@ export type DraftListingFilters = {
 export type ListingSortOption =
   | "PRICE_ASC"
   | "PRICE_DESC"
-  | "SIZE_ASC"
-  | "SIZE_DESC"
+  | "SQFT_ASC"
+  | "SQFT_DESC"
   | "ENERGY_DESC";
 
 export const LISTING_SORT_OPTIONS: Array<{
@@ -56,7 +53,7 @@ export const LISTING_SORT_OPTIONS: Array<{
 }> = [
   { value: "PRICE_ASC", label: "Price: Low to High" },
   { value: "PRICE_DESC", label: "Price: High to Low" },
-  { value: "SIZE_ASC", label: "Size: Small to Large" },
-  { value: "SIZE_DESC", label: "Size: Large to Small" },
+  { value: "SQFT_ASC", label: "Size: Small to Large" },
+  { value: "SQFT_DESC", label: "Size: Large to Small" },
   { value: "ENERGY_DESC", label: "Energy Score: High to Low" },
 ];

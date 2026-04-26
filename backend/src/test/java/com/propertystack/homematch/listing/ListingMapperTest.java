@@ -3,7 +3,6 @@ package com.propertystack.homematch.listing;
 import com.propertystack.homematch.listing.dto.ListingDTO;
 import com.propertystack.homematch.listing.mapper.ListingMapper;
 import org.junit.jupiter.api.Test;
-import org.mapstruct.factory.Mappers;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
@@ -13,7 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ActiveProfiles("test")
 class ListingMapperTest {
 
-    private final ListingMapper mapper = Mappers.getMapper(ListingMapper.class);
+    private final ListingMapper mapper = new ListingMapper();
 
     @Test
     void shouldMapListingToDTO() {
