@@ -8,6 +8,7 @@ type UseListingsParams = {
   size: number;
   filters?: ListingFilters;
   sort?: ListingSortOption | null;
+  recommendationSessionResetKey?: number;
 };
 
 type UseListingsResult = {
@@ -17,6 +18,9 @@ type UseListingsResult = {
   page: number;
   loading: boolean;
   error: string | null;
+  recommendationSessionId: string | null;
+  usingRecommendationFallback: boolean;
+  recommendationMessage: string | null;
   refetch: () => Promise<void>;
 };
 
@@ -25,14 +29,35 @@ export function useListings({
   size,
   filters,
   sort,
+  recommendationSessionResetKey = 0,
 }: UseListingsParams): UseListingsResult {
   const [listings, setListings] = useState<Listing[]>([]);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [recommendationSessionId, setRecommendationSessionId] = useState<string | null>(null);
+  const [usingRecommendationFallback, setUsingRecommendationFallback] = useState(false);
+  const [recommendationMessage, setRecommendationMessage] = useState<string | null>(null);
+  const recommendationSessionIdRef = useRef<string | null>(null);
   const requestIdRef = useRef(0);
   const activeRequestRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    recommendationSessionIdRef.current = null;
+    setRecommendationSessionId(null);
+    setUsingRecommendationFallback(false);
+    setRecommendationMessage(null);
+  }, [recommendationSessionResetKey]);
+
+  useEffect(() => {
+    if (sort !== "RECOMMENDED") {
+      recommendationSessionIdRef.current = null;
+      setRecommendationSessionId(null);
+      setUsingRecommendationFallback(false);
+      setRecommendationMessage(null);
+    }
+  }, [sort]);
 
   const fetchListings = useCallback(async () => {
     activeRequestRef.current?.abort();
@@ -51,6 +76,8 @@ export function useListings({
         size,
         filters,
         sort,
+        recommendationSessionId:
+          sort === "RECOMMENDED" ? recommendationSessionIdRef.current : null,
         signal: controller.signal,
       });
 
@@ -61,6 +88,11 @@ export function useListings({
       setListings(data.content ?? []);
       setTotalPages(data.totalPages ?? 0);
       setTotalElements(data.totalElements ?? 0);
+      const nextRecommendationSessionId = data.recommendationSessionId ?? null;
+      recommendationSessionIdRef.current = nextRecommendationSessionId;
+      setRecommendationSessionId(nextRecommendationSessionId);
+      setUsingRecommendationFallback(data.usingRecommendationFallback ?? false);
+      setRecommendationMessage(data.message ?? null);
     } catch (err) {
       if (isAbortError(err)) {
         return;
@@ -76,6 +108,8 @@ export function useListings({
       setListings([]);
       setTotalPages(0);
       setTotalElements(0);
+      setUsingRecommendationFallback(false);
+      setRecommendationMessage(null);
     } finally {
       if (requestId === requestIdRef.current) {
         setLoading(false);
@@ -93,7 +127,7 @@ export function useListings({
     return () => {
       activeRequestRef.current?.abort();
     };
-  }, [fetchListings]);
+  }, [fetchListings, recommendationSessionResetKey]);
 
   return {
     listings,
@@ -102,6 +136,9 @@ export function useListings({
     page,
     loading,
     error,
+    recommendationSessionId,
+    usingRecommendationFallback,
+    recommendationMessage,
     refetch: fetchListings,
   };
 }

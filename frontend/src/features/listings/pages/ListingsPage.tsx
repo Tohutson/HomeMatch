@@ -4,17 +4,24 @@ import Toast from "@/components/Toast";
 import ComparisonBar from "@/features/listings/components/comparison-bar";
 import ListingCard from "@/features/listings/components/listing-card";
 import { useComparison } from "@/features/listings/context/comparison-context";
-import { useCallback, useEffect, useState, type ChangeEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ChangeEvent,
+} from "react";
 import ListingFilters from "../components/listing-filters";
 
 import { ListingsBanner } from "@/features/listings/components/listings-banner";
 import { ListingsPagination } from "@/features/listings/components/listings-pagination";
 
+import { useAuth } from "@/features/auth/context/auth-context";
 import { useListingsFavoriteWorkflow } from "@/features/favorites/hooks/use-listings-favorite-workflow";
 import { useListings } from "@/features/listings/hooks/use-listings";
 import { usePagedListingNavigation } from "@/features/listings/hooks/use-paged-listing-navigation";
 import {
-  LISTING_SORT_OPTIONS,
+  STANDARD_LISTING_SORT_OPTIONS,
   type Listing,
   type ListingSortOption,
 } from "@/features/listings/types";
@@ -22,10 +29,19 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useListingFilters } from "../hooks/use-listing-filters";
 
 const PAGE_SIZE = 12;
+const SIGNED_IN_DEFAULT_SORT: ListingSortOption = "RECOMMENDED";
+const SIGNED_OUT_DEFAULT_SORT: ListingSortOption = "PRICE_ASC";
+
+function getDefaultListingSort(isAuthenticated: boolean): ListingSortOption {
+  return isAuthenticated ? SIGNED_IN_DEFAULT_SORT : SIGNED_OUT_DEFAULT_SORT;
+}
 
 
 function isListingSortOption(value: string | null): value is ListingSortOption {
-  return value !== null && LISTING_SORT_OPTIONS.some((option) => option.value === value);
+  return (
+    value === "RECOMMENDED" ||
+    (value !== null && STANDARD_LISTING_SORT_OPTIONS.some((option) => option.value === value))
+  );
 }
 
 export default function ListingsPage() {
@@ -51,14 +67,57 @@ function ListingsPageContent({
   initialSort: ListingSortOption | null;
 }) {
   const [currentPage, setCurrentPage] = useState(0);
-  const [sort, setSort] = useState<ListingSortOption | null>(initialSort);
-  useEffect(() => {
-    setSort(initialSort);
-  }, [initialSort]);
+  const [selectedSort, setSelectedSort] = useState<ListingSortOption | null>(
+    null
+  );
+  const [recommendationSessionResetKey, setRecommendationSessionResetKey] = useState(0);
+  const { isAuthenticated, isAuthReady } = useAuth();
   const [toast, setToast] = useState<string | null>(null);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const defaultSort = isAuthReady
+    ? getDefaultListingSort(isAuthenticated)
+    : SIGNED_OUT_DEFAULT_SORT;
+  const requestedSort = selectedSort ?? initialSort;
+  const effectiveSort =
+    requestedSort === "RECOMMENDED" && (!isAuthReady || !isAuthenticated)
+      ? SIGNED_OUT_DEFAULT_SORT
+      : requestedSort ?? defaultSort;
+  const sortOptions = useMemo(() => {
+    if (isAuthenticated) {
+      return [
+        { value: "RECOMMENDED" as const, label: "Recommended for you" },
+        ...STANDARD_LISTING_SORT_OPTIONS,
+      ];
+    }
+
+    return [
+      { value: "PRICE_ASC" as const, label: "Default: Price Low to High" },
+      ...STANDARD_LISTING_SORT_OPTIONS.filter(
+        (option) => option.value !== "PRICE_ASC"
+      ),
+    ];
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthReady || isAuthenticated || initialSort !== "RECOMMENDED") {
+      return;
+    }
+
+    const params = new URLSearchParams(searchParams?.toString() ?? "");
+    params.delete("sort");
+
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : (pathname ?? "/listings"));
+  }, [
+    initialSort,
+    isAuthReady,
+    isAuthenticated,
+    pathname,
+    router,
+    searchParams,
+  ]);
 
   const {
     favoriteIds,
@@ -67,6 +126,7 @@ function ListingsPageContent({
     handleFavorite,
     handleUndo,
     handleRedo,
+    handleDismissBanner,
     pendingFavorite,
     canUndo,
     canRedo,
@@ -97,11 +157,20 @@ function ListingsPageContent({
     isClearDisabled,
   } = useListingFilters(locationParam);
 
-  const { listings, totalPages, totalElements, loading, error } = useListings({
+  const {
+    listings,
+    totalPages,
+    totalElements,
+    loading,
+    error,
+    usingRecommendationFallback,
+    recommendationMessage,
+  } = useListings({
     page: currentPage,
     size: PAGE_SIZE,
     filters: appliedFilters,
-    sort,
+    sort: effectiveSort,
+    recommendationSessionResetKey,
   });
 
   const {
@@ -132,30 +201,30 @@ function ListingsPageContent({
   const handleApplyFilters = useCallback(() => {
     setCurrentPage(0);
     setCurrentIndex(0);
+    setRecommendationSessionResetKey((key) => key + 1);
     applyFilters();
   }, [applyFilters, setCurrentIndex]);
 
   const handleSortChange = useCallback(
     (event: ChangeEvent<HTMLSelectElement>) => {
-      const value = event.target.value as ListingSortOption | "";
-      const nextSort = value === "" ? null : value;
+      const nextSort = event.target.value as ListingSortOption;
   
-      setSort(nextSort);
+      setSelectedSort(nextSort);
       setCurrentPage(0);
       setCurrentIndex(0);
   
       const params = new URLSearchParams(searchParams?.toString() ?? "");
   
-      if (nextSort) {
-        params.set("sort", nextSort);
-      } else {
+      if (nextSort === getDefaultListingSort(isAuthenticated)) {
         params.delete("sort");
+      } else {
+        params.set("sort", nextSort);
       }
   
       const query = params.toString();
       router.replace(query ? `${pathname}?${query}` : (pathname ?? "/listings"));
     },
-    [pathname, router, searchParams, setCurrentIndex]
+    [isAuthenticated, pathname, router, searchParams, setCurrentIndex]
   );
 
   const nextListing =
@@ -167,7 +236,8 @@ function ListingsPageContent({
   const handleClearFilters = useCallback(() => {
     setCurrentPage(0);
     setCurrentIndex(0);
-    setSort(null);
+    setSelectedSort(null);
+    setRecommendationSessionResetKey((key) => key + 1);
     clearFilters();
   
     const params = new URLSearchParams(searchParams?.toString() ?? "");
@@ -240,6 +310,7 @@ function ListingsPageContent({
         undoTimeLeft={undoTimeLeft}
         onUndo={handleUndo}
         onRedo={handleRedo}
+        onDismiss={handleDismissBanner}
       />
 
       <ComparisonBar
@@ -272,12 +343,11 @@ function ListingsPageContent({
             <div className="relative">
               <select
                 id="listing-sort"
-                value={sort ?? ""}
+                value={effectiveSort}
                 onChange={handleSortChange}
                 className="w-full appearance-none rounded-full border border-zinc-300 bg-zinc-50 px-4 py-3 pr-11 text-sm font-medium text-zinc-800 outline-none transition focus:border-zinc-400 focus:bg-white"
               >
-                <option value="">Recommended</option>
-                {LISTING_SORT_OPTIONS.map((option) => (
+                {sortOptions.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
@@ -299,6 +369,12 @@ function ListingsPageContent({
                 </svg>
               </span>
             </div>
+            {effectiveSort === "RECOMMENDED" && usingRecommendationFallback && (
+              <p className="mt-3 text-sm leading-5 text-zinc-500">
+                {recommendationMessage ??
+                  "Like a few homes to personalize your recommendations."}
+              </p>
+            )}
           </div>
         </aside>
 

@@ -8,6 +8,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -46,6 +47,8 @@ public class ListingSearchRequest {
 
     private SortOption sortOption;
 
+    private UUID recommendationSessionId;
+
     public ListingFilter toFilter() {
         return new ListingFilter(
                 location,
@@ -65,6 +68,10 @@ public class ListingSearchRequest {
                 : Sort.by(Sort.Direction.ASC, "price"); // default
 
         return PageRequest.of(page, size, sort);
+    }
+
+    public boolean isRecommendedSort() {
+        return sortOption == SortOption.RECOMMENDED;
     }
 
     @AssertTrue(message = "minPrice must be <= maxPrice")

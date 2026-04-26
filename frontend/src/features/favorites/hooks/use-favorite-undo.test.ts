@@ -82,4 +82,32 @@ describe("useFavoriteUndo", () => {
     expect(result.current.undoVisible).toBe(true);
     expect(result.current.canUndo).toBe(true);
   });
+
+  it("dismisses the banner and clears the undo window", () => {
+    const addFavorite = jest.fn().mockResolvedValue({ ok: true });
+    const removeFavorite = jest.fn().mockResolvedValue({ ok: true });
+
+    const { result } = renderHook(() =>
+      useFavoriteUndo({
+        addFavorite,
+        removeFavorite,
+        undoWindowSeconds: 2,
+      })
+    );
+
+    act(() => {
+      result.current.recordAddedFavorite(listing);
+    });
+
+    expect(result.current.showBanner).toBe(true);
+    expect(result.current.canUndo).toBe(true);
+
+    act(() => {
+      result.current.handleDismissBanner();
+    });
+
+    expect(result.current.showBanner).toBe(false);
+    expect(result.current.canUndo).toBe(false);
+    expect(result.current.undoTimeLeft).toBe(0);
+  });
 });

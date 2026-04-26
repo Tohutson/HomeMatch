@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/features/auth/context/auth-context";
+import { getSafeNextPath } from "@/features/auth/lib/redirect-path";
 
 type AuthMode = "login" | "signup";
 
@@ -11,7 +12,7 @@ export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login, signup, loginWithGoogle } = useAuth();
-  const nextPath = searchParams.get("next") ?? "/favorites";
+  const nextPath = getSafeNextPath(searchParams.get("next"));
   const mode: AuthMode =
     searchParams.get("mode") === "signup" ? "signup" : "login";
   const oauthError =
@@ -209,7 +210,7 @@ export default function LoginForm() {
       <p className="mt-6 text-center text-sm text-slate-600">
         {mode === "signup" ? "Already have an account?" : "New here?"}{" "}
         <Link
-          href={mode === "signup" ? "/login" : "/login?mode=signup"}
+          href={buildModeHref(mode === "signup" ? "login" : "signup")}
           className="font-semibold text-cyan-700"
         >
           {mode === "signup" ? "Log in" : "Create an account"}

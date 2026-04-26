@@ -22,6 +22,7 @@ type UseListingsFavoriteWorkflowResult = {
   handleFavorite: (listing: Listing) => Promise<ActionResult>;
   handleUndo: () => Promise<void>;
   handleRedo: () => Promise<void>;
+  handleDismissBanner: () => void;
   pendingFavorite: boolean;
   canUndo: boolean;
   canRedo: boolean;
@@ -53,6 +54,7 @@ export function useListingsFavoriteWorkflow({
     discardPendingFavorite,
     handleUndo,
     handleRedo,
+    handleDismissBanner,
     pendingFavorite,
     canUndo,
     canRedo,
@@ -179,6 +181,7 @@ export function useListingsFavoriteWorkflow({
     handleFavorite,
     handleUndo,
     handleRedo,
+    handleDismissBanner,
     pendingFavorite,
     canUndo,
     canRedo,

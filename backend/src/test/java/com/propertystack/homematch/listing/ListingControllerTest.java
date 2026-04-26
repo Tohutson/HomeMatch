@@ -1,10 +1,14 @@
 package com.propertystack.homematch.listing;
 
 import com.propertystack.homematch.listing.dto.ListingDTO;
+import com.propertystack.homematch.listing.dto.ListingPageResponse;
+import com.propertystack.homematch.listing.dto.ListingSearchRequest;
 import com.propertystack.homematch.listing.exception.ListingNotFoundException;
 import com.propertystack.homematch.listing.query.ListingFilter;
 import com.propertystack.homematch.search.SearchSuggestionDTO;
 import com.propertystack.homematch.search.SuggestionService;
+import com.propertystack.homematch.user.User;
+import com.propertystack.homematch.user.UserService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,12 +16,14 @@ import org.springframework.boot.security.oauth2.server.resource.autoconfigure.se
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.data.domain.*;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -46,6 +52,12 @@ class ListingControllerTest {
     @MockitoBean
     private SuggestionService suggestionService;
 
+    @MockitoBean
+    private UserService userService;
+
+    @Autowired
+    private ListingController listingController;
+
     @Test
     void shouldReturnPaginatedListings() throws Exception {
         ListingDTO dto = listingDto();
@@ -55,7 +67,7 @@ class ListingControllerTest {
                 Pageable.ofSize(20).withPage(0),
                 1);
 
-        when(listingService.getListings(any(), any())).thenReturn(page);
+        when(listingService.getListings(any(), any())).thenReturn(toResponse(page));
 
         mockMvc.perform(get("/api/listings")
                 .param("page", "0")
@@ -83,7 +95,7 @@ class ListingControllerTest {
 
     @Test
     void shouldUseDefaultPaginationWhenParamsAreOmitted() throws Exception {
-        when(listingService.getListings(any(), any())).thenReturn(Page.empty());
+        when(listingService.getListings(any(), any())).thenReturn(toResponse(Page.empty()));
 
         mockMvc.perform(get("/api/listings"))
                 .andExpect(status().isOk());
@@ -104,7 +116,7 @@ class ListingControllerTest {
 
     @Test
     void shouldBindQueryParamsAndPassFilterAndPageableToService() throws Exception {
-        when(listingService.getListings(any(), any())).thenReturn(Page.empty());
+        when(listingService.getListings(any(), any())).thenReturn(toResponse(Page.empty()));
 
         mockMvc.perform(get("/api/listings")
                 .param("page", "1")
@@ -145,7 +157,7 @@ class ListingControllerTest {
 
     @Test
     void shouldReturnEmptyPageWhenNoListingsFound() throws Exception {
-        when(listingService.getListings(any(), any())).thenReturn(Page.empty());
+        when(listingService.getListings(any(), any())).thenReturn(toResponse(Page.empty()));
 
         mockMvc.perform(get("/api/listings"))
                 .andExpect(status().isOk())
@@ -267,7 +279,7 @@ class ListingControllerTest {
 
     @Test
     void shouldBindSortOptionAndPassSortedPageableToService() throws Exception {
-        when(listingService.getListings(any(), any())).thenReturn(Page.empty());
+        when(listingService.getListings(any(), any())).thenReturn(toResponse(Page.empty()));
 
         mockMvc.perform(get("/api/listings")
                 .param("page", "0")
@@ -286,6 +298,62 @@ class ListingControllerTest {
     }
 
     @Test
+    void shouldRejectRecommendedSortWithoutAuthenticatedUser() throws Exception {
+        mockMvc.perform(get("/api/listings")
+                        .param("sortOption", "RECOMMENDED"))
+                .andExpect(status().isUnauthorized());
+
+        verifyNoMoreInteractions(listingService);
+    }
+
+    @Test
+    void shouldDelegateRecommendedSortWithAuthenticatedUser() throws Exception {
+        UUID sessionId = UUID.randomUUID();
+        User user = User.builder()
+                .id(1L)
+                .supabaseUserId("user-sub")
+                .email("user@example.com")
+                .build();
+        ListingPageResponse response = ListingPageResponse.builder()
+                .content(List.of())
+                .page(1)
+                .number(1)
+                .size(10)
+                .totalElements(0)
+                .totalPages(0)
+                .recommendationSessionId(sessionId)
+                .build();
+
+        when(userService.getOrCreateUser(any())).thenReturn(user);
+        when(listingService.getRecommendedListings(any(), any(), any(), any())).thenReturn(response);
+
+        Jwt jwt = Jwt.withTokenValue("token")
+                .header("alg", "none")
+                .subject("user-sub")
+                .claim("email", "user@example.com")
+                .build();
+        ListingSearchRequest request = new ListingSearchRequest();
+        request.setSortOption(com.propertystack.homematch.listing.dto.SortOption.RECOMMENDED);
+        request.setPage(1);
+        request.setSize(10);
+        request.setRecommendationSessionId(sessionId);
+
+        ListingPageResponse result = listingController.getListings(
+                request,
+                new org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken(jwt)
+        );
+
+        assertThat(result.recommendationSessionId()).isEqualTo(sessionId);
+        verify(userService).getOrCreateUser(any());
+        verify(listingService).getRecommendedListings(
+                org.mockito.ArgumentMatchers.eq(1L),
+                any(),
+                any(),
+                org.mockito.ArgumentMatchers.eq(sessionId)
+        );
+    }
+
+    @Test
     void shouldBindLocationAndPassFilterAndDefaultPageableToService() throws Exception {
         ListingDTO dto = listingDto();
         Page<ListingDTO> page = new PageImpl<>(
@@ -295,7 +363,7 @@ class ListingControllerTest {
         );
 
         given(listingService.getListings(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
-                .willReturn(page);
+                .willReturn(toResponse(page));
 
         mockMvc.perform(get("/api/listings")
                         .param("location", "15213"))
@@ -397,6 +465,17 @@ class ListingControllerTest {
                 .energyStarScore(75)
                 .listingUrl("http://example.com")
                 .photoUrls(List.of("url1.jpg", "url2.jpg"))
+                .build();
+    }
+
+    private ListingPageResponse toResponse(Page<ListingDTO> page) {
+        return ListingPageResponse.builder()
+                .content(page.getContent())
+                .page(page.getNumber())
+                .number(page.getNumber())
+                .size(page.getSize())
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
                 .build();
     }
 }

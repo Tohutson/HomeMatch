@@ -11,6 +11,7 @@ const mockUseListingsFavoriteWorkflow = jest.fn();
 const mockReplace = jest.fn();
 const mockSearchParamsGet = jest.fn();
 const mockSearchParamsToString = jest.fn();
+let mockIsAuthenticated = true;
 
 jest.mock("@/features/listings/hooks/use-listings", () => ({
   useListings: (...args: unknown[]) => mockUseListings(...args),
@@ -28,7 +29,8 @@ jest.mock("@/features/favorites/hooks/use-listings-favorite-workflow", () => ({
 
 jest.mock("@/features/auth/context/auth-context", () => ({
   useAuth: () => ({
-    isAuthenticated: true,
+    isAuthenticated: mockIsAuthenticated,
+    isAuthReady: true,
   }),
 }));
 
@@ -68,6 +70,7 @@ describe("ListingsPage", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockIsAuthenticated = true;
     mockSearchParamsGet.mockReturnValue(null);
     mockSearchParamsToString.mockReturnValue("");
     global.fetch = jest.fn().mockResolvedValue({
@@ -82,6 +85,7 @@ describe("ListingsPage", () => {
       handleFavorite: jest.fn(),
       handleUndo: jest.fn(),
       handleRedo: jest.fn(),
+      handleDismissBanner: jest.fn(),
       pendingFavorite: false,
       canUndo: false,
       canRedo: false,
@@ -123,7 +127,7 @@ describe("ListingsPage", () => {
     expect(screen.getByText(/1 match/i)).toBeInTheDocument();
   });
 
-  it("renders only the backend-supported sort options", async () => {
+  it("renders recommended sort only when logged in", async () => {
     renderListingsPage();
 
     const sortSelect = await screen.findByLabelText(/sort results/i);
@@ -133,14 +137,42 @@ describe("ListingsPage", () => {
     );
 
     expect(optionValues).toEqual([
-      "",
+      "RECOMMENDED",
       "PRICE_ASC",
       "PRICE_DESC",
       "SQFT_ASC",
       "SQFT_DESC",
       "ENERGY_DESC",
     ]);
+    expect(sortSelect).toHaveValue("RECOMMENDED");
+    expect(screen.getByRole("option", { name: /recommended for you/i })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /^default/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("option", { name: /energy score: low to high/i })).not.toBeInTheDocument();
+  });
+
+  it("hides recommended sort when logged out", async () => {
+    mockIsAuthenticated = false;
+
+    renderListingsPage();
+
+    const sortSelect = await screen.findByLabelText(/sort results/i);
+    const optionValues = Array.from(
+      sortSelect.querySelectorAll("option"),
+      (option) => option.getAttribute("value")
+    );
+
+    expect(optionValues).toEqual([
+      "PRICE_ASC",
+      "PRICE_DESC",
+      "SQFT_ASC",
+      "SQFT_DESC",
+      "ENERGY_DESC",
+    ]);
+    expect(sortSelect).toHaveValue("PRICE_ASC");
+    expect(
+      screen.getByRole("option", { name: /default: price low to high/i })
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /recommended for you/i })).not.toBeInTheDocument();
   });
 
   it("keeps filters and the current listing visible while loading the next page", async () => {
@@ -314,12 +346,33 @@ describe("ListingsPage", () => {
 
     const sortSelect = await screen.findByLabelText(/sort results/i);
 
-    expect(sortSelect).toHaveValue("");
+    expect(sortSelect).toHaveValue("RECOMMENDED");
 
     await waitFor(() => {
       const latestCall = mockUseListings.mock.calls.at(-1)?.[0];
-      expect(latestCall.sort).toBeNull();
+      expect(latestCall.sort).toBe("RECOMMENDED");
     });
+  });
+
+  it("falls back to price sorting when a logged-out user has a recommended sort URL", async () => {
+    mockIsAuthenticated = false;
+    mockSearchParamsGet.mockImplementation((key: string) =>
+      key === "sort" ? "RECOMMENDED" : null
+    );
+    mockSearchParamsToString.mockReturnValue("sort=RECOMMENDED");
+
+    renderListingsPage();
+
+    const sortSelect = await screen.findByLabelText(/sort results/i);
+
+    expect(sortSelect).toHaveValue("PRICE_ASC");
+    expect(screen.queryByRole("option", { name: /recommended for you/i })).not.toBeInTheDocument();
+
+    await waitFor(() => {
+      const latestCall = mockUseListings.mock.calls.at(-1)?.[0];
+      expect(latestCall.sort).toBe("PRICE_ASC");
+    });
+    expect(mockReplace).toHaveBeenCalledWith("/listings");
   });
 
   it("shows the no homes found empty state when filtered results are empty", async () => {
@@ -475,6 +528,7 @@ describe("ListingsPage", () => {
       handleFavorite: jest.fn(),
       handleUndo: jest.fn(),
       handleRedo: jest.fn(),
+      handleDismissBanner: jest.fn(),
       pendingFavorite: false,
       canUndo: false,
       canRedo: false,

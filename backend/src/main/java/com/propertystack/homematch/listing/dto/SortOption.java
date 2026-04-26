@@ -9,7 +9,8 @@ public enum SortOption {
     BEDS_DESC(Sort.by(Sort.Direction.DESC, "beds")),
     SQFT_ASC(Sort.by(Sort.Direction.ASC, "sqft")),
     SQFT_DESC(Sort.by(Sort.Direction.DESC, "sqft")),
-    ENERGY_DESC(Sort.by(Sort.Direction.DESC, "energyStarScore"));
+    ENERGY_DESC(Sort.by(Sort.Direction.DESC, "energyStarScore")),
+    RECOMMENDED(Sort.by(Sort.Direction.ASC, "id"));
 
     private final Sort sort;
 

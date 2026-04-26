@@ -24,6 +24,19 @@ describe("buildListingsQuery", () => {
     expect(query).not.toContain("sort=SQFT_DESC");
   });
 
+  it("includes recommendationSessionId when provided", () => {
+    const query = buildListingsQuery({
+      page: 1,
+      size: 12,
+      sort: "RECOMMENDED",
+      recommendationSessionId: "session-123",
+      filters: {},
+    });
+
+    expect(query).toContain("sortOption=RECOMMENDED");
+    expect(query).toContain("recommendationSessionId=session-123");
+  });
+
   it("includes maxSqft when provided", () => {
     const query = buildListingsQuery({
       page: 0,
