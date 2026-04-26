@@ -1,138 +1,120 @@
-import type { Listing } from "@/features/listings/types";
+"use client";
+
+import type { Listing } from "../types";
 
 type ComparisonTableProps = {
   listings: Listing[];
-  onRemove: (listingId: string) => void;
+  onRemove: (listingId: number) => void;
 };
 
-type RowConfig = {
-  label: string;
-  getValue: (listing: Listing) => number | string | null | undefined;
-  bestValue: "lowest" | "highest";
-  format?: (value: number | string | null | undefined) => string;
-};
-
-function formatMoney(value: number | string | null | undefined) {
-  if (value === null || value === undefined || value === "") {
+function formatPrice(price?: number | null) {
+  if (price === undefined || price === null) {
     return "N/A";
   }
 
-  const numberValue = Number(value);
-
-  if (Number.isNaN(numberValue)) {
-    return "N/A";
-  }
-
-  return `$${numberValue.toLocaleString()}`;
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(price);
 }
 
-function formatNumber(value: number | string | null | undefined) {
-  if (value === null || value === undefined || value === "") {
+function formatValue(value?: number | null) {
+  if (value === undefined || value === null) {
     return "N/A";
   }
 
   return String(value);
 }
 
-function getBestValue(
-  listings: Listing[],
-  row: RowConfig
-): number | null {
-  const values = listings
-    .map((listing) => Number(row.getValue(listing)))
-    .filter((value) => !Number.isNaN(value));
-
-  if (values.length === 0) {
-    return null;
+function toNumber(value: number | string | null | undefined) {
+    if (value === undefined || value === null || value === "") {
+      return null;
+    }
+  
+    const numericValue = Number(value);
+  
+    if (Number.isNaN(numericValue)) {
+      return null;
+    }
+  
+    return numericValue;
+  }
+  
+  function getBestValue(
+    listings: Listing[],
+    getValue: (listing: Listing) => number | string | null | undefined,
+    mode: "min" | "max"
+  ) {
+    const values = listings
+      .map((listing) => toNumber(getValue(listing)))
+      .filter((value): value is number => value !== null);
+  
+    if (values.length === 0) {
+      return null;
+    }
+  
+    return mode === "min" ? Math.min(...values) : Math.max(...values);
+  }
+  
+  function isBestValue(
+    listing: Listing,
+    bestValue: number | null,
+    getValue: (listing: Listing) => number | string | null | undefined
+  ) {
+    const value = toNumber(getValue(listing));
+  
+    if (bestValue === null || value === null) {
+      return false;
+    }
+  
+    return value === bestValue;
+  }
+  
+  function bestStyle(isBest: boolean) {
+    if (!isBest) {
+      return {};
+    }
+  
+    return {
+      backgroundColor: "#bbf7d0",
+      color: "#166534",
+      fontWeight: 700,
+      borderRadius: "8px",
+      padding: "4px 8px",
+      display: "inline-block",
+    };
   }
 
-  if (row.bestValue === "lowest") {
-    return Math.min(...values);
-  }
-
-  return Math.max(...values);
-}
-
-export default function ComparisonTable({
-  listings,
-  onRemove,
-}: ComparisonTableProps) {
-  const rows: RowConfig[] = [
-    {
-      label: "Price",
-      getValue: (listing) => listing.price,
-      bestValue: "lowest",
-      format: formatMoney,
-    },
-    {
-      label: "Beds",
-      getValue: (listing) => listing.beds,
-      bestValue: "highest",
-      format: formatNumber,
-    },
-    {
-      label: "Baths",
-      getValue: (listing) => listing.baths,
-      bestValue: "highest",
-      format: formatNumber,
-    },
-    {
-      label: "Square Footage",
-      getValue: (listing) => listing.sqft,
-      bestValue: "highest",
-      format: formatNumber,
-    },
-    {
-      label: "Energy Rating",
-      getValue: (listing) => listing.energyStarScore,
-      bestValue: "highest",
-      format: formatNumber,
-    },
-  ];
-
-  if (listings.length === 0) {
-    return (
-      <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
-        <h2 className="text-xl font-semibold text-zinc-900">
-          No homes selected
-        </h2>
-        <p className="mt-2 text-sm text-zinc-500">
-          Go back to browse and select homes to compare.
-        </p>
-      </div>
-    );
-  }
+export function ComparisonTable({ listings, onRemove }: ComparisonTableProps) {
+  const bestPrice = getBestValue(listings, (listing) => listing.price, "min");
+  const bestBeds = getBestValue(listings, (listing) => listing.beds, "max");
+  const bestBaths = getBestValue(listings, (listing) => listing.baths, "max");
+  const bestSqft = getBestValue(listings, (listing) => listing.sqft, "max");
+  const bestEnergy = getBestValue(
+    listings,
+    (listing) => listing.energyStarScore,
+    "max"
+  );
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-zinc-200 bg-white shadow-sm">
-      <table className="w-full min-w-[900px] border-collapse text-left">
+    <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <table className="w-full border-collapse text-left">
         <thead>
-          <tr className="border-b border-zinc-200">
-            <th className="w-40 px-5 py-4 text-sm font-semibold text-zinc-700">
-              Feature
-            </th>
+          <tr className="border-b border-gray-200">
+            <th className="p-4 font-semibold text-gray-700">Feature</th>
 
             {listings.map((listing) => (
-              <th
-                key={listing.id}
-                className="min-w-56 px-5 py-4 align-top text-sm font-semibold text-zinc-900"
-              >
+              <th key={listing.id} className="p-4 align-top font-semibold text-gray-900">
                 <div className="space-y-3">
-                <p>
-                {[
-                    listing.address,
-                    listing.city,
-                    listing.state,
-                    listing.zipCode,
-                ]
-                    .filter(Boolean)
-                    .join(", ") || "Unknown address"}
-                </p>
+                  <div>
+                    {listing.address ?? "Unknown Address"}
+                  </div>
 
                   <button
                     type="button"
-                    onClick={() => onRemove(String(listing.id))}
-                    className="rounded-full bg-emerald-500 px-4 py-1.5 text-xs font-semibold text-white hover:bg-emerald-600"
+                    onClick={() => onRemove(listing.id)}
+                    className="rounded-full bg-emerald-500 px-4 py-1 text-sm font-semibold text-white hover:bg-emerald-600"
                   >
                     Remove
                   </button>
@@ -143,39 +125,64 @@ export default function ComparisonTable({
         </thead>
 
         <tbody>
-          {rows.map((row) => {
-            const bestValue = getBestValue(listings, row);
+          <tr className="border-b border-gray-200">
+            <td className="p-4 font-semibold text-gray-900">Price</td>
+            {listings.map((listing) => (
+              <td key={listing.id} className="p-4">
+                <span style={bestStyle(isBestValue(listing, bestPrice, (item) => item.price))}>
+                    {formatPrice(listing.price)}
+                </span>
+              </td>
+            ))}
+          </tr>
 
-            return (
-              <tr key={row.label} className="border-b border-zinc-100">
-                <td className="px-5 py-5 text-sm font-semibold text-zinc-900">
-                  {row.label}
-                </td>
+          <tr className="border-b border-gray-200">
+            <td className="p-4 font-semibold text-gray-900">Beds</td>
+            {listings.map((listing) => (
+              <td key={listing.id} className="p-4">
+                <span style={bestStyle(isBestValue(listing, bestBeds, (item) => item.beds))}>
+                    {formatValue(listing.beds)}
+                </span>
+              </td>
+            ))}
+          </tr>
 
-                {listings.map((listing) => {
-                  const rawValue = row.getValue(listing);
-                  const numericValue = Number(rawValue);
-                  const isBest =
-                    bestValue !== null &&
-                    !Number.isNaN(numericValue) &&
-                    numericValue === bestValue;
+          <tr className="border-b border-gray-200">
+            <td className="p-4 font-semibold text-gray-900">Baths</td>
+            {listings.map((listing) => (
+              <td key={listing.id} className="p-4">
+                <span style={bestStyle(isBestValue(listing, bestBaths, (item) => item.baths))}>
+                    {formatValue(listing.baths)}
+                </span>
+              </td>
+            ))}
+          </tr>
 
-                  return (
-                    <td
-                      key={`${listing.id}-${row.label}`}
-                      className={`px-5 py-5 text-sm ${
-                        isBest
-                          ? "bg-green-100 font-bold text-green-800"
-                          : "text-zinc-900"
-                      }`}
-                    >
-                      {row.format ? row.format(rawValue) : formatNumber(rawValue)}
-                    </td>
-                  );
-                })}
-              </tr>
-            );
-          })}
+          <tr className="border-b border-gray-200">
+            <td className="p-4 font-semibold text-gray-900">Square Footage</td>
+            {listings.map((listing) => (
+              <td key={listing.id} className="p-4">
+                <span style={bestStyle(isBestValue(listing, bestSqft, (item) => item.sqft))}>
+                    {formatValue(listing.sqft)}
+                </span>
+              </td>
+            ))}
+          </tr>
+
+          <tr>
+            <td className="p-4 font-semibold text-gray-900">Energy Rating</td>
+            {listings.map((listing) => (
+              <td key={listing.id} className="p-4">
+                <span
+                    style={bestStyle(
+                        isBestValue(listing, bestEnergy, (item) => item.energyStarScore)
+                    )}
+                >
+                    {formatValue(listing.energyStarScore)}
+                </span>
+              </td>
+            ))}
+          </tr>
         </tbody>
       </table>
     </div>

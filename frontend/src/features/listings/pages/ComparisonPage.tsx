@@ -1,12 +1,8 @@
 "use client";
 
+import { ComparisonTable } from "@/features/listings/components/comparison-table";
 import { useComparison } from "@/features/listings/context/comparison-context";
 import Link from "next/link";
-
-function formatMoney(value?: number | null) {
-  if (value == null) return "N/A";
-  return `$${value.toLocaleString()}`;
-}
 
 export default function ComparisonPage() {
   const { comparedListings, removeListing, clearComparison } = useComparison();
@@ -60,85 +56,7 @@ export default function ComparisonPage() {
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-2xl border border-zinc-200 bg-white shadow-sm">
-          <table className="min-w-full border-collapse">
-            <thead>
-              <tr className="border-b border-zinc-200 bg-zinc-50">
-                <th className="p-4 text-left text-sm font-semibold text-zinc-700">
-                  Feature
-                </th>
-                {comparedListings.map((listing) => (
-                  <th
-                    key={listing.id}
-                    className="min-w-[220px] p-4 text-left align-top"
-                  >
-                    <div className="space-y-2">
-                      <div className="font-semibold text-zinc-950">
-                        {listing.address}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeListing(listing.id)}
-                        className="rounded-full bg-emerald-500 px-3 py-1 text-xs font-medium text-white hover:bg-emerald-600"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-
-            <tbody>
-              <tr className="border-b border-zinc-200">
-                <td className="p-4 font-medium">Price</td>
-                {comparedListings.map((listing) => (
-                  <td key={listing.id} className="p-4">
-                    {formatMoney(listing.price)}
-                  </td>
-                ))}
-              </tr>
-
-              <tr className="border-b border-zinc-200">
-                <td className="p-4 font-medium">Beds</td>
-                {comparedListings.map((listing) => (
-                  <td key={listing.id} className="p-4">
-                    {listing.beds ?? "N/A"}
-                  </td>
-                ))}
-              </tr>
-
-              <tr className="border-b border-zinc-200">
-                <td className="p-4 font-medium">Baths</td>
-                {comparedListings.map((listing) => (
-                  <td key={listing.id} className="p-4">
-                    {listing.baths ?? "N/A"}
-                  </td>
-                ))}
-              </tr>
-
-              <tr className="border-b border-zinc-200">
-                <td className="p-4 font-medium">Square Footage</td>
-                {comparedListings.map((listing) => (
-                  <td key={listing.id} className="p-4">
-                    {listing.sqft ?? "N/A"}
-                  </td>
-                ))}
-              </tr>
-
-              <tr className="border-b border-zinc-200">
-                <td className="p-4 font-medium">Energy Rating</td>
-                {comparedListings.map((listing) => (
-                  <td key={listing.id} className="p-4">
-                    {"energyStarScore" in listing
-                      ? String((listing as { energyStarScore?: number }).energyStarScore ?? "N/A")
-                      : "N/A"}
-                  </td>
-                ))}
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <ComparisonTable listings={comparedListings} onRemove={removeListing} />
       </div>
     </main>
   );
