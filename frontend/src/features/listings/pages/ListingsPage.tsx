@@ -2,7 +2,9 @@
 
 import NotLoggedInModal from "@/components/NotLoggedInModal";
 import Toast from "@/components/Toast";
+import ComparisonBar from "@/features/listings/components/comparison-bar";
 import ListingCard from "@/features/listings/components/listing-card";
+import { useComparison } from "@/features/listings/context/comparison-context";
 import { useCallback, useEffect, useState, type ChangeEvent } from "react";
 import ListingFilters from "../components/listing-filters";
 
@@ -15,6 +17,7 @@ import { useListings } from "@/features/listings/hooks/use-listings";
 import { usePagedListingNavigation } from "@/features/listings/hooks/use-paged-listing-navigation";
 import {
   LISTING_SORT_OPTIONS,
+  type Listing,
   type ListingSortOption,
 } from "@/features/listings/types";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -103,6 +106,15 @@ function ListingsPageContent({
   });
 
   const {
+    comparedListings,
+    addListing,
+    removeListing,
+    clearComparison,
+    isSelected,
+    canAddMore,
+  } = useComparison();
+
+  const {
     currentIndex,
     currentListing,
     canGoPrevious,
@@ -166,6 +178,18 @@ function ListingsPageContent({
     const query = params.toString();
     router.replace(query ? `${pathname}?${query}` : (pathname ?? "/listings"));
   }, [clearFilters, pathname, router, searchParams, setCurrentIndex]);
+
+  const handleToggleCompare = useCallback(
+    (listing: Listing) => {
+      if (isSelected(listing.id)) {
+        removeListing(listing.id);
+        return;
+      }
+
+      addListing(listing);
+    },
+    [addListing, isSelected, removeListing]
+  );
 
   const handleSwipeRight = useCallback(async () => {
     if (!currentListing) return false;
@@ -246,6 +270,11 @@ function ListingsPageContent({
         undoTimeLeft={undoTimeLeft}
         onUndo={handleUndo}
         onRedo={handleRedo}
+      />
+
+      <ComparisonBar
+        selectedCount={comparedListings.length}
+        onClear={clearComparison}
       />
 
       <div className="mx-auto flex max-w-7xl flex-col gap-8 lg:grid lg:grid-cols-[320px_minmax(0,1fr)_280px] lg:items-start">
@@ -346,6 +375,9 @@ function ListingsPageContent({
                   onFavorite={handleFavorite}
                   onSwipeRight={handleSwipeRight}
                   onSwipeLeft={handleSwipeLeft}
+                  isCompared={isSelected(currentListing.id)}
+                  onToggleCompare={handleToggleCompare}
+                  disableCompare={!isSelected(currentListing.id) && !canAddMore}
                 />
               </div>
 
