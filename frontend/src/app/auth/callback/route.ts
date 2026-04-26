@@ -1,13 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/features/auth/lib/supabase-server";
-
-function getSafeNextPath(nextPath: string | null) {
-  if (!nextPath || !nextPath.startsWith("/") || nextPath.startsWith("//")) {
-    return "/favorites";
-  }
-
-  return nextPath;
-}
+import { getSafeNextPath } from "@/features/auth/lib/redirect-path";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);

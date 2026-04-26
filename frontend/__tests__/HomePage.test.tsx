@@ -13,6 +13,8 @@ jest.mock("next/navigation", () => ({
   useRouter: () => ({
     refresh: jest.fn(),
   }),
+  usePathname: () => "/",
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 async function renderHomePage() {

@@ -1,14 +1,46 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import { useAuth } from "@/features/auth/context/auth-context";
+import { DEFAULT_POST_LOGIN_PATH } from "@/features/auth/lib/redirect-path";
 import { useFavoritesContext } from "@/features/favorites/context/favorites-context";
 import SearchBar from "@/features/search/components/SearchBar";
 
+function buildLoginHref(pathname: string, search: string) {
+  const currentPath = `${pathname}${search ? `?${search}` : ""}`;
+  const loginNextPath =
+    pathname === "/login" || pathname === "/signup" || pathname.startsWith("/auth/")
+      ? DEFAULT_POST_LOGIN_PATH
+      : currentPath;
+
+  return `/login?${new URLSearchParams({
+    next: loginNextPath,
+  }).toString()}`;
+}
+
+function LoginLink({ href }: { href: string }) {
+  return (
+    <Link
+      href={href}
+      className="rounded-full border border-slate-300 bg-white/80 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-white"
+      data-testid="login-button"
+    >
+      Log In / Sign Up
+    </Link>
+  );
+}
+
+function LoginLinkWithSearchParams({ pathname }: { pathname: string }) {
+  const searchParams = useSearchParams();
+
+  return <LoginLink href={buildLoginHref(pathname, searchParams.toString())} />;
+}
+
 export default function NavbarClient() {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, isAuthReady, isAuthenticated, logout } = useAuth();
   const { favoriteCount } = useFavoritesContext();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -71,13 +103,11 @@ export default function NavbarClient() {
                 </button>
               </>
             ) : (
-              <Link
-                href="/login"
-                className="rounded-full border border-slate-300 bg-white/80 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-white"
-                data-testid="login-button"
+              <Suspense
+                fallback={<LoginLink href={buildLoginHref(pathname, "")} />}
               >
-                Log In / Sign Up
-              </Link>
+                <LoginLinkWithSearchParams pathname={pathname} />
+              </Suspense>
             )}
           </div>
         </div>

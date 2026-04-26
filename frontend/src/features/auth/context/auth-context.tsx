@@ -11,6 +11,7 @@ import {
 import type { Session, User } from "@supabase/supabase-js";
 import { clearOfflineQueue } from "@/lib/offline-queue";
 import { createBrowserSupabaseClient } from "@/features/auth/lib/supabase-browser";
+import { DEFAULT_POST_LOGIN_PATH } from "@/features/auth/lib/redirect-path";
 
 type AuthResult =
   | { success: true }
@@ -127,7 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const loginWithGoogle = useCallback(
-    async (nextPath = "/favorites"): Promise<AuthResult> => {
+    async (nextPath = DEFAULT_POST_LOGIN_PATH): Promise<AuthResult> => {
       const redirectTo = new URL("/auth/callback", window.location.origin);
       redirectTo.searchParams.set("next", nextPath);
 
