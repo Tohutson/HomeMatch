@@ -1,211 +1,247 @@
 # HomeMatch
 
-HomeMatch is a real estate home browser web application that enables users to efficiently explore and compare residential properties through intelligent search, filtering, and personalized browsing features.
+HomeMatch is a full-stack real estate application for browsing residential property listings. The project includes a Next.js frontend, a Spring Boot backend, and a PostgreSQL database managed through Flyway migrations.
 
-## Running the Frontend (Local Development)
+## Main Features
 
-### 1. Install Volta (if not already installed)
+- Browse paginated property listings.
+- Filter listings by location, price, beds, baths, square footage, and energy score.
+- Sort listings by price, beds, square footage, and energy score.
+- View listing details and listing photos.
+- Save and remove favorites for authenticated users.
+- Discover listings through swipe-based interactions.
+- Undo the last favorite action in the frontend workflow.
+- Compare selected listings in the frontend.
+- Authenticate users with Supabase email/password auth and Google OAuth.
 
-Volta ensures the correct Node version is used automatically:
-**Mac / Linux**
+## Tech Stack
 
-```bash
-curl https://get.volta.sh | bash
+| Area | Technology |
+| --- | --- |
+| Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS 4 |
+| Backend | Java 25, Spring Boot 4, Spring Web MVC, Spring Security, Spring Data JPA |
+| Database | PostgreSQL, Flyway |
+| Authentication | Supabase Auth, JWT resource server validation |
+| Testing | JUnit, Spring Boot Test, Testcontainers, Jest, Testing Library, Playwright |
+| Tooling | Maven Wrapper, npm, Volta, Docker Compose |
+
+## Repository Structure
+
+```text
+.
+|-- backend/                 Spring Boot API, Flyway migrations, backend tests
+|-- frontend/                Next.js application, Jest tests, Playwright tests
+|-- .github/workflows/       Pull request CI workflow
+|-- docker-compose.e2e.yml   Disposable PostgreSQL database for Playwright tests
+|-- CONTRIBUTING.md          Branch, commit, and pull request workflow
+`-- README.md                Project overview and quick start
 ```
 
-**Windows (using Winget)**
+## Prerequisites
 
-```powershell
-winget install Volta.Volta
-```
-
-- After installation, restart your terminal or PowerShell.
-- Volta will automatically use the Node version pinned in the repo.
-
-### 2. Clone the repository (if not done yet)
-
-```bash
-git clone https://github.com/Tohutson/HomeMatch.git
-cd HomeMatch/frontend
-```
-
-### 3. Install dependencies
-
-Volta will automatically use the pinned Node version from the repo:
-
-```bash
-npm install
-```
-
-### 4. Start the development server
-
-```bash
-npm run dev
-```
-
-The app will be running at [http://localhost:3000](http://localhost:3000).
-
----
-
-## Running the Backend (Local Development)
-
-### Local Development Strategy
-
-This project uses a **hybrid Docker approach** for local development:
-
-- PostgreSQL runs inside a Docker container
-- The Spring Boot backend runs locally via Maven
-- This ensures consistent infrastructure while allowing full IDE debugging support
-
-This approach provides a reproducible database environment without requiring developers to install PostgreSQL directly on their machines.
-
-### Prerequisites
-
-Before starting, ensure you have the following installed:
-
-- Docker Desktop (or Docker Engine)
-- JDK 25
-- Maven 3.9+
 - Git
+- Java 25
+- Docker Desktop or another Docker Compose-compatible runtime
+- Volta, or Node.js 24.13.1 and npm
+- PostgreSQL CLI tools if running Playwright tests locally, because the e2e seed utility calls `psql`
 
-Verify installations:
+Check installed versions:
 
 ```bash
 java --version
-mvn --version
+git --version
 docker --version
+docker compose version
+node --version
+npm --version
 ```
 
----
+## Environment Variables
 
-### 1. Setup Environment Variables
+The backend loads configuration from `backend/.env`, the repository root `.env`, and `frontend/.env.local` when run from `backend/`.
 
-macOS / Linux (temporary for current terminal session)
+Local environment files are ignored by Git and should not be committed.
+
+### Backend
+
+Create `.env` at the repository root:
+
+```properties
+DB_URL=jdbc:postgresql://<host>:<port>/<database>
+DB_USERNAME=<database-user>
+DB_PASSWORD=<database-password>
+```
+
+Optional backend variables:
+
+```properties
+SPRING_DATASOURCE_URL=jdbc:postgresql://<host>:<port>/<database>
+SPRING_DATASOURCE_USERNAME=<database-user>
+SPRING_DATASOURCE_PASSWORD=<database-password>
+SUPABASE_URL=<supabase-project-url>
+SUPABASE_SERVICE_ROLE_KEY=<supabase-service-role-key>
+SUPABASE_JWT_ISSUER_URI=<jwt-issuer-uri>
+SUPABASE_JWT_JWK_SET_URI=<jwt-jwk-set-uri>
+SUPABASE_JWT_AUDIENCE=authenticated
+```
+
+`SUPABASE_SERVICE_ROLE_KEY` is required for account deletion through `DELETE /api/users/me`. It is not required for listing browsing or favorites.
+
+### Frontend
+
+Create `frontend/.env.local`:
+
+```properties
+NEXT_PUBLIC_SUPABASE_URL=<supabase-project-url>
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<supabase-publishable-key>
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8081
+```
+
+Optional variables for local Playwright auth tests:
+
+```properties
+E2E_AUTH_EMAIL_ONE=<test-user-email>
+E2E_AUTH_PASSWORD_ONE=<test-user-password>
+E2E_AUTH_EMAIL_TWO=<test-user-email>
+E2E_AUTH_PASSWORD_TWO=<test-user-password>
+```
+
+The Playwright auth isolation test is skipped when these credentials are not configured.
+
+## Database and Migrations
+
+The backend uses Flyway migrations from `backend/src/main/resources/db/migration`.
+
+Current migrations create and update:
+
+- `listings`
+- `users`
+- `favorites`
+- listing search indexes, including `pg_trgm` for address search
+- listing ZIP code and energy score fields
+
+For regular development, configure the backend datasource variables to point at a PostgreSQL database. Flyway runs automatically when the backend starts.
+
+For local end-to-end tests, use the disposable PostgreSQL service:
 
 ```bash
-export DB_USERNAME=homefinder
-export DB_PASSWORD=supersecret
+docker compose -f docker-compose.e2e.yml up -d
 ```
 
-Then run your app in the same terminal session.
+This starts PostgreSQL on local port `5433` with database `homematch_e2e`.
 
-Windows (PowerShell, temporary)
+## Run Locally
 
-```powershell
-$env:DB_USERNAME="homefinder"
-$env:DB_PASSWORD="supersecret"
-```
-
-#### Notes
-
-These environment variables are temporary — they last only for the current terminal session.
-
-To make them permanent, add them to your shell profile (~/.bashrc, ~/.zshrc, or Windows environment variables).
-
-Always set these before starting Docker containers or running the backend.
-
-### 2. Start PostgreSQL (Docker)
-
-From the project root directory:
-
-```bash
-docker-compose up -d
-```
-
-This will:
-
-- Pull the PostgreSQL image (if not already downloaded)
-- Start the database container
-- Expose PostgreSQL on port `5433`
-
-To confirm the container is running:
-
-```bash
-docker ps
-```
-
-You should see the database container listed.
-
-To stop the database:
-
-```bash
-docker-compose down
-```
-
-To completely reset the database (including stored data):
-
-```bash
-docker-compose down -v
-```
-
-### 3. Database Configuration (Dev Profile)
-
-The backend connects to PostgreSQL using the dev profile (application-dev.yml) with environment variables:
-
-```yml
-spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5433/homefinder
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
-  jpa:
-    hibernate:
-      ddl-auto: update
-```
-
-Notes:
-
-Using `${DB_USERNAME}` and `${DB_PASSWORD}` ensures Docker and your local dev environment use the same credentials.
-
-You can still override them via environment variables if needed.
-
-IDE run configurations can also set spring.profiles.active=dev to pick up this file automatically.
-
-### 4. Run the Backend
-
-From the project root:
+Start the backend:
 
 ```bash
 cd backend
+./mvnw spring-boot:run
 ```
 
-Start the application with the dev profile:
+The backend runs at `http://localhost:8081`.
+
+In a second terminal, start the frontend:
 
 ```bash
-mvn spring-boot:run -Dspring-boot.run.profiles=dev
+cd frontend
+npm install
+npm run dev
 ```
 
-Alternatively, run the application directly from your IDE.
+The frontend runs at `http://localhost:3000`.
 
-By default, the backend will start on:
+## Testing
 
-```text
-http://localhost:8081
+Run backend tests:
+
+```bash
+cd backend
+./mvnw test
 ```
 
-### 5. Verify Startup
+Run the backend CI build locally:
 
-On successful startup, you should see logs similar to:
-
-```text
-Started Application in X.XXX seconds
+```bash
+cd backend
+./mvnw clean verify
 ```
 
-If `spring.jpa.hibernate.ddl-auto=update` is enabled, database tables will be created automatically on first run.
+Run frontend unit and component tests:
 
----
+```bash
+cd frontend
+npm test -- --watchAll=false
+```
 
-### Troubleshooting
+Run frontend linting:
 
-#### Port 5433 Already in Use
+```bash
+cd frontend
+npm run lint
+```
 
-Another PostgreSQL instance may be running locally.
-Stop the local instance or change the Docker port mapping.
+Run end-to-end tests:
 
-#### Cannot Connect to Database
+```bash
+docker compose -f docker-compose.e2e.yml up -d
+cd backend
+./mvnw spring-boot:run -Dspring-boot.run.profiles=e2e
+```
 
-Ensure:
+In another terminal:
 
-- Docker container is running (`docker ps`)
-- Database credentials are set in environment variables
-- Port 5433 is not blocked
+```bash
+cd frontend
+npx playwright install
+npm run test:e2e
+```
+
+Playwright starts the frontend development server on `http://127.0.0.1:3000` and uses the backend at `http://127.0.0.1:8081`.
+
+## API Overview
+
+The backend base URL is `http://localhost:8081`.
+
+Public endpoints:
+
+- `GET /api/listings`
+- `GET /api/listings/{id}`
+- `GET /api/listings/availability?ids=1&ids=2`
+- `GET /api/listings/suggestions?q=<query>&limit=<limit>`
+
+Authenticated endpoints:
+
+- `GET /api/users/me`
+- `DELETE /api/users/me`
+- `GET /api/users/me/favorites`
+- `POST /api/users/me/favorites`
+- `DELETE /api/users/me/favorites/{listingId}`
+
+Authenticated requests require an `Authorization: Bearer <supabase-access-token>` header.
+
+See [backend/README.md](./backend/README.md) for endpoint parameters and examples.
+
+## Authentication Flow
+
+- The frontend uses Supabase client helpers for browser, server, and middleware session handling.
+- Email/password login and signup use Supabase Auth.
+- Google OAuth redirects through `/auth/callback`, exchanges the code for a session, and redirects to a safe internal path.
+- The backend validates Supabase JWTs as a stateless OAuth2 resource server.
+- On authenticated backend requests, the user is created or loaded from the local `users` table using the Supabase subject.
+
+## Development Workflow
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for branch naming, pull request, review, and merge guidance.
+
+For component-specific setup, see:
+
+- [backend/README.md](./backend/README.md)
+- [frontend/README.md](./frontend/README.md)
+
+## Development Notes
+
+- The backend default profile is `dev`.
+- The `e2e` backend profile connects to the Docker Compose PostgreSQL service on port `5433`.
+- Listing endpoints are public. User and favorite endpoints require authentication.
+- Set `NEXT_PUBLIC_API_BASE_URL` explicitly in `frontend/.env.local`; authenticated API calls read it directly from the environment.

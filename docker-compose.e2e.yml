@@ -1,0 +1,10 @@
+services:
+  postgres:
+    image: postgres:17.6
+    container_name: homematch-e2e-postgres
+    environment:
+      POSTGRES_DB: homematch_e2e
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"

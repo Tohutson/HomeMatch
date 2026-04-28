@@ -1,0 +1,144 @@
+import { getListings } from "@/features/listings/api";
+import type { Listing, ListingFilters, ListingSortOption } from "@/features/listings/types";
+import { isAbortError } from "@/lib/is-abort-error";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+type UseListingsParams = {
+  page: number;
+  size: number;
+  filters?: ListingFilters;
+  sort?: ListingSortOption | null;
+  recommendationSessionResetKey?: number;
+};
+
+type UseListingsResult = {
+  listings: Listing[];
+  totalPages: number;
+  totalElements: number;
+  page: number;
+  loading: boolean;
+  error: string | null;
+  recommendationSessionId: string | null;
+  usingRecommendationFallback: boolean;
+  recommendationMessage: string | null;
+  refetch: () => Promise<void>;
+};
+
+export function useListings({
+  page,
+  size,
+  filters,
+  sort,
+  recommendationSessionResetKey = 0,
+}: UseListingsParams): UseListingsResult {
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [recommendationSessionId, setRecommendationSessionId] = useState<string | null>(null);
+  const [usingRecommendationFallback, setUsingRecommendationFallback] = useState(false);
+  const [recommendationMessage, setRecommendationMessage] = useState<string | null>(null);
+  const recommendationSessionIdRef = useRef<string | null>(null);
+  const requestIdRef = useRef(0);
+  const activeRequestRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    recommendationSessionIdRef.current = null;
+    setRecommendationSessionId(null);
+    setUsingRecommendationFallback(false);
+    setRecommendationMessage(null);
+  }, [recommendationSessionResetKey]);
+
+  useEffect(() => {
+    if (sort !== "RECOMMENDED") {
+      recommendationSessionIdRef.current = null;
+      setRecommendationSessionId(null);
+      setUsingRecommendationFallback(false);
+      setRecommendationMessage(null);
+    }
+  }, [sort]);
+
+  const fetchListings = useCallback(async () => {
+    activeRequestRef.current?.abort();
+
+    const controller = new AbortController();
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+    activeRequestRef.current = controller;
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const data = await getListings({
+        page,
+        size,
+        filters,
+        sort,
+        recommendationSessionId:
+          sort === "RECOMMENDED" ? recommendationSessionIdRef.current : null,
+        signal: controller.signal,
+      });
+
+      if (controller.signal.aborted || requestId !== requestIdRef.current) {
+        return;
+      }
+
+      setListings(data.content ?? []);
+      setTotalPages(data.totalPages ?? 0);
+      setTotalElements(data.totalElements ?? 0);
+      const nextRecommendationSessionId = data.recommendationSessionId ?? null;
+      recommendationSessionIdRef.current = nextRecommendationSessionId;
+      setRecommendationSessionId(nextRecommendationSessionId);
+      setUsingRecommendationFallback(data.usingRecommendationFallback ?? false);
+      setRecommendationMessage(data.message ?? null);
+    } catch (err) {
+      if (isAbortError(err)) {
+        return;
+      }
+
+      console.error("Failed to fetch listings:", err);
+
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+
+      setError("Failed to load listings");
+      setListings([]);
+      setTotalPages(0);
+      setTotalElements(0);
+      setUsingRecommendationFallback(false);
+      setRecommendationMessage(null);
+    } finally {
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+      }
+
+      if (activeRequestRef.current === controller) {
+        activeRequestRef.current = null;
+      }
+    }
+  }, [page, size, filters, sort]);
+
+  useEffect(() => {
+    void fetchListings();
+
+    return () => {
+      activeRequestRef.current?.abort();
+    };
+  }, [fetchListings, recommendationSessionResetKey]);
+
+  return {
+    listings,
+    totalPages,
+    totalElements,
+    page,
+    loading,
+    error,
+    recommendationSessionId,
+    usingRecommendationFallback,
+    recommendationMessage,
+    refetch: fetchListings,
+  };
+}
